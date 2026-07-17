@@ -1,0 +1,28 @@
+# Environments
+venv/
+env/
+.env
+.venv
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Pytest
+.pytest_cache/
+coverage.xml
+
+# IDEs
+.idea/
+.vscode/
+
+# Build
+build/
+dist/
+*.egg-info/
+
+# Logs
+*.log
+
+# Uploads
+placement-portal-backend/uploads/

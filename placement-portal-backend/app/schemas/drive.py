@@ -1,0 +1,65 @@
+"""Schemas for the `drives` table, including the structured (never free-text)
+eligibility_criteria block.
+"""
+from datetime import datetime
+from typing import Optional
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from app.models.drive import DriveStatus, DriveTestStatus
+
+
+class EligibilityCriteria(BaseModel):
+    min_cgpa: float = Field(ge=0, le=10)
+    max_backlogs: int = Field(ge=0)
+    department_list: list[str] = Field(min_length=1)
+    min_tenth: float = Field(ge=0, le=100)
+    min_twelfth: float = Field(ge=0, le=100)
+    # ASSUMPTION: optional — a drive may not require a competitive exam score,
+    # and not every student has one recorded (profiles.competitive_exam_percentile
+    # is itself nullable).
+    min_percentile: Optional[float] = Field(default=None, ge=0, le=100)
+
+
+class DriveCreate(BaseModel):
+    company_id: int
+    role: str = Field(min_length=1, max_length=255)
+    jd_text: str = Field(min_length=1)
+    eligibility_criteria: EligibilityCriteria
+    bond_details: Optional[str] = None
+    deadline: datetime
+
+    @field_validator("deadline")
+    @classmethod
+    def deadline_must_be_future(cls, value: datetime) -> datetime:
+        # Compare naive/aware consistently by stripping tzinfo for the check.
+        now = datetime.now(value.tzinfo) if value.tzinfo else datetime.now()
+        if value <= now:
+            raise ValueError("deadline must be a future date")
+        return value
+
+
+class DriveUpdate(BaseModel):
+    role: Optional[str] = Field(default=None, min_length=1, max_length=255)
+    jd_text: Optional[str] = None
+    eligibility_criteria: Optional[EligibilityCriteria] = None
+    bond_details: Optional[str] = None
+    deadline: Optional[datetime] = None
+    status: Optional[DriveStatus] = None
+    test_status: Optional[DriveTestStatus] = None
+
+
+class DriveResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    company_id: int
+    role: str
+    jd_text: str
+    eligibility_criteria: EligibilityCriteria
+    bond_details: Optional[str] = None
+    deadline: datetime
+    status: DriveStatus
+    test_status: DriveTestStatus
+    created_by: int
+    created_at: datetime

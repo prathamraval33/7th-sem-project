@@ -1,0 +1,46 @@
+/* Tailwind base/components/utilities + the design system's shared CSS
+   variables (mirrors tailwind.config.js so non-Tailwind contexts, e.g.
+   inline SVG or third-party chart styling, can reference the same tokens). */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-brand: #3d6b60;
+  --color-accent: #d6842a;
+  --color-bg: #faf8f5;
+  --color-role-student: #3d6b60;
+  --color-role-tpo: #4f5f80;
+  --color-role-admin: #7a4a5c;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+}
+
+@layer base {
+  body {
+    @apply bg-neutral-50 text-neutral-900 font-body antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-heading text-neutral-900;
+  }
+
+  h1 {
+    @apply text-3xl font-semibold tracking-tight;
+  }
+
+  h2 {
+    @apply text-2xl font-semibold tracking-tight;
+  }
+
+  h3 {
+    @apply text-xl font-semibold;
+  }
+}
