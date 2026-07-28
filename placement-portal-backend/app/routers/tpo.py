@@ -72,7 +72,7 @@ class TpoDashboardSummary(BaseModel):
 
 @router.get("/dashboard/summary", response_model=TpoDashboardSummary)
 def get_dashboard_summary(current_user: User = Depends(require_tpo), db: Session = Depends(get_db)) -> TpoDashboardSummary:
-    total_students = db.scalar(select(func.count()).select_from(User).where(User.user_type == UserType.STUDENT))
+    total_students = db.scalar(select(func.count()).select_from(Profile).join(User).where(User.user_type == UserType.STUDENT))
     fee_verified_students = db.scalar(
         select(func.count()).select_from(User).where(User.user_type == UserType.STUDENT, User.fee_verified.is_(True))
     )
@@ -440,6 +440,7 @@ def get_instant_test_history(current_user: User = Depends(require_tpo), db: Sess
 # --------------------------------------------------------------------------
 class StudentCard(BaseModel):
     user_id: int
+    email: str
     full_name: str
     branch: str
     fee_verified: bool
@@ -455,6 +456,7 @@ def list_all_students(current_user: User = Depends(require_tpo), db: Session = D
         cards.append(
             StudentCard(
                 user_id=user.id, 
+                email=user.email,
                 full_name=profile.full_name if profile else "Profile Not Setup", 
                 branch=profile.branch if profile else "N/A",
                 fee_verified=user.fee_verified, 
