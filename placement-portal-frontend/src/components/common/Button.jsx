@@ -2,11 +2,11 @@ import React from "react";
 import { Loader2 } from "lucide-react";
 
 const variants = {
-  primary: "bg-slate-800 text-white hover:bg-slate-700 active:bg-slate-900 border border-transparent",
-  secondary: "bg-slate-100 text-slate-800 hover:bg-slate-200 border border-transparent",
-  outline: "bg-transparent text-slate-800 border border-slate-300 hover:bg-slate-50",
-  danger: "bg-red-500 text-white hover:bg-red-600 border border-transparent",
-  ghost: "bg-transparent text-slate-700 hover:bg-slate-100 border border-transparent",
+  primary: "bg-gradient-to-r from-accent to-accent-secondary text-white shadow-sm hover:shadow-accent active:scale-[0.98] border border-transparent hover:brightness-110",
+  secondary: "bg-muted text-foreground hover:bg-slate-200 shadow-sm active:scale-[0.98] border border-transparent",
+  outline: "bg-transparent text-foreground border border-border hover:border-accent/30 hover:shadow-sm active:scale-[0.98]",
+  danger: "bg-red-500 text-white hover:bg-red-600 shadow-sm active:scale-[0.98] border border-transparent",
+  ghost: "bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent active:scale-[0.98]",
 };
 
 const sizes = {
@@ -25,7 +25,7 @@ export default function Button({
   type = "button",
   ...props
 }) {
-  const baseStyle = "inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none";
+  const baseStyle = "inline-flex items-center justify-center font-medium rounded-xl transition-all duration-200 hover:-translate-y-0.5 disabled:hover:translate-y-0 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none group";
   
   return (
     <button

@@ -50,15 +50,15 @@ export default function Sidebar({ role }) {
   const items = NAV_ITEMS[role] ?? [];
 
   return (
-    <aside className="hidden w-60 shrink-0 border-r border-neutral-200 bg-white p-4 md:block">
+    <aside className="hidden w-60 shrink-0 border-r border-border bg-card p-4 md:block shadow-sm z-10">
       <nav className="flex flex-col gap-1">
         {items.map(({ label, to, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}
             className={({ isActive }) =>
-              `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                isActive ? "bg-brand-50 text-brand-700" : "text-neutral-600 hover:bg-neutral-100"
+              `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                isActive ? "bg-accent/10 text-accent" : "text-muted-foreground hover:bg-muted hover:text-foreground"
               }`
             }
           >

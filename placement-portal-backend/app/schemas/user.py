@@ -44,12 +44,15 @@ class UserResponse(BaseModel):
     created_at: datetime
 
 
+from app.schemas.profile import ProfileResponse
+
 class MeResponse(UserResponse):
     """GET /auth/me — adds the frontend-facing flags used to decide whether
     to force onboarding, per the master prompt's Roles & Auth section.
     """
 
     profile_complete: bool
+    profile: Optional[ProfileResponse] = None
 
 
 class LoginRequest(BaseModel):

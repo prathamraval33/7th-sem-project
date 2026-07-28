@@ -21,6 +21,7 @@ from app.models.notification import Notification, NotificationType
 from app.models.profile import Profile
 from app.models.test_attempt import TestAttempt
 from app.models.user import User, UserType
+from app.models.analytics import Analytics
 from app.schemas.application import ApplicationResponse, ApplicationUpdate
 from app.schemas.company import CompanyCreate, CompanyResponse
 from app.schemas.drive import DriveCreate, DriveResponse
@@ -58,9 +59,13 @@ def list_companies(current_user: User = Depends(require_tpo), db: Session = Depe
 class TpoDashboardSummary(BaseModel):
     total_students: int
     fee_verified_students: int
+    placed_students: int
+    average_readiness_score: float
     total_drives: int
+    active_drives: int
     total_applied: int
     total_selected: int
+    highest_ctc: float
     total_instant_tests: int
     recent_drives: list[DriveResponse]
 
@@ -78,15 +83,27 @@ def get_dashboard_summary(current_user: User = Depends(require_tpo), db: Session
     )
     total_instant_tests = db.scalar(select(func.count()).select_from(InstantTest))
     recent_drives = db.scalars(select(Drive).order_by(Drive.created_at.desc()).limit(10)).all()
+    
+    placed_students = db.scalar(select(func.count()).select_from(Profile).join(User).where(User.user_type == UserType.STUDENT, Profile.is_placed == True))
+    active_drives = db.scalar(select(func.count()).select_from(Drive).where(Drive.status == DriveStatus.OPEN))
+    
+    avg_readiness = db.scalar(select(func.avg(Analytics.readiness_score)))
+    average_readiness_score = float(avg_readiness) if avg_readiness else 0.0
+    
+    highest_ctc = db.scalar(select(func.max(Application.package_offered)))
 
     return TpoDashboardSummary(
         total_students=total_students or 0,
         fee_verified_students=fee_verified_students or 0,
+        placed_students=placed_students or 0,
+        average_readiness_score=average_readiness_score,
         total_drives=total_drives or 0,
+        active_drives=active_drives or 0,
         total_applied=total_applied or 0,
         total_selected=total_selected or 0,
+        highest_ctc=float(highest_ctc) if highest_ctc else 0.0,
         total_instant_tests=total_instant_tests or 0,
-        recent_drives=recent_drives,
+        recent_drives=list(recent_drives),
     )
 
 
@@ -431,16 +448,17 @@ class StudentCard(BaseModel):
 
 @router.get("/students/all", response_model=list[StudentCard])
 def list_all_students(current_user: User = Depends(require_tpo), db: Session = Depends(get_db)) -> list[StudentCard]:
-    profiles = db.scalars(select(Profile)).all()
+    users = db.scalars(select(User).where(User.user_type == UserType.STUDENT)).all()
     cards: list[StudentCard] = []
-    for profile in profiles:
-        user = db.get(User, profile.user_id)
-        if user is None:
-            continue
+    for user in users:
+        profile = user.profile
         cards.append(
             StudentCard(
-                user_id=user.id, full_name=profile.full_name, branch=profile.branch,
-                fee_verified=user.fee_verified, is_placed=profile.is_placed,
+                user_id=user.id, 
+                full_name=profile.full_name if profile else "Profile Not Setup", 
+                branch=profile.branch if profile else "N/A",
+                fee_verified=user.fee_verified, 
+                is_placed=profile.is_placed if profile else False,
             )
         )
     return cards

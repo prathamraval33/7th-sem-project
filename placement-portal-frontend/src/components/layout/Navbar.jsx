@@ -18,7 +18,7 @@ export default function Navbar() {
     .toUpperCase();
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-neutral-200 bg-white px-6">
+    <header className="flex h-16 items-center justify-between border-b border-border bg-card px-6 shadow-sm">
       <Link to="/" className="flex items-center gap-2 font-heading text-lg font-semibold text-neutral-900">
         <GraduationCap size={22} className={theme.accentText} />
         Placement Portal
@@ -46,9 +46,9 @@ export default function Navbar() {
           </button>
 
           {isMenuOpen && (
-            <div className="absolute right-0 z-20 mt-2 w-48 rounded-lg border border-neutral-200 bg-white shadow-soft">
+            <div className="absolute right-0 z-20 mt-2 w-48 rounded-xl border border-border bg-card shadow-md">
               <Link
-                to="/profile"
+                to={`/${user?.user_type || "student"}/profile`}
                 onClick={() => setIsMenuOpen(false)}
                 className="flex items-center gap-2 px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50"
               >

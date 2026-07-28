@@ -5,7 +5,11 @@ import axiosClient from "./axiosClient";
 export const tpoApi = {
   getDashboardSummary: () => axiosClient.get("/tpo/dashboard/summary"),
 
+  getCompanies: () => axiosClient.get("/tpo/companies"),
+  createCompany: (payload) => axiosClient.post("/tpo/companies", payload),
+
   createDrive: (payload) => axiosClient.post("/tpo/drives", payload),
+  getDrives: () => axiosClient.get("/tpo/drives"),
   getEligibleStudents: (driveId) => axiosClient.get(`/tpo/drives/${driveId}/eligible-students`),
   getApplicants: (driveId) => axiosClient.get(`/tpo/drives/${driveId}/applicants`),
   closeDrive: (driveId) => axiosClient.post(`/tpo/drives/${driveId}/close`),

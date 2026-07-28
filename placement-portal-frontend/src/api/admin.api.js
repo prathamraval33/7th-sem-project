@@ -10,6 +10,7 @@ export const adminApi = {
   getAllStudents: () => axiosClient.get("/admin/students/all"),
   // ASSUMPTION: mirrors the TPO equivalents (no explicit admin path given).
   deactivateStudent: (userId) => axiosClient.post(`/admin/students/${userId}/deactivate`),
+  deleteStudent: (userId) => axiosClient.delete(`/admin/students/${userId}`),
   warnStudent: (userId, message) => axiosClient.post(`/admin/students/${userId}/warn`, { message }),
   setPlacementLockOverride: (userId, enabled) =>
     axiosClient.patch(`/admin/students/${userId}/placement-override`, { placement_lock_override: enabled }),

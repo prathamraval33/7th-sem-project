@@ -6,16 +6,17 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import require_admin
 from app.db.session import get_db
 from app.models.application import Application, ApplicationStatus
-from app.models.drive import Drive
+from app.models.drive import Drive, DriveStatus
 from app.models.notification import Notification, NotificationType
 from app.models.profile import Profile
 from app.models.user import User, UserType
+from app.models.analytics import Analytics
 from app.schemas.drive import DriveResponse, DriveUpdate
 from app.schemas.profile import ProfilePlacementOverrideUpdate, ProfileResponse
 
@@ -73,22 +74,30 @@ def list_students(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> list[StudentListEntry]:
-    query = select(Profile)
-    if branch is not None:
-        query = query.where(Profile.branch == branch)
-    if is_placed is not None:
-        query = query.where(Profile.is_placed == is_placed)
-
-    profiles = db.scalars(query).all()
+    query = select(User).where(User.user_type == UserType.STUDENT)
+    
+    users = db.scalars(query).all()
     entries: list[StudentListEntry] = []
-    for profile in profiles:
-        user = db.get(User, profile.user_id)
-        if user is None:
-            continue
+    for user in users:
+        profile = user.profile
+        
+        # Apply filters manually since they depend on the profile
+        if branch is not None:
+            if not profile or profile.branch != branch:
+                continue
+        if is_placed is not None:
+            if not profile or profile.is_placed != is_placed:
+                continue
+
         entries.append(
             StudentListEntry(
-                user_id=user.id, email=user.email, full_name=profile.full_name, branch=profile.branch,
-                is_placed=profile.is_placed, fee_verified=user.fee_verified, is_active=user.is_active,
+                user_id=user.id, 
+                email=user.email, 
+                full_name=profile.full_name if profile else "Profile Not Setup", 
+                branch=profile.branch if profile else "N/A",
+                is_placed=profile.is_placed if profile else False, 
+                fee_verified=user.fee_verified, 
+                is_active=user.is_active,
             )
         )
     return entries
@@ -96,6 +105,7 @@ def list_students(
 
 class StudentCard(BaseModel):
     user_id: int
+    email: str
     full_name: str
     branch: str
     fee_verified: bool
@@ -104,16 +114,18 @@ class StudentCard(BaseModel):
 
 @router.get("/students/all", response_model=list[StudentCard])
 def list_all_students_card(current_user: User = Depends(require_admin), db: Session = Depends(get_db)) -> list[StudentCard]:
-    profiles = db.scalars(select(Profile)).all()
+    users = db.scalars(select(User).where(User.user_type == UserType.STUDENT)).all()
     cards: list[StudentCard] = []
-    for profile in profiles:
-        user = db.get(User, profile.user_id)
-        if user is None:
-            continue
+    for user in users:
+        profile = user.profile
         cards.append(
             StudentCard(
-                user_id=user.id, full_name=profile.full_name, branch=profile.branch,
-                fee_verified=user.fee_verified, is_placed=profile.is_placed,
+                user_id=user.id, 
+                email=user.email,
+                full_name=profile.full_name if profile else "Profile Not Setup", 
+                branch=profile.branch if profile else "N/A",
+                fee_verified=user.fee_verified, 
+                is_placed=profile.is_placed if profile else False,
             )
         )
     return cards
@@ -138,6 +150,19 @@ def warn_student(
     )
     db.commit()
     return {"message": "Warning sent"}
+
+
+@router.delete("/students/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_student(
+    user_id: int, current_user: User = Depends(require_admin), db: Session = Depends(get_db)
+) -> None:
+    student = db.get(User, user_id)
+    if student is None or student.user_type != UserType.STUDENT:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Student not found")
+
+    db.delete(student)
+    db.commit()
+    return None
 
 
 @router.post("/students/{user_id}/deactivate", status_code=status.HTTP_200_OK)
@@ -243,6 +268,10 @@ class PackageStats(BaseModel):
 class AdminAnalyticsResponse(BaseModel):
     department_stats: list[DepartmentStat]
     package_stats: PackageStats
+    total_students: int
+    placed_students: int
+    active_drives: int
+    average_readiness_score: float
     total_drives: int
     total_applications: int
     total_selected: int
@@ -279,10 +308,21 @@ def get_admin_analytics(current_user: User = Depends(require_admin), db: Session
 
     total_selected = sum(1 for a in applications if a.status == ApplicationStatus.SELECTED)
     total_drives = len(db.scalars(select(Drive)).all())
+    active_drives = len(db.scalars(select(Drive).where(Drive.status == DriveStatus.OPEN)).all())
+    
+    total_students = db.scalar(select(func.count()).select_from(Profile).join(User).where(User.user_type == UserType.STUDENT))
+    placed_students = db.scalar(select(func.count()).select_from(Profile).join(User).where(User.user_type == UserType.STUDENT, Profile.is_placed == True))
+    
+    avg_readiness = db.scalar(select(func.avg(Analytics.readiness_score)))
+    average_readiness_score = float(avg_readiness) if avg_readiness else 0.0
 
     return AdminAnalyticsResponse(
         department_stats=department_stats,
         package_stats=package_stats,
+        total_students=total_students or 0,
+        placed_students=placed_students or 0,
+        active_drives=active_drives or 0,
+        average_readiness_score=average_readiness_score,
         total_drives=total_drives,
         total_applications=len(applications),
         total_selected=total_selected,

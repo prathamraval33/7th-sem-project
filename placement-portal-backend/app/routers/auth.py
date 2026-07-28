@@ -208,8 +208,10 @@ def logout(payload: LogoutRequest, db: Session = Depends(get_db)) -> OtpActionRe
 @router.get("/me", response_model=MeResponse)
 def get_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> MeResponse:
     profile_complete = False
+    profile = None
     if current_user.user_type == UserType.STUDENT:
-        profile_complete = db.scalar(select(Profile).where(Profile.user_id == current_user.id)) is not None
+        profile = db.scalar(select(Profile).where(Profile.user_id == current_user.id))
+        profile_complete = profile is not None
 
     return MeResponse(
         id=current_user.id,
@@ -220,6 +222,7 @@ def get_me(current_user: User = Depends(get_current_user), db: Session = Depends
         fee_verified=current_user.fee_verified,
         created_at=current_user.created_at,
         profile_complete=profile_complete,
+        profile=profile,
     )
 
 

@@ -1,12 +1,32 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/useAuth";
+import { useQuery } from "@tanstack/react-query";
+import { studentApi } from "../../api/student.api";
 import InsightsWidget from "../../components/insights/InsightsWidget";
 import { BookOpen, Briefcase, FileCheck, BrainCircuit } from "lucide-react";
 import StatCard from "../../components/common/StatCard";
+import Spinner from "../../components/ui/Spinner";
 
 export default function StudentDashboard() {
   const { user } = useAuth();
+  
+  const { data: analyticsRes, isLoading } = useQuery({
+    queryKey: ["studentAnalyticsMe"],
+    queryFn: () => studentApi.getAnalyticsMe().then((res) => res.data),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
+
+  const readinessScore = Math.round(analyticsRes?.readiness_score || 0);
+  const activeApplications = analyticsRes?.total_applications || 0;
+  const testsAttempted = analyticsRes?.interviews_taken || 0;
 
   return (
     <div className="space-y-6">
@@ -34,23 +54,23 @@ export default function StudentDashboard() {
         </div>
       )}
 
-      {/* Readiness Score (mocking a score for Phase 6, wired up properly in Phase 7) */}
+      {/* Readiness Score */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <StatCard 
           label="Placement Readiness" 
-          value="75%" 
+          value={`${readinessScore}%`} 
           icon={BrainCircuit} 
           accent="accent"
         />
         <StatCard 
           label="Active Applications" 
-          value="3" 
+          value={activeApplications.toString()} 
           icon={Briefcase} 
           accent="brand"
         />
         <StatCard 
           label="Tests Attempted" 
-          value="2" 
+          value={testsAttempted.toString()} 
           icon={FileCheck} 
           accent="success"
         />

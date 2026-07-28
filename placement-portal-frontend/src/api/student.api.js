@@ -10,6 +10,7 @@ import axiosClient from "./axiosClient";
 export const studentApi = {
   createProfile: (payload) => axiosClient.post("/student/profile", payload),
   getWeakAreas: () => axiosClient.get("/student/weak-areas"),
+  getAnalyticsMe: () => axiosClient.get("/analytics/me"),
 
   getFeeVerificationStatus: () => axiosClient.get("/fee-verification/status"),
   uploadFeeReceipt: (formData) =>

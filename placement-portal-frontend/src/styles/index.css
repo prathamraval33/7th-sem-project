@@ -1,46 +1,56 @@
-/* Tailwind base/components/utilities + the design system's shared CSS
-   variables (mirrors tailwind.config.js so non-Tailwind contexts, e.g.
-   inline SVG or third-party chart styling, can reference the same tokens). */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --color-brand: #3d6b60;
-  --color-accent: #d6842a;
-  --color-bg: #faf8f5;
-  --color-role-student: #3d6b60;
-  --color-role-tpo: #4f5f80;
-  --color-role-admin: #7a4a5c;
-
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
+  --color-background: #FAFAFA;
+  --color-foreground: #0F172A;
+  --color-muted: #F1F5F9;
+  --color-muted-foreground: #64748B;
+  --color-accent: #0052FF;
+  --color-accent-secondary: #4D7CFF;
+  --color-border: #E2E8F0;
+  --color-card: #FFFFFF;
 }
 
 @layer base {
   body {
-    @apply bg-neutral-50 text-neutral-900 font-body antialiased;
+    @apply bg-background text-foreground font-body antialiased selection:bg-accent/20 selection:text-accent;
   }
 
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    @apply font-heading text-neutral-900;
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading text-foreground;
   }
 
   h1 {
-    @apply text-3xl font-semibold tracking-tight;
+    @apply text-5xl font-bold tracking-tight;
   }
 
   h2 {
-    @apply text-2xl font-semibold tracking-tight;
+    @apply text-4xl font-semibold tracking-tight;
   }
 
   h3 {
-    @apply text-xl font-semibold;
+    @apply text-2xl font-semibold;
+  }
+}
+
+@layer utilities {
+  .gradient-text {
+    @apply bg-gradient-to-r from-accent to-accent-secondary bg-clip-text text-transparent;
+  }
+  
+  .gradient-underline {
+    @apply absolute -bottom-1 left-0 h-2 w-full rounded-sm bg-gradient-to-r from-accent/15 to-accent-secondary/10;
+  }
+  
+  .dot-pattern {
+    background-image: radial-gradient(circle, rgba(0,0,0,0.1) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  .dot-pattern-light {
+    background-image: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+    background-size: 32px 32px;
   }
 }

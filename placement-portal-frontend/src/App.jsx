@@ -20,6 +20,7 @@ import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 
 // Shared Pages
 import ProfilePage from "./pages/shared/ProfilePage";
+import ChangePasswordPage from "./pages/auth/ChangePasswordPage";
 
 // Student Pages
 import OnboardingPage from "./pages/student/OnboardingPage";
@@ -29,6 +30,18 @@ import DrivesListPage from "./pages/student/DrivesListPage";
 import DriveDetailPage from "./pages/student/DriveDetailPage";
 import ApplicationsTrackerPage from "./pages/student/ApplicationsTrackerPage";
 import ResourcesLibraryPage from "./pages/student/ResourcesLibraryPage";
+
+// TPO Pages
+import TpoDashboard from "./pages/tpo/TpoDashboard";
+import ManageDrivesPage from "./pages/tpo/ManageDrivesPage";
+import TpoDriveDetailPage from "./pages/tpo/TpoDriveDetailPage";
+import AllStudentsPage from "./pages/tpo/AllStudentsPage";
+import PastTestsPage from "./pages/tpo/PastTestsPage";
+
+// Admin Pages
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminStudentsPage from "./pages/admin/AdminStudentsPage";
+import AdminDrivesPage from "./pages/admin/AdminDrivesPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -74,6 +87,7 @@ export default function App() {
                 <Route path="/student/applications" element={<ApplicationsTrackerPage />} />
                 <Route path="/student/resources" element={<ResourcesLibraryPage />} />
                 <Route path="/student/profile" element={<ProfilePage />} />
+                <Route path="/student/change-password" element={<ChangePasswordPage />} />
                 
                 {/* Fallback for unbuilt student features (Phase 7) */}
                 <Route path="/student/*" element={<FoundationNotice label="Student Feature" />} />
@@ -83,15 +97,25 @@ export default function App() {
             {/* TPO Routes */}
             <Route element={<ProtectedRoute allowedRoles={[ROLES.TPO]} />}>
               <Route element={<DashboardLayout />}>
+                <Route path="/tpo/dashboard" element={<TpoDashboard />} />
+                <Route path="/tpo/drives" element={<ManageDrivesPage />} />
+                <Route path="/tpo/drives/:id" element={<TpoDriveDetailPage />} />
+                <Route path="/tpo/students" element={<AllStudentsPage />} />
+                <Route path="/tpo/instant-tests/history" element={<PastTestsPage />} />
                 <Route path="/tpo/profile" element={<ProfilePage />} />
-                <Route path="/tpo/*" element={<FoundationNotice label="TPO Dashboard" />} />
+                <Route path="/tpo/change-password" element={<ChangePasswordPage />} />
+                <Route path="/tpo/*" element={<FoundationNotice label="TPO Feature" />} />
               </Route>
             </Route>
 
             {/* Admin Routes */}
             <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]} />}>
               <Route element={<DashboardLayout />}>
+                <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                <Route path="/admin/students" element={<AdminStudentsPage />} />
+                <Route path="/admin/drives" element={<AdminDrivesPage />} />
                 <Route path="/admin/profile" element={<ProfilePage />} />
+                <Route path="/admin/change-password" element={<ChangePasswordPage />} />
                 <Route path="/admin/*" element={<FoundationNotice label="Admin Dashboard" />} />
               </Route>
             </Route>

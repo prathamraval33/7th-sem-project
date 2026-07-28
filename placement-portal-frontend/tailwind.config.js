@@ -4,85 +4,34 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        // Distinct heading/body pairing per the design system — never the
-        // Tailwind/Inter-everywhere default.
-        heading: ["Sora", "system-ui", "sans-serif"],
-        body: ["Inter", "system-ui", "sans-serif"],
+        heading: ["Roboto", "system-ui", "sans-serif"],
+        body: ["Roboto", "system-ui", "sans-serif"],
+        mono: ["JetBrains Mono", "monospace"],
       },
       colors: {
-        // Deep, muted slate-teal — the single dominant brand color.
-        brand: {
-          50: "#f2f7f6",
-          100: "#dfece9",
-          200: "#bfd9d3",
-          300: "#98c0b7",
-          400: "#6fa398",
-          500: "#4f8579",
-          600: "#3d6b60",
-          700: "#33564e",
-          800: "#2b4640",
-          900: "#253b36",
-          950: "#12221f",
-          DEFAULT: "#3d6b60",
+        background: "#FAFAFA",
+        foreground: "#0F172A",
+        muted: {
+          DEFAULT: "#F1F5F9",
+          foreground: "#64748B",
         },
-        // Warm neutrals — never pure #FFFFFF for backgrounds.
-        neutral: {
-          50: "#faf8f5",
-          100: "#f4f0ea",
-          200: "#e8e1d6",
-          300: "#d7cdbd",
-          400: "#b7aa96",
-          500: "#948572",
-          600: "#756a5a",
-          700: "#5c5346",
-          800: "#423c33",
-          900: "#2b2721",
-          950: "#18150f",
-        },
-        // One restrained accent, used sparingly for key CTAs only.
         accent: {
-          50: "#fdf6ec",
-          100: "#faebd2",
-          200: "#f3d3a3",
-          300: "#ecb86d",
-          400: "#e39f42",
-          500: "#d6842a",
-          600: "#b6661f",
-          700: "#924e1c",
-          800: "#77401d",
-          900: "#64371b",
-          DEFAULT: "#d6842a",
+          DEFAULT: "#0052FF",
+          secondary: "#4D7CFF",
+          foreground: "#FFFFFF",
         },
-        // Desaturated status colors (never neon).
-        success: {
-          50: "#f1f6f2",
-          100: "#dcebe0",
-          500: "#5f8f6e",
-          600: "#4b7359",
-          700: "#3d5c48",
+        border: "#E2E8F0",
+        card: {
+          DEFAULT: "#FFFFFF",
+          foreground: "#0F172A",
         },
-        warning: {
-          50: "#faf4e8",
-          100: "#f1e3c2",
-          500: "#b8923f",
-          600: "#977633",
-          700: "#785e29",
-        },
-        error: {
-          50: "#f8efec",
-          100: "#efd7cf",
-          500: "#b6543f",
-          600: "#974634",
-          700: "#7a382a",
-        },
-        // Subtly distinct per-role accent within the same overall palette —
-        // student keeps the primary brand hue, tpo/admin get a related but
-        // distinguishable hue so it's immediately clear which dashboard is
-        // active.
+        ring: "#0052FF",
+        
+        // Retaining role colors for dashboard differentiation but adapting them to the new style
         role: {
-          student: "#3d6b60", // brand teal
-          tpo: "#4f5f80", // muted slate-blue
-          admin: "#7a4a5c", // muted plum
+          student: "#0052FF", // Electric Blue
+          tpo: "#4D7CFF", // Lighter Blue
+          admin: "#0F172A", // Deep Slate
         },
       },
       borderRadius: {
@@ -92,11 +41,14 @@ export default {
         xl: "20px",
       },
       boxShadow: {
-        soft: "0 1px 2px 0 rgba(24, 21, 15, 0.04), 0 2px 8px -2px rgba(24, 21, 15, 0.08)",
-        softer: "0 1px 3px 0 rgba(24, 21, 15, 0.03)",
+        sm: "0 1px 3px rgba(0,0,0,0.06)",
+        md: "0 4px 6px rgba(0,0,0,0.07)",
+        lg: "0 10px 15px rgba(0,0,0,0.08)",
+        xl: "0 20px 25px rgba(0,0,0,0.1)",
+        accent: "0 4px 14px rgba(0,82,255,0.25)",
+        "accent-lg": "0 8px 24px rgba(0,82,255,0.35)",
       },
     },
   },
   plugins: [],
 }
-

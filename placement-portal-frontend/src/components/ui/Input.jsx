@@ -13,9 +13,9 @@ const Input = forwardRef(({ label, error, className = "", id, ...props }, ref) =
       <input
         ref={ref}
         id={inputId}
-        className={`rounded-md border px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400
-          bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1
-          ${error ? "border-error-500 focus:ring-error-300" : "border-neutral-300 focus:ring-brand-300"}
+        className={`rounded-xl border px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground
+          bg-card transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2
+          ${error ? "border-red-500 focus:ring-red-500" : "border-border"}
           ${className}`}
         {...props}
       />
