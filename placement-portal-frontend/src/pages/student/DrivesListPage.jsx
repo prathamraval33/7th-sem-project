@@ -1,21 +1,34 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { drivesApi } from "../../api/drives.api";
+import { studentApi } from "../../api/student.api";
 import Spinner from "../../components/ui/Spinner";
 import Button from "../../components/common/Button";
-import { Building2, Calendar, GraduationCap, DollarSign } from "lucide-react";
+import { Building2, Calendar, GraduationCap, DollarSign, CheckCircle2 } from "lucide-react";
 
 export default function DrivesListPage() {
   const [drives, setDrives] = useState([]);
+  const [appliedDriveIds, setAppliedDriveIds] = useState(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchDrives = async () => {
+    const fetchDrivesAndApps = async () => {
       try {
         setIsLoading(true);
-        const res = await drivesApi.getMatchedDrives();
-        setDrives(res.data);
+        const [drivesRes, appsRes] = await Promise.all([
+          drivesApi.getMatchedDrives(),
+          studentApi.getApplications().catch(() => ({ data: [] })),
+        ]);
+        
+        setDrives(drivesRes.data);
+
+        const appliedIds = new Set(
+          (appsRes.data || [])
+            .filter((app) => app.status !== "withdrawn")
+            .map((app) => app.drive_id)
+        );
+        setAppliedDriveIds(appliedIds);
       } catch (err) {
         setError("Failed to fetch matched drives.");
       } finally {
@@ -23,7 +36,7 @@ export default function DrivesListPage() {
       }
     };
 
-    fetchDrives();
+    fetchDrivesAndApps();
   }, []);
 
   if (isLoading) {
@@ -46,7 +59,7 @@ export default function DrivesListPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900 font-heading">Placement Drives</h1>
-        <p className="text-slate-600 mt-1">Drives matching your profile criteria.</p>
+        <p className="text-slate-600 mt-1">Drives matching your academic profile criteria.</p>
       </div>
 
       {drives.length === 0 ? (
@@ -60,6 +73,8 @@ export default function DrivesListPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {drives.map((drive) => {
+            const hasApplied = appliedDriveIds.has(drive.id);
+
             const ctcDisplay = drive.min_ctc && drive.max_ctc 
               ? `${drive.min_ctc} - ${drive.max_ctc} LPA`
               : drive.min_ctc 
@@ -75,7 +90,11 @@ export default function DrivesListPage() {
                     <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center">
                       <Building2 className="w-6 h-6 text-slate-600" />
                     </div>
-                    {drive.status === "open" ? (
+                    {hasApplied ? (
+                      <span className="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-semibold rounded-full border border-blue-200 flex items-center gap-1">
+                        <CheckCircle2 size={12} /> Applied
+                      </span>
+                    ) : drive.status === "open" ? (
                       <span className="px-2.5 py-1 bg-green-50 text-green-700 text-xs font-semibold rounded-full border border-green-200">Open</span>
                     ) : (
                       <span className="px-2.5 py-1 bg-slate-100 text-slate-700 text-xs font-semibold rounded-full border border-slate-200">Closed</span>
@@ -104,7 +123,9 @@ export default function DrivesListPage() {
                 
                 <div className="p-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
                   <Link to={`/student/drives/${drive.id}`}>
-                    <Button className="w-full" variant="outline">View Details</Button>
+                    <Button className="w-full" variant={hasApplied ? "secondary" : "outline"}>
+                      {hasApplied ? "Applied • View Details" : "View Details & Apply"}
+                    </Button>
                   </Link>
                 </div>
               </div>
