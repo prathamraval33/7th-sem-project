@@ -14,6 +14,7 @@ export const authApi = {
 
   getMe: () => axiosClient.get("/auth/me"),
   updateProfile: (payload) => axiosClient.patch("/auth/profile", payload),
+  updateMyProfile: (payload) => axiosClient.patch("/auth/profile", payload),
 
   changePasswordRequestOtp: () => axiosClient.post("/auth/change-password/request-otp"),
   changePasswordVerifyOtp: (email, otp) => axiosClient.post("/auth/change-password/verify-otp", { email, otp }),
