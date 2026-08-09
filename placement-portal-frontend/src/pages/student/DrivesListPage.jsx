@@ -4,11 +4,13 @@ import { drivesApi } from "../../api/drives.api";
 import { studentApi } from "../../api/student.api";
 import Spinner from "../../components/ui/Spinner";
 import Button from "../../components/common/Button";
-import { Building2, Calendar, GraduationCap, DollarSign, CheckCircle2 } from "lucide-react";
+import Badge from "../../components/ui/Badge";
+import { Building2, Calendar, GraduationCap, DollarSign, CheckCircle2, Clock } from "lucide-react";
 
 export default function DrivesListPage() {
   const [drives, setDrives] = useState([]);
-  const [appliedDriveIds, setAppliedDriveIds] = useState(new Set());
+  const [applicationsMap, setApplicationsMap] = useState(new Map());
+  const [activeTab, setActiveTab] = useState("upcoming"); // "upcoming" | "applied"
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -21,14 +23,15 @@ export default function DrivesListPage() {
           studentApi.getApplications().catch(() => ({ data: [] })),
         ]);
         
-        setDrives(drivesRes.data);
+        setDrives(drivesRes.data || []);
 
-        const appliedIds = new Set(
-          (appsRes.data || [])
-            .filter((app) => app.status !== "withdrawn")
-            .map((app) => app.drive_id)
-        );
-        setAppliedDriveIds(appliedIds);
+        const appMap = new Map();
+        (appsRes.data || []).forEach((app) => {
+          if (app.status !== "withdrawn") {
+            appMap.set(app.drive_id, app);
+          }
+        });
+        setApplicationsMap(appMap);
       } catch (err) {
         setError("Failed to fetch matched drives.");
       } finally {
@@ -55,32 +58,75 @@ export default function DrivesListPage() {
     );
   }
 
+  const upcomingDrives = drives.filter((d) => !applicationsMap.has(d.id));
+  const appliedDrives = drives.filter((d) => applicationsMap.has(d.id));
+
+  const displayedDrives = activeTab === "upcoming" ? upcomingDrives : appliedDrives;
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 font-heading">Placement Drives</h1>
-        <p className="text-slate-600 mt-1">Drives matching your academic profile criteria.</p>
+        <h1 className="text-2xl font-bold text-slate-900 font-heading">Job List</h1>
+        <p className="text-slate-600 mt-1">Placement opportunities matching your academic profile.</p>
       </div>
 
-      {drives.length === 0 ? (
+      {/* Tabs Header - Styled matching user image request */}
+      <div className="flex items-center space-x-6 border-b border-slate-200 pb-3">
+        <button
+          onClick={() => setActiveTab("upcoming")}
+          className={`flex items-center font-bold text-base transition-colors ${
+            activeTab === "upcoming"
+              ? "text-blue-600 border-b-2 border-blue-600 pb-3 -mb-3"
+              : "text-slate-500 hover:text-slate-800"
+          }`}
+        >
+          <span>Upcoming Jobs</span>
+          <span className="ml-2 w-6 h-6 rounded-full bg-amber-500 text-white text-xs font-bold flex items-center justify-center">
+            {upcomingDrives.length}
+          </span>
+        </button>
+
+        <span className="text-slate-300 font-light text-xl">|</span>
+
+        <button
+          onClick={() => setActiveTab("applied")}
+          className={`flex items-center font-bold text-base transition-colors ${
+            activeTab === "applied"
+              ? "text-teal-600 border-b-2 border-teal-600 pb-3 -mb-3"
+              : "text-slate-500 hover:text-slate-800"
+          }`}
+        >
+          <span>Applied Jobs</span>
+          <span className="ml-2 w-6 h-6 rounded-full bg-teal-500 text-white text-xs font-bold flex items-center justify-center">
+            {appliedDrives.length}
+          </span>
+        </button>
+      </div>
+
+      {displayedDrives.length === 0 ? (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center">
           <Building2 className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-slate-900 mb-2">No matched drives right now</h3>
+          <h3 className="text-lg font-medium text-slate-900 mb-2">
+            {activeTab === "upcoming" ? "No upcoming jobs available" : "No applied jobs yet"}
+          </h3>
           <p className="text-slate-500 max-w-md mx-auto">
-            We couldn't find any open placement drives matching your current profile. We'll notify you when new opportunities arise.
+            {activeTab === "upcoming"
+              ? "You've applied to all available drives or no new placement drives match your criteria right now."
+              : "You haven't applied to any drives yet. Switch to Upcoming Jobs to explore open opportunities!"}
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {drives.map((drive) => {
-            const hasApplied = appliedDriveIds.has(drive.id);
+          {displayedDrives.map((drive) => {
+            const app = applicationsMap.get(drive.id);
+            const hasApplied = !!app;
 
             const ctcDisplay = drive.min_ctc && drive.max_ctc 
-              ? `${drive.min_ctc} - ${drive.max_ctc} LPA`
+              ? `₹${drive.min_ctc} - ₹${drive.max_ctc} LPA`
               : drive.min_ctc 
-                ? `${drive.min_ctc} LPA`
+                ? `₹${drive.min_ctc} LPA`
                 : drive.max_ctc 
-                  ? `Up to ${drive.max_ctc} LPA`
+                  ? `Up to ₹${drive.max_ctc} LPA`
                   : null;
 
             return (
@@ -91,8 +137,8 @@ export default function DrivesListPage() {
                       <Building2 className="w-6 h-6 text-slate-600" />
                     </div>
                     {hasApplied ? (
-                      <span className="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-semibold rounded-full border border-blue-200 flex items-center gap-1">
-                        <CheckCircle2 size={12} /> Applied
+                      <span className="px-2.5 py-1 bg-teal-50 text-teal-700 text-xs font-semibold rounded-full border border-teal-200 flex items-center gap-1">
+                        <CheckCircle2 size={12} /> {app.status.toUpperCase()}
                       </span>
                     ) : drive.status === "open" ? (
                       <span className="px-2.5 py-1 bg-green-50 text-green-700 text-xs font-semibold rounded-full border border-green-200">Open</span>
@@ -118,13 +164,19 @@ export default function DrivesListPage() {
                       <GraduationCap className="w-4 h-4 mr-2" />
                       Min CGPA: {drive.eligibility_criteria?.min_cgpa || "N/A"}
                     </div>
+                    {hasApplied && app.applied_on && (
+                      <div className="flex items-center text-xs text-teal-600 pt-1">
+                        <Clock className="w-3.5 h-3.5 mr-1.5" />
+                        Applied on: {new Date(app.applied_on).toLocaleDateString()}
+                      </div>
+                    )}
                   </div>
                 </div>
                 
                 <div className="p-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
                   <Link to={`/student/drives/${drive.id}`}>
                     <Button className="w-full" variant={hasApplied ? "secondary" : "outline"}>
-                      {hasApplied ? "Applied • View Details" : "View Details & Apply"}
+                      {hasApplied ? "View Applied Details" : "View Details & Apply"}
                     </Button>
                   </Link>
                 </div>
