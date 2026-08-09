@@ -69,13 +69,13 @@ export const changePasswordSchema = z.object({
 // --- Student Profile/Onboarding Schemas ---
 export const studentOnboardingSchema = z.object({
   full_name: z.string().min(2, "Name is required"),
-  branch: z.string().min(2, "Branch is required"),
+  branch: z.string().min(1, "Branch is required"),
   cgpa: z.coerce.number().min(0).max(10, "CGPA must be between 0 and 10"),
   active_backlogs: z.coerce.number().int().min(0, "Backlogs cannot be negative"),
   tenth_percentage: z.coerce.number().min(0).max(100, "Percentage must be between 0 and 100"),
   twelfth_percentage: z.coerce.number().min(0).max(100, "Percentage must be between 0 and 100"),
-  competitive_exam_name: z.string().transform((val) => val.trim() === "" ? null : val.trim()).optional().nullable(),
-  competitive_exam_percentile: z.union([z.coerce.number().min(0).max(100), z.literal("")]).transform((val) => val === "" ? null : val).optional().nullable(),
+  competitive_exam_name: z.preprocess((val) => (val && typeof val === "string" && val.trim() !== "" ? val.trim() : null), z.string().nullable().optional()),
+  competitive_exam_percentile: z.preprocess((val) => (val === "" || val === null || val === undefined || isNaN(val) ? null : Number(val)), z.number().min(0).max(100).nullable().optional()),
   skills: z.string().transform((val) => val.split(',').map((s) => s.trim()).filter(Boolean)),
 });
 
