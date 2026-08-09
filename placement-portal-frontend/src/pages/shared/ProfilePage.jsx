@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { authApi } from "../../api/auth.api";
 import { branchesApi } from "../../api/branches.api";
+import { resumeApi } from "../../api/resume.api";
 import { useAuth } from "../../auth/useAuth";
 import Button from "../../components/common/Button";
 import Input from "../../components/common/Input";
-import { User, Mail, Shield, BadgeCheck, FileText } from "lucide-react";
+import { User, Mail, Shield, BadgeCheck, FileText, Upload } from "lucide-react";
 import { ROLES } from "../../utils/constants";
 import ChangePasswordPage from "../auth/ChangePasswordPage";
+import { showToast, showError } from "../../utils/swal";
 
 export default function ProfilePage() {
   const { user, refreshUser } = useAuth();
+  const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -22,6 +25,38 @@ export default function ProfilePage() {
     queryKey: ["branches"],
     queryFn: () => branchesApi.getBranches().then((res) => res.data),
   });
+
+  const { data: userResumes = [], isLoading: loadingResumes } = useQuery({
+    queryKey: ["student-resumes"],
+    queryFn: () => resumeApi.getHistory().then((res) => res.data),
+    enabled: user?.user_type === ROLES.STUDENT,
+  });
+
+  const activeResume = userResumes.find((r) => r.is_active) || userResumes[0];
+
+  const uploadResumeMutation = useMutation({
+    mutationFn: (file) => resumeApi.uploadResume(file),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["student-resumes"]);
+      showToast("Resume updated successfully! Old resume deleted.");
+    },
+    onError: (err) => {
+      showError("Upload Failed", err.response?.data?.detail || "Could not upload new resume.");
+    },
+  });
+
+  const uploadingResume = uploadResumeMutation.isPending;
+
+  const handleResumeUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.name.toLowerCase().endsWith(".pdf")) {
+        showError("Invalid File", "Only PDF resumes are supported.");
+        return;
+      }
+      uploadResumeMutation.mutate(file);
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -197,26 +232,94 @@ export default function ProfilePage() {
                     placeholder="e.g. React, Python, Java"
                   />
                   
-                  {/* Read-only academic info */}
+                  {/* Read-only academic info & Resume */}
                   {!isEditing && user.profile && (
-                    <div className="pt-6 mt-6 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-4 gap-4">
-                      <div>
-                        <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">CGPA</p>
-                        <p className="text-sm font-semibold text-slate-900">{user.profile.cgpa}</p>
+                    <>
+                      <div className="pt-6 mt-6 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <div>
+                          <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">CGPA</p>
+                          <p className="text-sm font-semibold text-slate-900">{user.profile.cgpa}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">Backlogs</p>
+                          <p className="text-sm font-semibold text-slate-900">{user.profile.active_backlogs}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">10th %</p>
+                          <p className="text-sm font-semibold text-slate-900">{user.profile.tenth_percentage}%</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">12th %</p>
+                          <p className="text-sm font-semibold text-slate-900">{user.profile.twelfth_percentage}%</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">Backlogs</p>
-                        <p className="text-sm font-semibold text-slate-900">{user.profile.active_backlogs}</p>
+
+                      {/* Resume Section */}
+                      <div className="pt-6 mt-6 border-t border-slate-100">
+                        <div className="flex justify-between items-center mb-3">
+                          <label className="block text-sm font-semibold text-slate-900 font-heading">
+                            Active Resume
+                          </label>
+                          <label className="text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors cursor-pointer inline-flex items-center gap-1">
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>{uploadingResume ? "Uploading..." : "Upload / Replace Resume"}</span>
+                            <input
+                              type="file"
+                              accept=".pdf"
+                              className="hidden"
+                              disabled={uploadingResume}
+                              onChange={handleResumeUpload}
+                            />
+                          </label>
+                        </div>
+
+                        {loadingResumes ? (
+                          <div className="p-3 text-sm text-slate-500">Loading resume...</div>
+                        ) : activeResume ? (
+                          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                            <div className="flex items-center space-x-3">
+                              <div className="p-2.5 bg-blue-100 text-blue-700 rounded-lg">
+                                <FileText className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-bold text-slate-900 truncate max-w-[200px] sm:max-w-xs">
+                                  {activeResume.file_path.split("/").pop()}
+                                </p>
+                                <p className="text-xs text-slate-500 mt-0.5">
+                                  Uploaded on {new Date(activeResume.created_at || Date.now()).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center space-x-2">
+                              <a
+                                href={`http://localhost:8000/uploads/${activeResume.file_path.replace("uploads/", "").replace("uploads\\", "").replace("\\", "/")}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-bold text-blue-700 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors shadow-sm"
+                              >
+                                <FileText className="w-4 h-4" />
+                                <span>View PDF</span>
+                              </a>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between">
+                            <span className="text-xs font-medium text-amber-800">No active resume uploaded yet.</span>
+                            <label className="px-3 py-1.5 text-xs font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors cursor-pointer">
+                              <span>Upload Resume PDF</span>
+                              <input
+                                type="file"
+                                accept=".pdf"
+                                className="hidden"
+                                disabled={uploadingResume}
+                                onChange={handleResumeUpload}
+                              />
+                            </label>
+                          </div>
+                        )}
                       </div>
-                      <div>
-                        <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">10th %</p>
-                        <p className="text-sm font-semibold text-slate-900">{user.profile.tenth_percentage}%</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">12th %</p>
-                        <p className="text-sm font-semibold text-slate-900">{user.profile.twelfth_percentage}%</p>
-                      </div>
-                    </div>
+                    </>
                   )}
                 </>
               )}

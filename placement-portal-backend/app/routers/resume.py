@@ -12,7 +12,7 @@ from app.models.user import User
 from app.schemas.resume import ResumeResponse
 from app.services import resume_parser, scoring
 from app.utils.exceptions import FileValidationError
-from app.utils.file_storage import RESUME_EXTENSIONS, save_upload, validate_file
+from app.utils.file_storage import RESUME_EXTENSIONS, delete_file, save_upload, validate_file
 
 router = APIRouter(prefix="/student", tags=["resume"])
 
@@ -32,15 +32,19 @@ async def upload_resume(
     relative_path = save_upload(file_bytes, file.filename, subfolder="resumes")
     parsed_text = resume_parser.extract_resume_text(relative_path)
 
-    # First resume for a student becomes active automatically.
-    has_existing = db.scalar(select(Resume).where(Resume.user_id == current_user.id)) is not None
+    # Delete all old resumes for the student so only the latest resume exists
+    old_resumes = db.scalars(select(Resume).where(Resume.user_id == current_user.id)).all()
+    for old in old_resumes:
+        if old.file_path:
+            delete_file(old.file_path)
+        db.delete(old)
 
     resume = Resume(
         user_id=current_user.id,
         file_path=relative_path,
         parsed_text=parsed_text or None,
         source=ResumeSource.UPLOADED,
-        is_active=not has_existing,
+        is_active=True,
     )
     db.add(resume)
     db.commit()

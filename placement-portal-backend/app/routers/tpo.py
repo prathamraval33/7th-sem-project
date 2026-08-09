@@ -178,10 +178,17 @@ def get_eligible_students(
     return [profile for profile in profiles if check_drive_eligibility(profile, drive)[0]]
 
 
+from app.models.resume import Resume
+
+
 class ApplicantEntry(ApplicationResponse):
     is_eligible: bool
     student_name: Optional[str] = None
+    student_email: Optional[str] = None
     student_branch: Optional[str] = None
+    cgpa: Optional[float] = None
+    active_backlogs: Optional[int] = None
+    resume_url: Optional[str] = None
 
 
 @router.get("/drives/{drive_id}/applicants", response_model=list[ApplicantEntry])
@@ -192,18 +199,40 @@ def get_drive_applicants(
     if drive is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Drive not found")
 
-    applications = db.scalars(select(Application).where(Application.drive_id == drive_id)).all()
+    applications = db.scalars(
+        select(Application)
+        .options(joinedload(Application.user).joinedload(User.profile))
+        .where(Application.drive_id == drive_id)
+    ).unique().all()
 
     entries: list[ApplicantEntry] = []
     for application in applications:
-        profile = db.scalar(select(Profile).where(Profile.user_id == application.user_id))
+        user = application.user
+        profile = user.profile if user else None
+        
+        resumes = db.scalars(
+            select(Resume)
+            .where(Resume.user_id == application.user_id)
+            .order_by(Resume.is_active.desc(), Resume.id.desc())
+        ).all()
+        active_resume = resumes[0] if resumes else None
+
+        resume_url = None
+        if active_resume and active_resume.file_path:
+            clean_path = active_resume.file_path.replace("uploads/", "").replace("uploads\\", "").replace("\\", "/")
+            resume_url = f"/uploads/{clean_path}"
+
         is_eligible = check_drive_eligibility(profile, drive)[0] if profile else False
         entries.append(
             ApplicantEntry(
                 **ApplicationResponse.model_validate(application).model_dump(),
                 is_eligible=is_eligible,
-                student_name=profile.full_name if profile else None,
-                student_branch=profile.branch if profile else None,
+                student_name=profile.full_name if (profile and profile.full_name) else (user.email.split("@")[0] if user else "Student"),
+                student_email=user.email if user else None,
+                student_branch=profile.branch if (profile and profile.branch) else "N/A",
+                cgpa=profile.cgpa if profile else None,
+                active_backlogs=profile.active_backlogs if profile else 0,
+                resume_url=resume_url,
             )
         )
     return entries

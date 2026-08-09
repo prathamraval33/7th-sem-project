@@ -24,9 +24,7 @@ def apply_to_drive(
     current_user: User = Depends(require_student),
     db: Session = Depends(get_db),
 ) -> Application:
-    if not current_user.fee_verified:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Placement fee must be verified before applying")
-
+    # Fee verification bypassed for student applications
     drive = db.get(Drive, payload.drive_id)
     if drive is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Drive not found")

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { tpoApi } from "../../api/tpo.api";
 import { branchesApi } from "../../api/branches.api";
-import DriveDetailsView from "../../components/drives/DriveDetailsView";
+import StudentRow from "../../components/drives/StudentRow";
 import { 
   Users, 
   FileText, 
@@ -11,7 +11,13 @@ import {
   Info, 
   Edit3, 
   Building2, 
-  Calendar
+  Calendar,
+  FileDown,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Award,
+  ArrowRight
 } from "lucide-react";
 import Card from "../../components/ui/Card";
 import Button from "../../components/common/Button";
@@ -26,6 +32,7 @@ export default function TpoDriveDetailPage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("applicants");
   const [showEditModal, setShowEditModal] = useState(false);
+  const [selectModalApp, setSelectModalApp] = useState(null);
   const [selectedDepts, setSelectedDepts] = useState([]);
 
   const driveId = parseInt(id, 10);
@@ -79,6 +86,20 @@ export default function TpoDriveDetailPage() {
       return data;
     },
     enabled: !!drive,
+  });
+
+  const updateAppStatusMutation = useMutation({
+    mutationFn: ({ appId, status, package_offered }) =>
+      tpoApi.updateApplicationStatus(appId, { status, package_offered }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["tpo-applicants", driveId]);
+      queryClient.invalidateQueries(["tpo-drive-analytics", driveId]);
+      setSelectModalApp(null);
+      showToast("Candidate status updated successfully");
+    },
+    onError: (err) => {
+      showError("Action Failed", err.response?.data?.detail || "Could not update candidate status.");
+    },
   });
 
   const closeDriveMutation = useMutation({
@@ -164,6 +185,18 @@ export default function TpoDriveDetailPage() {
     updateDriveMutation.mutate(updatedPayload);
   };
 
+  const handleMarkSelected = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const ctc = parseFloat(formData.get("package_offered"));
+
+    updateAppStatusMutation.mutate({
+      appId: selectModalApp.id,
+      status: "selected",
+      package_offered: isNaN(ctc) ? null : ctc,
+    });
+  };
+
   if (loadingDrives) return <div className="flex justify-center p-8"><Spinner size="lg" /></div>;
   if (!drive) return <div className="p-8 text-center text-red-500">Drive not found.</div>;
 
@@ -228,7 +261,7 @@ export default function TpoDriveDetailPage() {
             {tab.label}
             {tab.count !== undefined && (
               <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
-                activeTab === tab.id ? "bg-accent/10" : "bg-slate-100"
+                activeTab === tab.id ? "bg-accent/10 text-accent font-bold" : "bg-slate-100 text-slate-600"
               }`}>
                 {tab.count}
               </span>
@@ -240,46 +273,36 @@ export default function TpoDriveDetailPage() {
       {/* Tab Contents */}
       <div className="mt-6">
         {activeTab === "applicants" && (
-          <Card>
+          <div className="rounded-[12px] border border-gray-200 overflow-hidden bg-white shadow-sm">
             {loadingApplicants ? <div className="p-4"><Spinner /></div> : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-50 text-slate-600 border-b border-border">
-                    <tr>
-                      <th className="px-4 py-3 font-medium">Student Name</th>
-                      <th className="px-4 py-3 font-medium">Branch</th>
-                      <th className="px-4 py-3 font-medium">Status</th>
-                      <th className="px-4 py-3 font-medium">Eligible</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {applicants?.length === 0 ? (
-                      <tr><td colSpan="4" className="px-4 py-8 text-center text-slate-500">No applicants yet.</td></tr>
-                    ) : (
-                      applicants?.map(app => (
-                        <tr key={app.id} className="hover:bg-slate-50/50">
-                          <td className="px-4 py-3 font-medium text-slate-900">{app.student_name}</td>
-                          <td className="px-4 py-3 text-slate-600">{app.student_branch}</td>
-                          <td className="px-4 py-3">
-                            <Badge variant={app.status === "selected" ? "success" : app.status === "rejected" ? "danger" : "neutral"}>
-                              {app.status}
-                            </Badge>
-                          </td>
-                          <td className="px-4 py-3">
-                            {app.is_eligible ? (
-                              <Badge variant="success">Yes</Badge>
-                            ) : (
-                              <Badge variant="danger">No</Badge>
-                            )}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+              <div>
+                {/* Table Header Row */}
+                <div className="grid grid-cols-[2.2fr_0.8fr_1fr_1fr_1.6fr] gap-3 items-center bg-gray-50 px-4 py-2.5 text-xs font-medium text-gray-500 text-left">
+                  <div>Student</div>
+                  <div>Branch</div>
+                  <div>Resume</div>
+                  <div>Status</div>
+                  <div className="text-right">Actions</div>
+                </div>
+
+                {/* Table Body Rows */}
+                {applicants?.length === 0 ? (
+                  <div className="p-8 text-center text-gray-400 text-sm">No applicants for this drive yet.</div>
+                ) : (
+                  applicants?.map(app => (
+                    <StudentRow
+                      key={app.id}
+                      student={app}
+                      onShortlist={(appId) => updateAppStatusMutation.mutate({ appId, status: "shortlisted" })}
+                      onNotEligible={(appId) => updateAppStatusMutation.mutate({ appId, status: "not_eligible" })}
+                      onReject={(appId) => updateAppStatusMutation.mutate({ appId, status: "rejected" })}
+                      onSelect={(student) => setSelectModalApp(student)}
+                    />
+                  ))
+                )}
               </div>
             )}
-          </Card>
+          </div>
         )}
 
         {activeTab === "eligible" && (
@@ -328,9 +351,17 @@ export default function TpoDriveDetailPage() {
                     <span className="text-slate-600">Total Applicants</span>
                     <span className="font-semibold text-slate-900">{analytics?.total_applicants || 0}</span>
                   </div>
-                  <div className="flex justify-between items-center p-3 bg-success/10 rounded-lg border border-success/20">
-                    <span className="text-success-800 font-medium">Total Selected</span>
-                    <span className="font-bold text-success-700">{analytics?.total_selected || 0}</span>
+                  <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                    <span className="text-blue-700 font-medium">Shortlisted</span>
+                    <span className="font-semibold text-blue-900">{analytics?.shortlisted || 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                    <span className="text-emerald-800 font-medium">Total Selected</span>
+                    <span className="font-bold text-emerald-700">{analytics?.selected || 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
+                    <span className="text-red-700 font-medium">Rejected</span>
+                    <span className="font-semibold text-red-900">{analytics?.rejected || 0}</span>
                   </div>
                 </div>
               )}
@@ -348,7 +379,7 @@ export default function TpoDriveDetailPage() {
                         <span className="font-medium text-slate-700">{stat.department}</span>
                         <div className="flex gap-4">
                           <span className="text-slate-500">Applied: {stat.applied}</span>
-                          <span className="text-success-600 font-medium">Selected: {stat.selected}</span>
+                          <span className="font-semibold text-success font-medium">Selected: {stat.selected}</span>
                         </div>
                       </div>
                     ))
@@ -364,6 +395,41 @@ export default function TpoDriveDetailPage() {
           <DriveDetailsView drive={drive} company={company} />
         )}
       </div>
+
+      {/* Select / Hire Candidate Modal */}
+      {selectModalApp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <h2 className="text-lg font-bold text-slate-900 font-heading flex items-center gap-2">
+                <Award className="text-accent" size={18} /> Select Candidate
+              </h2>
+              <button onClick={() => setSelectModalApp(null)} className="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+            </div>
+
+            <form onSubmit={handleMarkSelected} className="p-6 space-y-4">
+              <div className="p-3 bg-slate-50 rounded-xl space-y-1 text-sm border border-slate-200">
+                <p className="font-bold text-slate-900">{selectModalApp.student_name}</p>
+                <p className="text-xs text-slate-500">{selectModalApp.student_email} • {selectModalApp.student_branch}</p>
+              </div>
+
+              <Input 
+                label="Offered Package CTC (LPA) *" 
+                name="package_offered" 
+                type="number" 
+                step="0.01" 
+                required 
+                placeholder="e.g. 12.5" 
+              />
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                <Button type="button" variant="outline" onClick={() => setSelectModalApp(null)}>Cancel</Button>
+                <Button type="submit" isLoading={updateAppStatusMutation.isPending}>Confirm Selection</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Edit Drive Modal */}
       {showEditModal && (

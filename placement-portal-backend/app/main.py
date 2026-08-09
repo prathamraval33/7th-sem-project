@@ -32,7 +32,14 @@ from app.utils.exceptions import AppError
 
 logger = logging.getLogger(__name__)
 
+import os
+from fastapi.staticfiles import StaticFiles
+
 app = FastAPI(title="Placement Portal API", version="1.0.0")
+
+uploads_dir = os.path.join(os.getcwd(), "uploads")
+os.makedirs(uploads_dir, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
 FRONTEND_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
 

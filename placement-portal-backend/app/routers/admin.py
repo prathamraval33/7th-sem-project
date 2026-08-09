@@ -298,29 +298,39 @@ class ActivityEntry(BaseModel):
 def get_activity_feed(current_user: User = Depends(require_admin), db: Session = Depends(get_db)) -> list[ActivityEntry]:
     entries: list[ActivityEntry] = []
 
-    for drive in db.scalars(select(Drive).order_by(Drive.created_at.desc()).limit(50)).all():
+    for drive in db.scalars(select(Drive).options(joinedload(Drive.company)).order_by(Drive.created_at.desc()).limit(50)).all():
+        comp_name = drive.company.name if drive.company else ""
+        title = f"{drive.role} ({comp_name})" if comp_name else drive.role
         entries.append(
             ActivityEntry(
                 id=f"drive_{drive.id}",
                 type="drive_created",
-                description=f"Drive created: {drive.role}",
-                actor_email="TPO System",
-                action="created drive",
-                target_entity=drive.role,
+                description=f"Placement Drive Created: {title}",
+                actor_email="TPO Office",
+                action="created placement drive",
+                target_entity=title,
                 created_at=drive.created_at,
                 timestamp=drive.created_at
             )
         )
 
     for application in db.scalars(select(Application).order_by(Application.applied_on.desc()).limit(50)).all():
+        user = application.user or db.get(User, application.user_id)
+        drive = application.drive or db.get(Drive, application.drive_id)
+        comp_name = drive.company.name if (drive and drive.company) else ""
+        drive_title = f"{drive.role} ({comp_name})" if (drive and comp_name) else (drive.role if drive else f"Drive #{application.drive_id}")
+        
+        user_email = user.email if user else "Student"
+        status_label = application.status.value.capitalize()
+
         entries.append(
             ActivityEntry(
                 id=f"app_{application.id}",
                 type="application",
-                description=f"Application #{application.id} -> {application.status.value}",
-                actor_email=application.user.email if application.user else "Student",
-                action="applied to drive",
-                target_entity=f"Application #{application.id}",
+                description=f"{user_email} applied for {drive_title} — Status: {status_label}",
+                actor_email=user_email,
+                action="applied to",
+                target_entity=f"{drive_title} — Status: {status_label}",
                 created_at=application.applied_on,
                 timestamp=application.applied_on
             )

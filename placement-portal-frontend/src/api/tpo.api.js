@@ -11,8 +11,10 @@ export const tpoApi = {
   createDrive: (payload) => axiosClient.post("/tpo/drives", payload),
   updateDrive: (driveId, payload) => axiosClient.patch(`/tpo/drives/${driveId}`, payload),
   getDrives: () => axiosClient.get("/tpo/drives"),
+  getDriveDetail: (driveId) => axiosClient.get(`/tpo/drives/${driveId}`),
   getEligibleStudents: (driveId) => axiosClient.get(`/tpo/drives/${driveId}/eligible-students`),
   getApplicants: (driveId) => axiosClient.get(`/tpo/drives/${driveId}/applicants`),
+  updateApplicationStatus: (appId, payload) => axiosClient.patch(`/tpo/applications/${appId}`, payload),
   closeDrive: (driveId) => axiosClient.post(`/tpo/drives/${driveId}/close`),
   closeTest: (driveId) => axiosClient.post(`/tpo/drives/${driveId}/close-test`),
   removeStudentFromDrive: (driveId, userId) =>
@@ -21,8 +23,6 @@ export const tpoApi = {
   getAllStudents: () => axiosClient.get("/tpo/students/all"),
   deactivateStudent: (userId) => axiosClient.post(`/tpo/students/${userId}/deactivate`),
   warnStudent: (userId, message) => axiosClient.post(`/tpo/students/${userId}/warn`, { message }),
-  // ASSUMPTION: no explicit path given for toggling the dream-company
-  // override; named consistently with the other /tpo/students/{id}/* actions.
   setPlacementLockOverride: (userId, enabled) =>
     axiosClient.patch(`/tpo/students/${userId}/placement-override`, { placement_lock_override: enabled }),
 

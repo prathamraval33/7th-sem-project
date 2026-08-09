@@ -37,22 +37,7 @@ export default function StudentDashboard() {
         </div>
       </div>
 
-      {!user?.fee_verified && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between">
-          <div>
-            <h3 className="font-semibold text-amber-900">Placement Fee Verification Pending</h3>
-            <p className="text-sm text-amber-800 mt-1">
-              You must upload your fee receipt to unlock drive applications.
-            </p>
-          </div>
-          <Link 
-            to="/student/fee-receipt" 
-            className="mt-4 sm:mt-0 inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700 transition-colors"
-          >
-            Upload Receipt
-          </Link>
-        </div>
-      )}
+
 
       {/* Readiness Score */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
