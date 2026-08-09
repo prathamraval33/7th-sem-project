@@ -187,30 +187,32 @@ export default function ManageDrivesPage() {
 
       {/* Add Company Modal */}
       {showCompanyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden my-8">
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] shadow-xl overflow-hidden flex flex-col my-auto">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
               <h2 className="text-lg font-semibold text-slate-900 font-heading flex items-center gap-2">
                 <Building2 size={18} className="text-accent" /> Add Company
               </h2>
               <button onClick={() => setShowCompanyModal(false)} className="text-slate-400 hover:text-slate-600">&times;</button>
             </div>
             
-            <form onSubmit={handleCreateCompany} className="p-6 space-y-4">
-              <Input label="Company Name" name="name" required placeholder="e.g. Google, TCS, Infosys" />
-              <Input label="Website" name="website" placeholder="e.g. https://tcs.com" />
-              <Input label="Location" name="location" placeholder="e.g. Mumbai, India" />
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">About Company</label>
-                <textarea 
-                  name="about" 
-                  rows="3" 
-                  placeholder="Brief description of the company..."
-                  className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground bg-card focus:outline-none focus:ring-2 focus:ring-accent"
-                ></textarea>
+            <form onSubmit={handleCreateCompany} className="flex flex-col flex-1 overflow-hidden min-h-0">
+              <div className="p-6 space-y-4 overflow-y-auto flex-1">
+                <Input label="Company Name" name="name" required placeholder="e.g. Google, TCS, Infosys" />
+                <Input label="Website" name="website" placeholder="e.g. https://tcs.com" />
+                <Input label="Location" name="location" placeholder="e.g. Mumbai, India" />
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">About Company</label>
+                  <textarea 
+                    name="about" 
+                    rows="3" 
+                    placeholder="Brief description of the company..."
+                    className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground bg-card focus:outline-none focus:ring-2 focus:ring-accent"
+                  ></textarea>
+                </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+              <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 shrink-0">
                 <Button type="button" variant="outline" onClick={() => setShowCompanyModal(false)}>Cancel</Button>
                 <Button type="submit" isLoading={createCompanyMutation.isPending}>Add Company</Button>
               </div>
@@ -221,95 +223,97 @@ export default function ManageDrivesPage() {
 
       {/* Create Drive Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl w-full max-w-2xl shadow-xl overflow-hidden my-8">
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] shadow-xl overflow-hidden flex flex-col my-auto">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
               <h2 className="text-lg font-semibold text-slate-900 font-heading">Create New Drive</h2>
-              <button onClick={() => setShowCreateModal(false)} className="text-slate-400 hover:text-slate-600">&times;</button>
+              <button onClick={() => setShowCreateModal(false)} className="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
             </div>
             
-            <form onSubmit={handleCreateDrive} className="p-6 space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="block text-sm font-medium text-slate-700">Company</label>
-                    <button 
-                      type="button" 
-                      onClick={() => setShowCompanyModal(true)} 
-                      className="text-xs text-accent hover:underline font-medium flex items-center gap-1"
-                    >
-                      <Plus size={12} /> Add New
-                    </button>
-                  </div>
-                  <select 
-                    name="company_id" 
-                    value={selectedCompanyId}
-                    onChange={(e) => setSelectedCompanyId(e.target.value)}
-                    required 
-                    className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground bg-card focus:outline-none focus:ring-2 focus:ring-accent"
-                  >
-                    <option value="">Select Company</option>
-                    {companies?.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <Input label="Role" name="role" required placeholder="e.g. Software Engineer" />
-                
-                <Input label="Min CTC (LPA)" name="min_ctc" type="number" step="0.1" placeholder="e.g. 6.5" />
-                <Input label="Max CTC (LPA)" name="max_ctc" type="number" step="0.1" placeholder="e.g. 12.0" />
-
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Job Description</label>
-                  <textarea 
-                    name="jd_text" 
-                    required 
-                    rows="3" 
-                    className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground bg-card focus:outline-none focus:ring-2 focus:ring-accent"
-                  ></textarea>
-                </div>
-                <Input label="Bond Details (Optional)" name="bond_details" placeholder="e.g. 2 years, 2L penalty" />
-                <Input label="Deadline" name="deadline" type="datetime-local" required />
-              </div>
-
-              <div className="border-t border-slate-100 pt-4">
-                <h3 className="text-sm font-semibold text-slate-900 mb-2">Eligibility Criteria</h3>
-                
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Eligible Branches / Departments</label>
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                    {branches.map(b => (
-                      <label 
-                        key={b.id} 
-                        className={`flex items-center space-x-2 p-2 rounded-xl border cursor-pointer text-xs font-semibold transition-all ${
-                          selectedDepts.includes(b.code)
-                            ? "bg-accent/10 border-accent text-accent"
-                            : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
-                        }`}
+            <form onSubmit={handleCreateDrive} className="flex flex-col flex-1 overflow-hidden min-h-0">
+              <div className="p-6 space-y-6 overflow-y-auto flex-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="block text-sm font-medium text-slate-700">Company</label>
+                      <button 
+                        type="button" 
+                        onClick={() => setShowCompanyModal(true)} 
+                        className="text-xs text-accent hover:underline font-medium flex items-center gap-1"
                       >
-                        <input 
-                          type="checkbox"
-                          checked={selectedDepts.includes(b.code)}
-                          onChange={() => toggleDept(b.code)}
-                          className="hidden"
-                        />
-                        <span>{b.code}</span>
-                        <span className="text-[10px] font-normal text-slate-500 truncate">({b.name})</span>
-                      </label>
-                    ))}
+                        <Plus size={12} /> Add New
+                      </button>
+                    </div>
+                    <select 
+                      name="company_id" 
+                      value={selectedCompanyId}
+                      onChange={(e) => setSelectedCompanyId(e.target.value)}
+                      required 
+                      className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground bg-card focus:outline-none focus:ring-2 focus:ring-accent"
+                    >
+                      <option value="">Select Company</option>
+                      {companies?.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
                   </div>
+                  <Input label="Role" name="role" required placeholder="e.g. Software Engineer" />
+                  
+                  <Input label="Min CTC (LPA)" name="min_ctc" type="number" step="0.1" placeholder="e.g. 6.5" />
+                  <Input label="Max CTC (LPA)" name="max_ctc" type="number" step="0.1" placeholder="e.g. 12.0" />
+
+                  <div className="col-span-1 sm:col-span-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Job Description</label>
+                    <textarea 
+                      name="jd_text" 
+                      required 
+                      rows="3" 
+                      className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground bg-card focus:outline-none focus:ring-2 focus:ring-accent"
+                    ></textarea>
+                  </div>
+                  <Input label="Bond Details (Optional)" name="bond_details" placeholder="e.g. 2 years, 2L penalty" />
+                  <Input label="Deadline" name="deadline" type="datetime-local" required />
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  <Input label="Min CGPA" name="min_cgpa" type="number" step="0.01" required placeholder="e.g. 7.0" />
-                  <Input label="Max Backlogs" name="max_backlogs" type="number" required placeholder="e.g. 0" />
-                  <Input label="Min 10th %" name="min_tenth" type="number" step="0.01" required placeholder="e.g. 60" />
-                  <Input label="Min 12th %" name="min_twelfth" type="number" step="0.01" required placeholder="e.g. 60" />
-                  <Input label="Min Competitive %ile (Opt)" name="min_percentile" type="number" step="0.01" placeholder="e.g. 75" />
+                <div className="border-t border-slate-100 pt-4">
+                  <h3 className="text-sm font-semibold text-slate-900 mb-2">Eligibility Criteria</h3>
+                  
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Eligible Branches / Departments</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                      {branches.map(b => (
+                        <label 
+                          key={b.id} 
+                          className={`flex items-center space-x-2 p-2 rounded-xl border cursor-pointer text-xs font-semibold transition-all ${
+                            selectedDepts.includes(b.code)
+                              ? "bg-accent/10 border-accent text-accent"
+                              : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                          }`}
+                        >
+                          <input 
+                            type="checkbox"
+                            checked={selectedDepts.includes(b.code)}
+                            onChange={() => toggleDept(b.code)}
+                            className="hidden"
+                          />
+                          <span className="font-bold">{b.code}</span>
+                          <span className="text-[10px] font-normal text-slate-500 truncate">({b.name})</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <Input label="Min CGPA" name="min_cgpa" type="number" step="0.01" required placeholder="e.g. 7.0" />
+                    <Input label="Max Backlogs" name="max_backlogs" type="number" required placeholder="e.g. 0" />
+                    <Input label="Min 10th %" name="min_tenth" type="number" step="0.01" required placeholder="e.g. 60" />
+                    <Input label="Min 12th %" name="min_twelfth" type="number" step="0.01" required placeholder="e.g. 60" />
+                    <Input label="Min Competitive %ile (Opt)" name="min_percentile" type="number" step="0.01" placeholder="e.g. 75" />
+                  </div>
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+              <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 shrink-0">
                 <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>Cancel</Button>
                 <Button type="submit" isLoading={createDriveMutation.isPending}>Create Drive</Button>
               </div>
