@@ -47,6 +47,14 @@ export default function OnboardingPage() {
     try {
       setSubmitError("");
       
+      const skillsArray = Array.isArray(data.skills)
+        ? data.skills
+        : (typeof data.skills === "string" ? data.skills.split(",").map((s) => s.trim()).filter(Boolean) : []);
+
+      const compPercentile = (data.competitive_exam_percentile !== null && data.competitive_exam_percentile !== undefined && data.competitive_exam_percentile !== "")
+        ? parseFloat(data.competitive_exam_percentile)
+        : null;
+
       const payload = {
         full_name: data.full_name,
         branch: data.branch,
@@ -54,11 +62,9 @@ export default function OnboardingPage() {
         active_backlogs: parseInt(data.active_backlogs, 10),
         tenth_percentage: parseFloat(data.tenth_percentage),
         twelfth_percentage: parseFloat(data.twelfth_percentage),
-        skills: data.skills.split(",").map((s) => s.trim()).filter(Boolean),
+        skills: skillsArray,
         competitive_exam_name: data.competitive_exam_name || null,
-        competitive_exam_percentile: data.competitive_exam_percentile 
-          ? parseFloat(data.competitive_exam_percentile) 
-          : null,
+        competitive_exam_percentile: (compPercentile !== null && !isNaN(compPercentile)) ? compPercentile : null,
       };
 
       await studentApi.createProfile(payload);
@@ -67,7 +73,7 @@ export default function OnboardingPage() {
       navigate("/student/dashboard", { replace: true });
     } catch (err) {
       setSubmitError(
-        err.response?.data?.detail || "Failed to complete onboarding. Please try again."
+        err.response?.data?.detail || err.message || "Failed to complete onboarding. Please try again."
       );
     }
   };
@@ -166,7 +172,7 @@ export default function OnboardingPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <Input
                 label="Competitive Exam Name (Optional)"
-                placeholder="e.g. GATE, CAT"
+                placeholder="e.g. GATE, CAT (Leave blank if none)"
                 {...register("competitive_exam_name")}
                 error={errors.competitive_exam_name?.message}
               />
@@ -174,7 +180,7 @@ export default function OnboardingPage() {
                 label="Competitive Exam Percentile (Optional)"
                 type="number"
                 step="0.01"
-                placeholder="e.g. 95.5"
+                placeholder="e.g. 95.5 (Leave blank if none)"
                 {...register("competitive_exam_percentile")}
                 error={errors.competitive_exam_percentile?.message}
               />
