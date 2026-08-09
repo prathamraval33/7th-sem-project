@@ -67,7 +67,17 @@ export default function OnboardingPage() {
         competitive_exam_percentile: (compPercentile !== null && !isNaN(compPercentile)) ? compPercentile : null,
       };
 
-      await studentApi.createProfile(payload);
+      try {
+        await studentApi.createProfile(payload);
+      } catch (profileErr) {
+        if (profileErr.response?.status === 409) {
+          // Profile was already created in a previous attempt, update it
+          await authApi.updateMyProfile(payload);
+        } else {
+          throw profileErr;
+        }
+      }
+
       await resumeApi.uploadResume(resumeFile);
       await refreshUser();
       navigate("/student/dashboard", { replace: true });
