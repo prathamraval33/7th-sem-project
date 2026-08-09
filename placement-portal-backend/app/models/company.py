@@ -13,6 +13,7 @@ class Company(Base):
     website: Mapped[str | None] = mapped_column(String(500), nullable=True)
     location: Mapped[str | None] = mapped_column(String(255), nullable=True)
     about: Mapped[str | None] = mapped_column(Text, nullable=True)
+    industry_type: Mapped[str | None] = mapped_column(String(255), nullable=True)
     logo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     drives: Mapped[list["Drive"]] = relationship(back_populates="company")

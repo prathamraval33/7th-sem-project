@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { tpoApi } from "../../api/tpo.api";
 import { branchesApi } from "../../api/branches.api";
+import DriveDetailsView from "../../components/drives/DriveDetailsView";
 import { 
   Users, 
   FileText, 
@@ -10,14 +11,7 @@ import {
   Info, 
   Edit3, 
   Building2, 
-  Calendar, 
-  DollarSign, 
-  GraduationCap, 
-  CheckCircle2, 
-  AlertCircle,
-  FileCheck2,
-  Clock,
-  Briefcase
+  Calendar
 } from "lucide-react";
 import Card from "../../components/ui/Card";
 import Button from "../../components/common/Button";
@@ -137,7 +131,9 @@ export default function TpoDriveDetailPage() {
 
     const updatedPayload = {
       role: formData.get("role"),
+      placement_type: formData.get("placement_type") || "Internship + Placement",
       jd_text: formData.get("jd_text"),
+      student_instructions: formData.get("student_instructions") || null,
       min_ctc: minCtcVal ? parseFloat(minCtcVal) : null,
       max_ctc: maxCtcVal ? parseFloat(maxCtcVal) : null,
       bond_details: formData.get("bond_details") || null,
@@ -158,15 +154,6 @@ export default function TpoDriveDetailPage() {
   if (loadingDrives) return <div className="flex justify-center p-8"><Spinner size="lg" /></div>;
   if (!drive) return <div className="p-8 text-center text-red-500">Drive not found.</div>;
 
-  const ctcDisplay = drive.min_ctc && drive.max_ctc 
-    ? `₹${drive.min_ctc} - ₹${drive.max_ctc} LPA`
-    : drive.min_ctc 
-      ? `₹${drive.min_ctc} LPA`
-      : drive.max_ctc 
-        ? `Up to ₹${drive.max_ctc} LPA`
-        : "Not Specified";
-
-  // Form default ISO date string for datetime-local input
   const defaultDeadlineISO = drive.deadline 
     ? new Date(drive.deadline).toISOString().slice(0, 16) 
     : "";
@@ -176,17 +163,22 @@ export default function TpoDriveDetailPage() {
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row justify-between md:items-end gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
         <div>
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-3 mb-2 flex-wrap">
             <Badge variant={drive.status === "open" ? "success" : "neutral"}>
               {drive.status.toUpperCase()}
             </Badge>
+            {drive.placement_type && (
+              <span className="px-2.5 py-0.5 bg-accent/10 text-accent font-semibold rounded-full text-xs">
+                {drive.placement_type}
+              </span>
+            )}
             <Badge variant="brand">{drive.test_status === "open" ? "Test Active" : "No Test"}</Badge>
             <span className="text-xs text-slate-500 font-medium">Drive ID: #{drive.id}</span>
           </div>
           <h1 className="text-2xl font-bold text-slate-900 font-heading">{drive.role}</h1>
-          <p className="text-slate-600 mt-1 flex items-center gap-4 text-sm">
+          <p className="text-slate-600 mt-1 flex items-center gap-4 text-sm flex-wrap">
             <span className="flex items-center gap-1.5 font-medium"><Building2 size={15} /> {company?.name || `Company ID: ${drive.company_id}`}</span>
-            <span className="flex items-center gap-1.5 text-slate-500"><Calendar size={15} /> Deadline: {new Date(drive.deadline).toLocaleString()}</span>
+            <span className="flex items-center gap-1.5 text-slate-500"><Calendar size={15} /> Last Date: {new Date(drive.deadline).toLocaleString()}</span>
           </p>
         </div>
         
@@ -356,130 +348,7 @@ export default function TpoDriveDetailPage() {
 
         {/* Full Drive Details Tab */}
         {activeTab === "details" && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Quick Info Column */}
-              <div className="md:col-span-1 space-y-6">
-                <Card>
-                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2 flex items-center gap-2 font-heading">
-                    <DollarSign size={16} className="text-emerald-600" /> Package & Info
-                  </h3>
-                  <div className="space-y-3 text-sm">
-                    <div>
-                      <p className="text-xs text-slate-500">Offered CTC Package</p>
-                      <p className="text-base font-bold text-emerald-600 mt-0.5">{ctcDisplay}</p>
-                    </div>
-                    <div className="pt-2 border-t border-slate-100">
-                      <p className="text-xs text-slate-500">Bond / Agreement</p>
-                      <p className="font-medium text-slate-800 mt-0.5">{drive.bond_details || "No bond agreement required"}</p>
-                    </div>
-                    <div className="pt-2 border-t border-slate-100">
-                      <p className="text-xs text-slate-500">Application Deadline</p>
-                      <p className="font-medium text-slate-800 mt-0.5">{new Date(drive.deadline).toLocaleString()}</p>
-                    </div>
-                    <div className="pt-2 border-t border-slate-100">
-                      <p className="text-xs text-slate-500">Drive Status</p>
-                      <span className="inline-block mt-1">
-                        <Badge variant={drive.status === "open" ? "success" : "neutral"}>{drive.status.toUpperCase()}</Badge>
-                      </span>
-                    </div>
-                  </div>
-                </Card>
-
-                {company && (
-                  <Card>
-                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2 flex items-center gap-2 font-heading">
-                      <Building2 size={16} className="text-accent" /> Company Information
-                    </h3>
-                    <div className="space-y-3 text-sm">
-                      <div>
-                        <p className="text-xs text-slate-500">Company Name</p>
-                        <p className="font-semibold text-slate-900 mt-0.5">{company.name}</p>
-                      </div>
-                      {company.website && (
-                        <div>
-                          <p className="text-xs text-slate-500">Website</p>
-                          <a href={company.website} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline font-medium text-xs truncate block mt-0.5">
-                            {company.website}
-                          </a>
-                        </div>
-                      )}
-                      {company.location && (
-                        <div>
-                          <p className="text-xs text-slate-500">Location</p>
-                          <p className="font-medium text-slate-800 mt-0.5">{company.location}</p>
-                        </div>
-                      )}
-                      {company.about && (
-                        <div>
-                          <p className="text-xs text-slate-500">About Company</p>
-                          <p className="text-xs text-slate-600 mt-0.5 line-clamp-4">{company.about}</p>
-                        </div>
-                      )}
-                    </div>
-                  </Card>
-                )}
-              </div>
-
-              {/* Detailed JD & Eligibility Column */}
-              <div className="md:col-span-2 space-y-6">
-                <Card>
-                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2 flex items-center gap-2 font-heading">
-                    <FileCheck2 size={16} className="text-accent" /> Eligibility Criteria
-                  </h3>
-                  
-                  <div className="space-y-4 text-sm">
-                    <div>
-                      <p className="text-xs text-slate-500 mb-2">Eligible Branches / Departments</p>
-                      <div className="flex flex-wrap gap-2">
-                        {drive.eligibility_criteria?.department_list?.map((dept, idx) => (
-                          <span key={idx} className="bg-accent/10 border border-accent/30 text-accent font-bold px-3 py-1 rounded-xl text-xs">
-                            {dept}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-4 border-t border-slate-100">
-                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                        <p className="text-xs text-slate-500">Minimum CGPA</p>
-                        <p className="text-base font-bold text-slate-900 mt-0.5">{drive.eligibility_criteria?.min_cgpa ?? "N/A"}</p>
-                      </div>
-                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                        <p className="text-xs text-slate-500">Max Backlogs</p>
-                        <p className="text-base font-bold text-slate-900 mt-0.5">{drive.eligibility_criteria?.max_backlogs ?? "N/A"}</p>
-                      </div>
-                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                        <p className="text-xs text-slate-500">Min 10th %</p>
-                        <p className="text-base font-bold text-slate-900 mt-0.5">{drive.eligibility_criteria?.min_tenth ? `${drive.eligibility_criteria.min_tenth}%` : "N/A"}</p>
-                      </div>
-                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                        <p className="text-xs text-slate-500">Min 12th %</p>
-                        <p className="text-base font-bold text-slate-900 mt-0.5">{drive.eligibility_criteria?.min_twelfth ? `${drive.eligibility_criteria.min_twelfth}%` : "N/A"}</p>
-                      </div>
-                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 col-span-2 sm:col-span-1">
-                        <p className="text-xs text-slate-500">Min Competitive %ile</p>
-                        <p className="text-base font-bold text-slate-900 mt-0.5">
-                          {drive.eligibility_criteria?.min_percentile !== null && drive.eligibility_criteria?.min_percentile !== undefined
-                            ? `${drive.eligibility_criteria.min_percentile}%`
-                            : "Optional / None"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-
-                <Card>
-                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2 flex items-center gap-2 font-heading">
-                    <FileText size={16} className="text-accent" /> Full Job Description
-                  </h3>
-                  <div className="prose prose-slate text-sm max-w-none leading-relaxed text-slate-700 whitespace-pre-line">
-                    {drive.jd_text || "No description provided."}
-                  </div>
-                </Card>
-              </div>
-            </div>
-          </div>
+          <DriveDetailsView drive={drive} company={company} />
         )}
       </div>
 
@@ -497,13 +366,27 @@ export default function TpoDriveDetailPage() {
             <form onSubmit={handleUpdateDriveSubmit} className="flex flex-col flex-1 overflow-hidden min-h-0">
               <div className="p-6 space-y-6 overflow-y-auto flex-1">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Input label="Role" name="role" defaultValue={drive.role} required placeholder="e.g. Software Engineer" />
+                  <Input label="Job Announcement Title (Role)" name="role" defaultValue={drive.role} required placeholder="e.g. Software Engineer" />
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Placement Type</label>
+                    <select 
+                      name="placement_type" 
+                      defaultValue={drive.placement_type || "Internship + Placement"}
+                      required
+                      className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground bg-card focus:outline-none focus:ring-2 focus:ring-accent"
+                    >
+                      <option value="Internship + Placement">Internship + Placement</option>
+                      <option value="Only Placement">Only Placement</option>
+                      <option value="Only Internship">Only Internship</option>
+                    </select>
+                  </div>
                   
-                  <Input label="Min CTC (LPA)" name="min_ctc" type="number" step="0.1" defaultValue={drive.min_ctc || ""} placeholder="e.g. 6.5" />
+                  <Input label="Min CTC (LPA)" name="min_ctc" type="number" step="0.1" defaultValue={drive.min_ctc || ""} placeholder="e.g. 6.0" />
                   <Input label="Max CTC (LPA)" name="max_ctc" type="number" step="0.1" defaultValue={drive.max_ctc || ""} placeholder="e.g. 12.0" />
 
                   <div className="col-span-1 sm:col-span-2">
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Job Description</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Job Announcement Description</label>
                     <textarea 
                       name="jd_text" 
                       defaultValue={drive.jd_text}
@@ -512,8 +395,20 @@ export default function TpoDriveDetailPage() {
                       className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground bg-card focus:outline-none focus:ring-2 focus:ring-accent"
                     ></textarea>
                   </div>
-                  <Input label="Bond Details (Optional)" name="bond_details" defaultValue={drive.bond_details || ""} placeholder="e.g. 2 years, 2L penalty" />
-                  <Input label="Deadline" name="deadline" type="datetime-local" defaultValue={defaultDeadlineISO} required />
+
+                  <Input label="Bond / Service Agreement Details" name="bond_details" defaultValue={drive.bond_details || ""} placeholder="e.g. 18 months service agreement" />
+                  <Input label="Registration Deadline" name="deadline" type="datetime-local" defaultValue={defaultDeadlineISO} required />
+
+                  <div className="col-span-1 sm:col-span-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Instructions For Students</label>
+                    <textarea 
+                      name="student_instructions" 
+                      defaultValue={drive.student_instructions || ""}
+                      rows="2" 
+                      placeholder="e.g. Mandatory registration link..."
+                      className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground bg-card focus:outline-none focus:ring-2 focus:ring-accent bg-amber-50/30"
+                    ></textarea>
+                  </div>
                 </div>
 
                 <div className="border-t border-slate-100 pt-4">
@@ -545,7 +440,7 @@ export default function TpoDriveDetailPage() {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <Input label="Min CGPA" name="min_cgpa" type="number" step="0.01" defaultValue={drive.eligibility_criteria?.min_cgpa} required placeholder="e.g. 7.0" />
+                    <Input label="Min CGPA" name="min_cgpa" type="number" step="0.01" defaultValue={drive.eligibility_criteria?.min_cgpa} required placeholder="e.g. 6.5" />
                     <Input label="Max Backlogs" name="max_backlogs" type="number" defaultValue={drive.eligibility_criteria?.max_backlogs} required placeholder="e.g. 0" />
                     <Input label="Min 10th %" name="min_tenth" type="number" step="0.01" defaultValue={drive.eligibility_criteria?.min_tenth} required placeholder="e.g. 60" />
                     <Input label="Min 12th %" name="min_twelfth" type="number" step="0.01" defaultValue={drive.eligibility_criteria?.min_twelfth} required placeholder="e.g. 60" />

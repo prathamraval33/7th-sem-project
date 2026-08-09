@@ -9,7 +9,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.core.dependencies import require_tpo
 from app.db.session import get_db
@@ -122,6 +122,8 @@ def create_drive(
         company_id=payload.company_id,
         role=payload.role,
         jd_text=payload.jd_text,
+        placement_type=payload.placement_type,
+        student_instructions=payload.student_instructions,
         min_ctc=payload.min_ctc,
         max_ctc=payload.max_ctc,
         eligibility_criteria=payload.eligibility_criteria.model_dump(),
@@ -159,7 +161,7 @@ def update_drive(
 def list_my_drives(current_user: User = Depends(require_tpo), db: Session = Depends(get_db)) -> list[Drive]:
     return list(
         db.scalars(
-            select(Drive).where(Drive.created_by == current_user.id).order_by(Drive.created_at.desc())
+            select(Drive).options(joinedload(Drive.company)).where(Drive.created_by == current_user.id).order_by(Drive.created_at.desc())
         ).all()
     )
 

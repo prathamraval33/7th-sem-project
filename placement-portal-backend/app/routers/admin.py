@@ -7,7 +7,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy import select, func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.core.dependencies import require_admin
 from app.db.session import get_db
@@ -25,7 +25,7 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 @router.get("/drives", response_model=list[DriveResponse])
 def list_all_drives(current_user: User = Depends(require_admin), db: Session = Depends(get_db)) -> list[Drive]:
-    return list(db.scalars(select(Drive).order_by(Drive.created_at.desc())).all())
+    return list(db.scalars(select(Drive).options(joinedload(Drive.company)).order_by(Drive.created_at.desc())).all())
 
 
 @router.patch("/drives/{drive_id}", response_model=DriveResponse)

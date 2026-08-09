@@ -26,6 +26,8 @@ class Drive(Base):
     company_id: Mapped[int] = mapped_column(ForeignKey("companies.id", ondelete="CASCADE"), nullable=False)
     role: Mapped[str] = mapped_column(String(255), nullable=False)
     jd_text: Mapped[str] = mapped_column(Text, nullable=False)
+    placement_type: Mapped[str | None] = mapped_column(String(100), default="Internship + Placement", nullable=True)
+    student_instructions: Mapped[str | None] = mapped_column(Text, nullable=True)
     min_ctc: Mapped[float | None] = mapped_column(Float, nullable=True)
     max_ctc: Mapped[float | None] = mapped_column(Float, nullable=True)
     # min_cgpa, max_backlogs, department_list, min_tenth, min_twelfth, min_percentile

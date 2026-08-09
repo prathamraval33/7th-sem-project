@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,6 +12,7 @@ import { useAuth } from "../../auth/useAuth";
 import Button from "../../components/common/Button";
 import Input from "../../components/common/Input";
 import FileUploadInput from "../../components/forms/FileUploadInput";
+import { Lock } from "lucide-react";
 
 export default function OnboardingPage() {
   const { user, refreshUser } = useAuth();
@@ -25,13 +26,30 @@ export default function OnboardingPage() {
     queryFn: () => branchesApi.getBranches().then((res) => res.data),
   });
 
+  // Extract ID and Branch from college email (e.g. 23it449@bvmengineering.ac.in -> 23IT449 & IT)
+  const emailPrefix = user?.email ? user.email.split("@")[0].toLowerCase() : "";
+  const match = emailPrefix.match(/^(\d{2})([a-z]+)(\d+)$/i);
+
+  const autoBranch = match ? match[2].toUpperCase() : "";
+  const autoIdNumber = match ? `${match[1]}${match[2].toUpperCase()}${match[3]}` : emailPrefix.toUpperCase();
+
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(studentOnboardingSchema),
+    defaultValues: {
+      branch: autoBranch,
+    },
   });
+
+  useEffect(() => {
+    if (autoBranch) {
+      setValue("branch", autoBranch);
+    }
+  }, [autoBranch, setValue]);
 
   // If already onboarded, redirect
   if (user?.profile_complete) {
@@ -57,7 +75,7 @@ export default function OnboardingPage() {
 
       const payload = {
         full_name: data.full_name,
-        branch: data.branch,
+        branch: autoBranch || data.branch,
         cgpa: parseFloat(data.cgpa),
         active_backlogs: parseInt(data.active_backlogs, 10),
         tenth_percentage: parseFloat(data.tenth_percentage),
@@ -71,7 +89,6 @@ export default function OnboardingPage() {
         await studentApi.createProfile(payload);
       } catch (profileErr) {
         if (profileErr.response?.status === 409) {
-          // Profile was already created in a previous attempt, update it
           await authApi.updateMyProfile(payload);
         } else {
           throw profileErr;
@@ -95,7 +112,7 @@ export default function OnboardingPage() {
           Complete Your Profile
         </h2>
         <p className="mt-2 text-center text-sm text-muted">
-          Please provide your academic details to get started with placement opportunities.
+          Provide your official academic details to access placement drives.
         </p>
       </div>
 
@@ -108,18 +125,49 @@ export default function OnboardingPage() {
               </div>
             )}
 
+            {/* Auto-extracted Credentials Header */}
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+              <div className="flex items-center justify-between text-xs text-slate-500 font-semibold uppercase tracking-wider">
+                <span>Verified College Credentials</span>
+                <span className="flex items-center gap-1 text-emerald-600 font-bold">
+                  <Lock size={12} /> Auto-Locked
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-4 pt-1">
+                <div>
+                  <p className="text-xs text-slate-500">Student ID / Roll No</p>
+                  <p className="text-sm font-bold text-slate-900 mt-0.5">{autoIdNumber}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">College Email</p>
+                  <p className="text-sm font-semibold text-slate-800 mt-0.5 truncate">{user?.email}</p>
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <Input
                 label="Full Name"
-                placeholder="John Doe"
+                placeholder="e.g. Pratham Raval"
                 {...register("full_name")}
                 error={errors.full_name?.message}
               />
+              
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Branch/Department</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center justify-between">
+                  <span>Branch / Department</span>
+                  {autoBranch && (
+                    <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-0.5">
+                      <Lock size={10} /> Verified
+                    </span>
+                  )}
+                </label>
                 <select
                   {...register("branch")}
-                  className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground bg-card focus:outline-none focus:ring-2 focus:ring-accent"
+                  disabled={!!autoBranch}
+                  className={`w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent ${
+                    autoBranch ? "bg-slate-100 text-slate-600 font-semibold cursor-not-allowed border-slate-300" : "bg-card"
+                  }`}
                 >
                   <option value="">Select Branch</option>
                   {branches.map((b) => (
@@ -155,7 +203,7 @@ export default function OnboardingPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <Input
-                label="10th Percentage"
+                label="10th Percentage (%)"
                 type="number"
                 step="0.01"
                 placeholder="e.g. 85.5"
@@ -163,7 +211,7 @@ export default function OnboardingPage() {
                 error={errors.tenth_percentage?.message}
               />
               <Input
-                label="12th Percentage"
+                label="12th / Diploma Percentage (%)"
                 type="number"
                 step="0.01"
                 placeholder="e.g. 82.0"
@@ -173,33 +221,37 @@ export default function OnboardingPage() {
             </div>
 
             <Input
-              label="Skills"
-              placeholder="e.g. Python, React, Data Structures (comma separated)"
+              label="Skills (Comma-separated)"
+              placeholder="e.g. React, Python, Java, Data Structures"
               {...register("skills")}
               error={errors.skills?.message}
             />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <Input
-                label="Competitive Exam Name (Optional)"
-                placeholder="e.g. GATE, CAT (Leave blank if none)"
-                {...register("competitive_exam_name")}
-                error={errors.competitive_exam_name?.message}
-              />
-              <Input
-                label="Competitive Exam Percentile (Optional)"
-                type="number"
-                step="0.01"
-                placeholder="e.g. 95.5 (Leave blank if none)"
-                {...register("competitive_exam_percentile")}
-                error={errors.competitive_exam_percentile?.message}
-              />
+            <div className="border-t border-slate-200 pt-4">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                Competitive Exam Scores (Optional)
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <Input
+                  label="Exam Name (Optional)"
+                  placeholder="e.g. GATE, CAT, CMAT"
+                  {...register("competitive_exam_name")}
+                  error={errors.competitive_exam_name?.message}
+                />
+                <Input
+                  label="Percentile / Score (Optional)"
+                  type="number"
+                  step="0.01"
+                  placeholder="e.g. 98.5"
+                  {...register("competitive_exam_percentile")}
+                  error={errors.competitive_exam_percentile?.message}
+                />
+              </div>
             </div>
 
             <FileUploadInput
-              label="Resume PDF"
-              accept=".pdf"
-              file={resumeFile}
+              label="Upload Resume (PDF/DOC)"
+              accept=".pdf,.doc,.docx"
               onChange={(file) => {
                 setResumeFile(file);
                 setResumeError("");
@@ -207,13 +259,8 @@ export default function OnboardingPage() {
               error={resumeError}
             />
 
-            <Button
-              type="submit"
-              className="w-full"
-              size="lg"
-              isLoading={isSubmitting}
-            >
-              Complete Profile Setup
+            <Button type="submit" className="w-full" isLoading={isSubmitting}>
+              Complete Onboarding
             </Button>
           </form>
         </div>
