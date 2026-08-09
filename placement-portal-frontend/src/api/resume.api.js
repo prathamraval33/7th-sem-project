@@ -1,7 +1,3 @@
-// Resume upload/history/activation, resume analyzer, resume enhancer.
-// ASSUMPTION: `GET /resume` (history list) and `PATCH /resume/{id}/activate`
-// ("make active" toggle) aren't given explicit paths in the master prompt
-// but are required by ResumeUploadPage's documented behavior.
 import axiosClient from "./axiosClient";
 
 export const resumeApi = {
@@ -9,6 +5,16 @@ export const resumeApi = {
     axiosClient.post("/student/resume", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     }),
+  uploadResume: (fileOrFormData) => {
+    let formData = fileOrFormData;
+    if (fileOrFormData instanceof File) {
+      formData = new FormData();
+      formData.append("file", fileOrFormData);
+    }
+    return axiosClient.post("/student/resume", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
   getHistory: () => axiosClient.get("/student/resumes"),
   setActive: (resumeId) => axiosClient.patch(`/student/resumes/${resumeId}/activate`),
 
