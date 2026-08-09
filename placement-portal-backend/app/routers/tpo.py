@@ -24,7 +24,7 @@ from app.models.user import User, UserType
 from app.models.analytics import Analytics
 from app.schemas.application import ApplicationResponse, ApplicationUpdate
 from app.schemas.company import CompanyCreate, CompanyResponse
-from app.schemas.drive import DriveCreate, DriveResponse
+from app.schemas.drive import DriveCreate, DriveResponse, DriveUpdate
 from app.schemas.instant_test import InstantTestCreate, InstantTestResponse
 from app.schemas.profile import ProfilePlacementOverrideUpdate, ProfileResponse
 from app.services import test_generator
@@ -130,6 +130,26 @@ def create_drive(
         created_by=current_user.id,
     )
     db.add(drive)
+    db.commit()
+    db.refresh(drive)
+    return drive
+
+
+@router.patch("/drives/{drive_id}", response_model=DriveResponse)
+def update_drive(
+    drive_id: int, payload: DriveUpdate, current_user: User = Depends(require_tpo), db: Session = Depends(get_db)
+) -> Drive:
+    drive = db.get(Drive, drive_id)
+    if drive is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Drive not found")
+
+    update_data = payload.model_dump(exclude_unset=True)
+    if "eligibility_criteria" in update_data and update_data["eligibility_criteria"] is not None:
+        update_data["eligibility_criteria"] = payload.eligibility_criteria.model_dump()
+
+    for field_name, value in update_data.items():
+        setattr(drive, field_name, value)
+
     db.commit()
     db.refresh(drive)
     return drive

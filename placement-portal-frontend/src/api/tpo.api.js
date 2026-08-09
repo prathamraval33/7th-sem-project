@@ -9,6 +9,7 @@ export const tpoApi = {
   createCompany: (payload) => axiosClient.post("/tpo/companies", payload),
 
   createDrive: (payload) => axiosClient.post("/tpo/drives", payload),
+  updateDrive: (driveId, payload) => axiosClient.patch(`/tpo/drives/${driveId}`, payload),
   getDrives: () => axiosClient.get("/tpo/drives"),
   getEligibleStudents: (driveId) => axiosClient.get(`/tpo/drives/${driveId}/eligible-students`),
   getApplicants: (driveId) => axiosClient.get(`/tpo/drives/${driveId}/applicants`),
