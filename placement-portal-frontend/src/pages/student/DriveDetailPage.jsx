@@ -2,8 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { drivesApi } from "../../api/drives.api";
 import { useAuth } from "../../auth/useAuth";
+import Spinner from "../../components/ui/Spinner";
 import Button from "../../components/common/Button";
-import { ArrowLeft, Building2, Calendar, FileText, CheckCircle2, AlertCircle } from "lucide-react";
+import { Building2, Calendar, ArrowLeft, CheckCircle2, AlertCircle, FileText, DollarSign } from "lucide-react";
 
 export default function DriveDetailPage() {
   const { id } = useParams();
@@ -13,70 +14,68 @@ export default function DriveDetailPage() {
   const [drive, setDrive] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isApplying, setIsApplying] = useState(false);
-  const [applyError, setApplyError] = useState("");
   const [applySuccess, setApplySuccess] = useState(false);
+  const [applyError, setApplyError] = useState("");
 
   useEffect(() => {
-    // In a real app we'd fetch specific drive details.
-    // For now, let's fetch all matched and find it.
-    const fetchDrive = async () => {
+    const fetchDriveDetail = async () => {
       try {
         setIsLoading(true);
         const res = await drivesApi.getMatchedDrives();
-        const found = res.data.find(d => d.id.toString() === id);
-        if (found) {
-          setDrive(found);
-        } else {
-          setApplyError("Drive not found or you are not eligible.");
-        }
+        const found = res.data.find((d) => d.id === parseInt(id, 10));
+        setDrive(found || null);
       } catch (err) {
-        setApplyError("Failed to fetch drive details.");
+        setApplyError("Failed to load drive details.");
       } finally {
         setIsLoading(false);
       }
     };
-    fetchDrive();
+
+    fetchDriveDetail();
   }, [id]);
 
   const handleApply = async () => {
     try {
       setIsApplying(true);
       setApplyError("");
-      // Real API call to apply would go here
-      // await drivesApi.applyToDrive(id);
-      
-      // Simulate success for now
-      setTimeout(() => {
-        setApplySuccess(true);
-        setIsApplying(false);
-      }, 1000);
+      await drivesApi.applyToDrive(parseInt(id, 10));
+      setApplySuccess(true);
     } catch (err) {
-      setApplyError(err.response?.data?.detail || "Failed to apply to drive.");
+      setApplyError(err.response?.data?.detail || "Failed to apply for drive.");
+    } finally {
       setIsApplying(false);
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div>
+      <div className="flex h-64 items-center justify-center">
+        <Spinner size="lg" />
       </div>
     );
   }
 
   if (!drive) {
     return (
-      <div className="text-center py-12">
-        <p className="text-slate-600 mb-4">{applyError}</p>
+      <div className="p-8 text-center bg-white rounded-2xl border border-slate-200">
+        <h3 className="text-lg font-bold text-slate-900 mb-2">Drive Not Found</h3>
+        <p className="text-slate-500 mb-4">This drive might be closed or you may not be eligible.</p>
         <Button onClick={() => navigate("/student/drives")}>Back to Drives</Button>
       </div>
     );
   }
 
   const isFeeVerified = user?.fee_verified;
+  const ctcDisplay = drive.min_ctc && drive.max_ctc 
+    ? `${drive.min_ctc} - ${drive.max_ctc} LPA`
+    : drive.min_ctc 
+      ? `${drive.min_ctc} LPA`
+      : drive.max_ctc 
+        ? `Up to ${drive.max_ctc} LPA`
+        : null;
 
   return (
-    <div className="max-w-4xl mx-auto font-sans">
+    <div className="max-w-4xl mx-auto space-y-6">
       <Link to="/student/drives" className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-slate-800 mb-6 transition-colors">
         <ArrowLeft className="w-4 h-4 mr-1" /> Back to Drives
       </Link>
@@ -90,9 +89,15 @@ export default function DriveDetailPage() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-slate-900 font-heading">{drive.role}</h1>
-              <p className="text-lg text-slate-600 mt-1">{drive.company?.name || "Company Name"}</p>
-              <div className="flex items-center space-x-4 mt-3 text-sm text-slate-500">
+              <p className="text-lg text-slate-600 mt-1">{drive.company?.name || "Partner Company"}</p>
+              
+              <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-slate-500">
                 <span className="flex items-center"><Calendar className="w-4 h-4 mr-1.5" /> Deadline: {new Date(drive.deadline).toLocaleDateString()}</span>
+                {ctcDisplay && (
+                  <span className="flex items-center text-emerald-600 font-semibold bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-100">
+                    <DollarSign className="w-4 h-4 mr-1" /> CTC: {ctcDisplay}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -157,6 +162,10 @@ export default function DriveDetailPage() {
                 <div className="flex justify-between">
                   <dt className="text-slate-500">Max Backlogs</dt>
                   <dd className="font-medium text-slate-900">{drive.eligibility_criteria?.max_backlogs ?? "N/A"}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-slate-500">Eligible Branches</dt>
+                  <dd className="font-medium text-slate-900">{drive.eligibility_criteria?.department_list?.join(", ") || "All"}</dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-slate-500">Bond</dt>

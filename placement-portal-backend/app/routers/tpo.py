@@ -122,6 +122,8 @@ def create_drive(
         company_id=payload.company_id,
         role=payload.role,
         jd_text=payload.jd_text,
+        min_ctc=payload.min_ctc,
+        max_ctc=payload.max_ctc,
         eligibility_criteria=payload.eligibility_criteria.model_dump(),
         bond_details=payload.bond_details,
         deadline=payload.deadline,

@@ -24,8 +24,11 @@ def check_eligibility(profile: Profile, criteria: dict) -> tuple[bool, list[str]
         reasons.append(f"{profile.active_backlogs} active backlog(s) exceed the allowed {criteria['max_backlogs']}")
 
     department_list = criteria.get("department_list") or []
-    if department_list and profile.branch not in department_list:
-        reasons.append(f"Branch '{profile.branch}' is not in the eligible department list")
+    if department_list:
+        normalized_depts = {d.strip().upper() for d in department_list}
+        student_branch = (profile.branch or "").strip().upper()
+        if student_branch not in normalized_depts:
+            reasons.append(f"Branch '{profile.branch}' is not in the eligible department list")
 
     if profile.tenth_percentage < criteria["min_tenth"]:
         reasons.append(f"10th percentage {profile.tenth_percentage} is below the required {criteria['min_tenth']}")

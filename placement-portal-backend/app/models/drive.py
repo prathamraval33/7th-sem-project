@@ -2,7 +2,7 @@
 import enum
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum as SAEnum, ForeignKey, Integer, JSON, String, Text, func
+from sqlalchemy import DateTime, Enum as SAEnum, Float, ForeignKey, Integer, JSON, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -26,6 +26,8 @@ class Drive(Base):
     company_id: Mapped[int] = mapped_column(ForeignKey("companies.id", ondelete="CASCADE"), nullable=False)
     role: Mapped[str] = mapped_column(String(255), nullable=False)
     jd_text: Mapped[str] = mapped_column(Text, nullable=False)
+    min_ctc: Mapped[float | None] = mapped_column(Float, nullable=True)
+    max_ctc: Mapped[float | None] = mapped_column(Float, nullable=True)
     # min_cgpa, max_backlogs, department_list, min_tenth, min_twelfth, min_percentile
     eligibility_criteria: Mapped[dict] = mapped_column(JSON, nullable=False)
     bond_details: Mapped[str | None] = mapped_column(Text, nullable=True)

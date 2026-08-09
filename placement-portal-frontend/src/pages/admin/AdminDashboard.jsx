@@ -1,12 +1,19 @@
-import React from "react";
-import { useQuery } from "@tanstack/react-query";
+import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "../../api/admin.api";
+import { branchesApi } from "../../api/branches.api";
 import StatCard from "../../components/common/StatCard";
 import Spinner from "../../components/ui/Spinner";
-import { Users, Briefcase, FileText, CheckCircle, TrendingUp, Activity, CheckCircle2 } from "lucide-react";
+import Button from "../../components/common/Button";
+import Input from "../../components/common/Input";
+import Badge from "../../components/ui/Badge";
+import { Users, Briefcase, FileText, CheckCircle, TrendingUp, Activity, CheckCircle2, GraduationCap, Plus, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 export default function AdminDashboard() {
+  const queryClient = useQueryClient();
+  const [showBranchModal, setShowBranchModal] = useState(false);
+
   const { data: analyticsRes, isLoading: isAnalyticsLoading } = useQuery({
     queryKey: ["adminAnalytics"],
     queryFn: () => adminApi.getAnalytics().then((res) => res.data),
@@ -17,7 +24,39 @@ export default function AdminDashboard() {
     queryFn: () => adminApi.getActivityFeed().then((res) => res.data),
   });
 
-  if (isAnalyticsLoading || isActivityLoading) {
+  const { data: branches = [], isLoading: isBranchesLoading } = useQuery({
+    queryKey: ["branches"],
+    queryFn: () => branchesApi.getBranches().then((res) => res.data),
+  });
+
+  const createBranchMutation = useMutation({
+    mutationFn: (newBranch) => branchesApi.createBranch(newBranch),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["branches"]);
+      setShowBranchModal(false);
+    },
+    onError: (err) => {
+      alert(err.response?.data?.detail || "Failed to add branch");
+    },
+  });
+
+  const deleteBranchMutation = useMutation({
+    mutationFn: (branchId) => branchesApi.deleteBranch(branchId),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["branches"]);
+    },
+  });
+
+  const handleCreateBranch = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    createBranchMutation.mutate({
+      code: formData.get("code").toUpperCase().trim(),
+      name: formData.get("name").trim(),
+    });
+  };
+
+  if (isAnalyticsLoading || isActivityLoading || isBranchesLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
         <Spinner size="lg" />
@@ -30,10 +69,48 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 font-heading">Admin Dashboard</h1>
-        <p className="text-slate-600 mt-1">Platform overview and recent activity.</p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 font-heading">Admin Dashboard</h1>
+          <p className="text-slate-600 mt-1">Platform overview and academic branch management.</p>
+        </div>
+        <Button onClick={() => setShowBranchModal(true)} className="flex items-center gap-2">
+          <GraduationCap size={16} /> Add Academic Branch
+        </Button>
       </div>
+
+      {/* Academic Branches Management Section */}
+      <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4">
+        <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 font-heading flex items-center gap-2">
+              <GraduationCap className="text-accent" size={20} /> Academic Branches
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">Standardized departments used across Student Profiles and TPO Drives.</p>
+          </div>
+          <Badge variant="brand">{branches.length} Active Branches</Badge>
+        </div>
+
+        <div className="flex flex-wrap gap-2 pt-2">
+          {branches.map((b) => (
+            <div key={b.id} className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl text-sm font-medium text-slate-800">
+              <span className="font-bold text-accent">{b.code}</span>
+              <span className="text-slate-500 font-normal">({b.name})</span>
+              <button 
+                onClick={() => {
+                  if (window.confirm(`Are you sure you want to deactivate branch ${b.code}?`)) {
+                    deleteBranchMutation.mutate(b.id);
+                  }
+                }}
+                className="text-slate-400 hover:text-red-500 ml-1 transition-colors"
+                title="Deactivate Branch"
+              >
+                &times;
+              </button>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* Student Overview Section */}
       <section className="space-y-4">
@@ -123,6 +200,30 @@ export default function AdminDashboard() {
           </div>
         )}
       </section>
+
+      {/* Add Branch Modal */}
+      {showBranchModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <h2 className="text-lg font-semibold text-slate-900 font-heading flex items-center gap-2">
+                <GraduationCap className="text-accent" size={18} /> Add New Academic Branch
+              </h2>
+              <button onClick={() => setShowBranchModal(false)} className="text-slate-400 hover:text-slate-600">&times;</button>
+            </div>
+            
+            <form onSubmit={handleCreateBranch} className="p-6 space-y-4">
+              <Input label="Branch Code (Short Form)" name="code" required placeholder="e.g. AI, DS, IT, CP" />
+              <Input label="Full Branch Name" name="name" required placeholder="e.g. Artificial Intelligence & Data Science" />
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                <Button type="button" variant="outline" onClick={() => setShowBranchModal(false)}>Cancel</Button>
+                <Button type="submit" isLoading={createBranchMutation.isPending}>Add Branch</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

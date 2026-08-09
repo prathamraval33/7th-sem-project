@@ -14,6 +14,8 @@ class NotificationType(str, enum.Enum):
     WARNING = "warning"
     NOTICE = "notice"
     SYSTEM = "system"
+    TEST_VIOLATION = "test_violation"
+    TEST_AUTO_ENDED = "test_auto_ended"
 
 
 class Notification(Base):

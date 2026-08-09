@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { tpoApi } from "../../api/tpo.api";
-import { Plus, Briefcase, Calendar, ChevronRight } from "lucide-react";
+import { branchesApi } from "../../api/branches.api";
+import { Plus, Briefcase, Calendar, ChevronRight, Building2, DollarSign } from "lucide-react";
 import Card from "../../components/ui/Card";
 import Button from "../../components/common/Button";
 import Badge from "../../components/ui/Badge";
@@ -12,6 +13,9 @@ import Spinner from "../../components/ui/Spinner";
 export default function ManageDrivesPage() {
   const queryClient = useQueryClient();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showCompanyModal, setShowCompanyModal] = useState(false);
+  const [selectedCompanyId, setSelectedCompanyId] = useState("");
+  const [selectedDepts, setSelectedDepts] = useState([]);
 
   const { data: drives, isLoading, error } = useQuery({
     queryKey: ["tpo-drives"],
@@ -29,27 +33,82 @@ export default function ManageDrivesPage() {
     },
   });
 
+  const { data: branches = [] } = useQuery({
+    queryKey: ["branches"],
+    queryFn: () => branchesApi.getBranches().then((res) => res.data),
+  });
+
+  const createCompanyMutation = useMutation({
+    mutationFn: (newCompany) => tpoApi.createCompany(newCompany),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries(["tpo-companies"]);
+      setShowCompanyModal(false);
+      if (res.data?.id) {
+        setSelectedCompanyId(res.data.id.toString());
+      }
+    },
+  });
+
   const createDriveMutation = useMutation({
     mutationFn: (newDrive) => tpoApi.createDrive(newDrive),
     onSuccess: () => {
       queryClient.invalidateQueries(["tpo-drives"]);
       setShowCreateModal(false);
+      setSelectedCompanyId("");
+      setSelectedDepts([]);
     },
   });
+
+  const handleCreateCompany = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const newCompany = {
+      name: formData.get("name"),
+      website: formData.get("website") || null,
+      location: formData.get("location") || null,
+      about: formData.get("about") || null,
+    };
+    createCompanyMutation.mutate(newCompany);
+  };
+
+  const toggleDept = (code) => {
+    if (selectedDepts.includes(code)) {
+      setSelectedDepts(selectedDepts.filter(d => d !== code));
+    } else {
+      setSelectedDepts([...selectedDepts, code]);
+    }
+  };
 
   const handleCreateDrive = (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
+    const companyId = parseInt(selectedCompanyId || formData.get("company_id"));
+    
+    if (!companyId) {
+      alert("Please select or add a company first.");
+      return;
+    }
+
+    if (selectedDepts.length === 0) {
+      alert("Please select at least one eligible department/branch.");
+      return;
+    }
+
+    const minCtcVal = formData.get("min_ctc");
+    const maxCtcVal = formData.get("max_ctc");
+
     const newDrive = {
-      company_id: parseInt(formData.get("company_id")),
+      company_id: companyId,
       role: formData.get("role"),
       jd_text: formData.get("jd_text"),
+      min_ctc: minCtcVal ? parseFloat(minCtcVal) : null,
+      max_ctc: maxCtcVal ? parseFloat(maxCtcVal) : null,
       bond_details: formData.get("bond_details") || null,
       deadline: new Date(formData.get("deadline")).toISOString(),
       eligibility_criteria: {
         min_cgpa: parseFloat(formData.get("min_cgpa")),
         max_backlogs: parseInt(formData.get("max_backlogs")),
-        department_list: formData.get("department_list").split(",").map(d => d.trim()),
+        department_list: selectedDepts,
         min_tenth: parseFloat(formData.get("min_tenth")),
         min_twelfth: parseFloat(formData.get("min_twelfth")),
         min_percentile: formData.get("min_percentile") ? parseFloat(formData.get("min_percentile")) : null,
@@ -63,14 +122,19 @@ export default function ManageDrivesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-end">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 font-heading">Manage Drives</h1>
-          <p className="text-slate-600 mt-1">Create and manage placement drives.</p>
+          <p className="text-slate-600 mt-1">Create and manage placement drives and partner companies.</p>
         </div>
-        <Button onClick={() => setShowCreateModal(true)} className="flex items-center gap-2">
-          <Plus size={16} /> New Drive
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" onClick={() => setShowCompanyModal(true)} className="flex items-center gap-2">
+            <Building2 size={16} /> Add Company
+          </Button>
+          <Button onClick={() => setShowCreateModal(true)} className="flex items-center gap-2">
+            <Plus size={16} /> New Drive
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -79,32 +143,83 @@ export default function ManageDrivesPage() {
             No drives created yet. Click "New Drive" to get started.
           </div>
         ) : (
-          drives?.map((drive) => (
-            <Card key={drive.id} className="flex flex-col h-full">
-              <div className="flex justify-between items-start mb-4">
-                <Badge variant={drive.status === "open" ? "success" : "neutral"}>
-                  {drive.status.toUpperCase()}
-                </Badge>
-                <Badge variant="brand">{drive.test_status === "open" ? "Test Active" : "No Test"}</Badge>
-              </div>
-              <h3 className="text-lg font-semibold text-slate-900 font-heading line-clamp-1">{drive.role}</h3>
-              <p className="text-sm text-slate-500 mb-4 flex items-center gap-2">
-                <Briefcase size={14} /> Company ID: {drive.company_id}
-              </p>
-              
-              <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between text-sm">
-                <span className="flex items-center gap-1 text-slate-600">
-                  <Calendar size={14} /> {new Date(drive.deadline).toLocaleDateString()}
-                </span>
-                <Link to={`/tpo/drives/${drive.id}`} className="flex items-center text-accent font-medium hover:underline">
-                  Details <ChevronRight size={16} />
-                </Link>
-              </div>
-            </Card>
-          ))
+          drives?.map((drive) => {
+            const matchedCompany = companies?.find(c => c.id === drive.company_id);
+            const ctcDisplay = drive.min_ctc && drive.max_ctc 
+              ? `${drive.min_ctc} - ${drive.max_ctc} LPA`
+              : drive.min_ctc 
+                ? `${drive.min_ctc} LPA`
+                : drive.max_ctc 
+                  ? `Up to ${drive.max_ctc} LPA`
+                  : null;
+
+            return (
+              <Card key={drive.id} className="flex flex-col h-full">
+                <div className="flex justify-between items-start mb-4">
+                  <Badge variant={drive.status === "open" ? "success" : "neutral"}>
+                    {drive.status.toUpperCase()}
+                  </Badge>
+                  <Badge variant="brand">{drive.test_status === "open" ? "Test Active" : "No Test"}</Badge>
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 font-heading line-clamp-1">{drive.role}</h3>
+                <p className="text-sm text-slate-500 mb-2 flex items-center gap-2">
+                  <Briefcase size={14} /> {matchedCompany ? matchedCompany.name : `Company ID: ${drive.company_id}`}
+                </p>
+                {ctcDisplay && (
+                  <p className="text-sm font-semibold text-emerald-600 mb-4 flex items-center gap-1.5 bg-emerald-50 w-fit px-2.5 py-1 rounded-lg border border-emerald-100">
+                    <DollarSign size={14} /> Offered CTC: {ctcDisplay}
+                  </p>
+                )}
+                
+                <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-1 text-slate-600">
+                    <Calendar size={14} /> {new Date(drive.deadline).toLocaleDateString()}
+                  </span>
+                  <Link to={`/tpo/drives/${drive.id}`} className="flex items-center text-accent font-medium hover:underline">
+                    Details <ChevronRight size={16} />
+                  </Link>
+                </div>
+              </Card>
+            );
+          })
         )}
       </div>
 
+      {/* Add Company Modal */}
+      {showCompanyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden my-8">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <h2 className="text-lg font-semibold text-slate-900 font-heading flex items-center gap-2">
+                <Building2 size={18} className="text-accent" /> Add Company
+              </h2>
+              <button onClick={() => setShowCompanyModal(false)} className="text-slate-400 hover:text-slate-600">&times;</button>
+            </div>
+            
+            <form onSubmit={handleCreateCompany} className="p-6 space-y-4">
+              <Input label="Company Name" name="name" required placeholder="e.g. Google, TCS, Infosys" />
+              <Input label="Website" name="website" placeholder="e.g. https://tcs.com" />
+              <Input label="Location" name="location" placeholder="e.g. Mumbai, India" />
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">About Company</label>
+                <textarea 
+                  name="about" 
+                  rows="3" 
+                  placeholder="Brief description of the company..."
+                  className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground bg-card focus:outline-none focus:ring-2 focus:ring-accent"
+                ></textarea>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                <Button type="button" variant="outline" onClick={() => setShowCompanyModal(false)}>Cancel</Button>
+                <Button type="submit" isLoading={createCompanyMutation.isPending}>Add Company</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Create Drive Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 overflow-y-auto">
           <div className="bg-white rounded-2xl w-full max-w-2xl shadow-xl overflow-hidden my-8">
@@ -116,9 +231,20 @@ export default function ManageDrivesPage() {
             <form onSubmit={handleCreateDrive} className="p-6 space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Company</label>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-sm font-medium text-slate-700">Company</label>
+                    <button 
+                      type="button" 
+                      onClick={() => setShowCompanyModal(true)} 
+                      className="text-xs text-accent hover:underline font-medium flex items-center gap-1"
+                    >
+                      <Plus size={12} /> Add New
+                    </button>
+                  </div>
                   <select 
                     name="company_id" 
+                    value={selectedCompanyId}
+                    onChange={(e) => setSelectedCompanyId(e.target.value)}
                     required 
                     className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground bg-card focus:outline-none focus:ring-2 focus:ring-accent"
                   >
@@ -129,6 +255,10 @@ export default function ManageDrivesPage() {
                   </select>
                 </div>
                 <Input label="Role" name="role" required placeholder="e.g. Software Engineer" />
+                
+                <Input label="Min CTC (LPA)" name="min_ctc" type="number" step="0.1" placeholder="e.g. 6.5" />
+                <Input label="Max CTC (LPA)" name="max_ctc" type="number" step="0.1" placeholder="e.g. 12.0" />
+
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-slate-700 mb-1">Job Description</label>
                   <textarea 
@@ -143,16 +273,39 @@ export default function ManageDrivesPage() {
               </div>
 
               <div className="border-t border-slate-100 pt-4">
-                <h3 className="text-sm font-semibold text-slate-900 mb-4">Eligibility Criteria</h3>
+                <h3 className="text-sm font-semibold text-slate-900 mb-2">Eligibility Criteria</h3>
+                
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Eligible Branches / Departments</label>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    {branches.map(b => (
+                      <label 
+                        key={b.id} 
+                        className={`flex items-center space-x-2 p-2 rounded-xl border cursor-pointer text-xs font-semibold transition-all ${
+                          selectedDepts.includes(b.code)
+                            ? "bg-accent/10 border-accent text-accent"
+                            : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        <input 
+                          type="checkbox"
+                          checked={selectedDepts.includes(b.code)}
+                          onChange={() => toggleDept(b.code)}
+                          className="hidden"
+                        />
+                        <span>{b.code}</span>
+                        <span className="text-[10px] font-normal text-slate-500 truncate">({b.name})</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   <Input label="Min CGPA" name="min_cgpa" type="number" step="0.01" required placeholder="e.g. 7.0" />
                   <Input label="Max Backlogs" name="max_backlogs" type="number" required placeholder="e.g. 0" />
                   <Input label="Min 10th %" name="min_tenth" type="number" step="0.01" required placeholder="e.g. 60" />
                   <Input label="Min 12th %" name="min_twelfth" type="number" step="0.01" required placeholder="e.g. 60" />
                   <Input label="Min Competitive %ile (Opt)" name="min_percentile" type="number" step="0.01" placeholder="e.g. 75" />
-                  <div className="col-span-2 sm:col-span-1">
-                    <Input label="Departments" name="department_list" required placeholder="CE, IT, EC (comma separated)" />
-                  </div>
                 </div>
               </div>
 

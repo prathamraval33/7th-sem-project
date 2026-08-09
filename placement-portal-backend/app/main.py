@@ -13,6 +13,7 @@ from app.routers import (
     analytics,
     applications,
     auth,
+    branches,
     contact,
     drives,
     fee_verification,
@@ -33,10 +34,6 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Placement Portal API", version="1.0.0")
 
-# ASSUMPTION: a single comma-separated env var isn't defined in Phase 1's
-# Settings, so the frontend origin is read from VITE-style convention via a
-# plain constant here; production hardening (Phase 9) will move this to a
-# proper `CORS_ORIGINS` setting. Never `*` — locked to the actual dev origin.
 FRONTEND_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
 app.add_middleware(
@@ -83,6 +80,7 @@ def health_check() -> dict:
 
 
 app.include_router(auth.router)
+app.include_router(branches.router)
 app.include_router(student_profile.router)
 app.include_router(resume.router)
 app.include_router(fee_verification.router)
