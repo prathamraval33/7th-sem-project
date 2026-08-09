@@ -4,7 +4,6 @@ import { drivesApi } from "../../api/drives.api";
 import { studentApi } from "../../api/student.api";
 import Spinner from "../../components/ui/Spinner";
 import Button from "../../components/common/Button";
-import Badge from "../../components/ui/Badge";
 import { Building2, Calendar, GraduationCap, DollarSign, CheckCircle2, Clock } from "lucide-react";
 
 export default function DrivesListPage() {
@@ -14,33 +13,43 @@ export default function DrivesListPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const fetchDrivesAndApps = async () => {
+    try {
+      setIsLoading(true);
+      const [drivesRes, appsRes] = await Promise.all([
+        drivesApi.getMatchedDrives(),
+        studentApi.getApplications().catch(() => ({ data: [] })),
+      ]);
+      
+      setDrives(drivesRes.data || []);
+
+      const appMap = new Map();
+      (appsRes.data || []).forEach((app) => {
+        if (app.status !== "withdrawn") {
+          appMap.set(app.drive_id, app);
+        }
+      });
+      setApplicationsMap(appMap);
+    } catch (err) {
+      setError("Failed to fetch matched drives.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchDrivesAndApps = async () => {
-      try {
-        setIsLoading(true);
-        const [drivesRes, appsRes] = await Promise.all([
-          drivesApi.getMatchedDrives(),
-          studentApi.getApplications().catch(() => ({ data: [] })),
-        ]);
-        
-        setDrives(drivesRes.data || []);
-
-        const appMap = new Map();
-        (appsRes.data || []).forEach((app) => {
-          if (app.status !== "withdrawn") {
-            appMap.set(app.drive_id, app);
-          }
-        });
-        setApplicationsMap(appMap);
-      } catch (err) {
-        setError("Failed to fetch matched drives.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchDrivesAndApps();
   }, []);
+
+  const handleWithdraw = async (appId) => {
+    if (!window.confirm("Are you sure you want to withdraw this application? This action cannot be undone.")) return;
+    try {
+      await studentApi.withdrawApplication(appId);
+      await fetchDrivesAndApps();
+    } catch (err) {
+      alert(err.response?.data?.detail || "Failed to withdraw application.");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -120,6 +129,7 @@ export default function DrivesListPage() {
           {displayedDrives.map((drive) => {
             const app = applicationsMap.get(drive.id);
             const hasApplied = !!app;
+            const canWithdraw = hasApplied && ["applied", "eligible", "not_eligible"].includes(app.status);
 
             const ctcDisplay = drive.min_ctc && drive.max_ctc 
               ? `₹${drive.min_ctc} - ₹${drive.max_ctc} LPA`
@@ -173,12 +183,22 @@ export default function DrivesListPage() {
                   </div>
                 </div>
                 
-                <div className="p-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
-                  <Link to={`/student/drives/${drive.id}`}>
+                <div className="p-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl flex items-center justify-between gap-2">
+                  <Link to={`/student/drives/${drive.id}`} className="flex-1">
                     <Button className="w-full" variant={hasApplied ? "secondary" : "outline"}>
                       {hasApplied ? "View Applied Details" : "View Details & Apply"}
                     </Button>
                   </Link>
+                  {canWithdraw && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleWithdraw(app.id)}
+                      className="text-slate-500 hover:text-red-600 hover:bg-red-50 text-xs px-2.5 py-1.5"
+                    >
+                      Withdraw
+                    </Button>
+                  )}
                 </div>
               </div>
             );

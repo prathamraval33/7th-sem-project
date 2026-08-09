@@ -21,7 +21,6 @@ const NAV_ITEMS = {
   student: [
     { label: "Dashboard", to: "/student/dashboard", icon: LayoutDashboard },
     { label: "Drives", to: "/student/drives", icon: Briefcase },
-    { label: "Applications", to: "/student/applications", icon: ClipboardList },
     { label: "Resources", to: "/student/resources", icon: BookOpen },
     { label: "Mock Interview", to: "/student/mock-interview", icon: MessagesSquare },
     { label: "Resume", to: "/student/resume", icon: FileText },
