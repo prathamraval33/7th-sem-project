@@ -18,6 +18,7 @@ import Button from "../../components/common/Button";
 import Badge from "../../components/ui/Badge";
 import Spinner from "../../components/ui/Spinner";
 import Input from "../../components/common/Input";
+import { showConfirm, showToast, showError } from "../../utils/swal";
 
 export default function TpoDriveDetailPage() {
   const { id } = useParams();
@@ -50,8 +51,8 @@ export default function TpoDriveDetailPage() {
     queryFn: () => branchesApi.getBranches().then((res) => res.data),
   });
 
-  const drive = drives?.find(d => d.id === driveId);
-  const company = companies?.find(c => c.id === drive?.company_id);
+  const drive = drives?.find(d => String(d.id) === String(driveId));
+  const company = companies?.find(c => String(c.id) === String(drive?.company_id));
 
   const { data: applicants, isLoading: loadingApplicants } = useQuery({
     queryKey: ["tpo-applicants", driveId],
@@ -84,6 +85,7 @@ export default function TpoDriveDetailPage() {
     mutationFn: () => tpoApi.closeDrive(driveId),
     onSuccess: () => {
       queryClient.invalidateQueries(["tpo-drives"]);
+      queryClient.invalidateQueries(["tpoDrives"]);
       queryClient.invalidateQueries(["tpo-applicants", driveId]);
     }
   });
@@ -92,6 +94,9 @@ export default function TpoDriveDetailPage() {
     mutationFn: (updatedPayload) => tpoApi.updateDrive(driveId, updatedPayload),
     onSuccess: () => {
       queryClient.invalidateQueries(["tpo-drives"]);
+      queryClient.invalidateQueries(["tpoDrives"]);
+      queryClient.invalidateQueries(["tpo-drive-detail", driveId]);
+      queryClient.invalidateQueries(["adminDrivesAll"]);
       setShowEditModal(false);
       showToast("Drive updated successfully");
     },
@@ -117,24 +122,17 @@ export default function TpoDriveDetailPage() {
 
   const handleUpdateDriveSubmit = async (e) => {
     e.preventDefault();
-    const formData = new FormData(e.target);
+    const formElement = e.currentTarget;
+    const formData = new FormData(formElement);
 
     if (selectedDepts.length === 0) {
       showError("Branch Required", "Please select at least one eligible department/branch.");
       return;
     }
 
-    const confirmed = await showConfirm({
-      title: "Update Placement Drive?",
-      text: "Are you sure you want to update this drive's details?",
-      confirmButtonText: "Yes, Save Changes",
-    });
-    if (!confirmed) return;
-
     const minCtcVal = formData.get("min_ctc");
     const maxCtcVal = formData.get("max_ctc");
     const minPercentileVal = formData.get("min_percentile");
-
     const deadlineValue = formData.get("deadline");
 
     const updatedPayload = {
@@ -145,16 +143,23 @@ export default function TpoDriveDetailPage() {
       min_ctc: minCtcVal ? parseFloat(minCtcVal) : null,
       max_ctc: maxCtcVal ? parseFloat(maxCtcVal) : null,
       bond_details: formData.get("bond_details") || null,
-      deadline: deadlineValue ? new Date(deadlineValue).toISOString() : drive.deadline,
+      deadline: deadlineValue ? new Date(deadlineValue).toISOString() : drive?.deadline,
       eligibility_criteria: {
-        min_cgpa: parseFloat(formData.get("min_cgpa")),
-        max_backlogs: parseInt(formData.get("max_backlogs")),
+        min_cgpa: parseFloat(formData.get("min_cgpa") || 0),
+        max_backlogs: parseInt(formData.get("max_backlogs") || 0, 10),
         department_list: selectedDepts,
-        min_tenth: parseFloat(formData.get("min_tenth")),
-        min_twelfth: parseFloat(formData.get("min_twelfth")),
+        min_tenth: parseFloat(formData.get("min_tenth") || 0),
+        min_twelfth: parseFloat(formData.get("min_twelfth") || 0),
         min_percentile: minPercentileVal ? parseFloat(minPercentileVal) : null,
       },
     };
+
+    const confirmed = await showConfirm({
+      title: "Update Placement Drive?",
+      text: "Are you sure you want to update this drive's details?",
+      confirmButtonText: "Yes, Save Changes",
+    });
+    if (!confirmed) return;
 
     updateDriveMutation.mutate(updatedPayload);
   };

@@ -141,7 +141,7 @@ def create_drive(
 def update_drive(
     drive_id: int, payload: DriveUpdate, current_user: User = Depends(require_tpo), db: Session = Depends(get_db)
 ) -> Drive:
-    drive = db.get(Drive, drive_id)
+    drive = db.scalar(select(Drive).options(joinedload(Drive.company)).where(Drive.id == drive_id))
     if drive is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Drive not found")
 
@@ -154,7 +154,7 @@ def update_drive(
 
     db.commit()
     db.refresh(drive)
-    return drive
+    return db.scalar(select(Drive).options(joinedload(Drive.company)).where(Drive.id == drive_id))
 
 
 @router.get("/drives", response_model=list[DriveResponse])
@@ -367,6 +367,35 @@ def get_instant_test_results(
             )
         )
     return results
+
+
+class DriveAnalyticsResponse(BaseModel):
+    total_applicants: int
+    shortlisted: int
+    selected: int
+    rejected: int
+    eligible_count: int
+
+
+@router.get("/analytics/{drive_id}", response_model=DriveAnalyticsResponse)
+def get_drive_analytics(drive_id: int, current_user: User = Depends(require_tpo), db: Session = Depends(get_db)):
+    drive = db.get(Drive, drive_id)
+    if drive is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Drive not found")
+
+    apps = db.scalars(select(Application).where(Application.drive_id == drive_id)).all()
+    total_applicants = len(apps)
+    shortlisted = sum(1 for a in apps if a.status == ApplicationStatus.SHORTLISTED)
+    selected = sum(1 for a in apps if a.status == ApplicationStatus.SELECTED)
+    rejected = sum(1 for a in apps if a.status == ApplicationStatus.REJECTED)
+
+    return DriveAnalyticsResponse(
+        total_applicants=total_applicants,
+        shortlisted=shortlisted,
+        selected=selected,
+        rejected=rejected,
+        eligible_count=total_applicants,
+    )
 
 
 class InstantTestAnalytics(BaseModel):
