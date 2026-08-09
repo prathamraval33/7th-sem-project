@@ -9,10 +9,13 @@ export default function FileUploadInput({
   helperText, 
   onChange, 
   value = null,
+  file = null,
   className = "" 
 }) {
   const [dragActive, setDragActive] = useState(false);
   const inputRef = useRef(null);
+
+  const selectedFile = value || file;
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -56,9 +59,9 @@ export default function FileUploadInput({
         </label>
       )}
       
-      {!value ? (
+      {!selectedFile ? (
         <div 
-          className={`relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg transition-colors bg-slate-50
+          className={`relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg transition-colors bg-slate-50 cursor-pointer
             ${dragActive ? "border-slate-500 bg-slate-100" : "border-slate-300"} 
             ${error ? "border-red-500" : "hover:bg-slate-100"}
           `}
@@ -68,10 +71,10 @@ export default function FileUploadInput({
           onDrop={handleDrop}
           onClick={() => inputRef.current?.click()}
         >
-          <div className="flex flex-col items-center justify-center pt-5 pb-6">
+          <div className="flex flex-col items-center justify-center pt-5 pb-6 pointer-events-none">
             <Upload className="w-8 h-8 mb-2 text-slate-400" />
             <p className="mb-2 text-sm text-slate-500">
-              <span className="font-semibold text-slate-700 cursor-pointer">Click to upload</span> or drag and drop
+              <span className="font-semibold text-slate-700">Click to upload</span> or drag and drop
             </p>
             {helperText && <p className="text-xs text-slate-500">{helperText}</p>}
           </div>
@@ -90,7 +93,7 @@ export default function FileUploadInput({
               <FileText className="w-5 h-5 text-slate-500" />
             </div>
             <span className="text-sm font-medium text-slate-700 truncate">
-              {value.name}
+              {selectedFile.name}
             </span>
           </div>
           <Button variant="ghost" size="sm" onClick={handleRemove} className="text-red-500 hover:text-red-600 hover:bg-red-50 p-1">
