@@ -3,6 +3,8 @@ import { studentApi } from "../../api/student.api";
 import { Briefcase, AlertCircle, Clock, CheckCircle2, XCircle, ArrowRight } from "lucide-react";
 import Button from "../../components/common/Button";
 
+import { showConfirm, showToast, showError } from "../../utils/swal";
+
 export default function ApplicationsTrackerPage() {
   const [applications, setApplications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -25,12 +27,20 @@ export default function ApplicationsTrackerPage() {
   }, []);
 
   const handleWithdraw = async (appId) => {
-    if (!window.confirm("Are you sure you want to withdraw this application? This action cannot be undone.")) return;
+    const confirmed = await showConfirm({
+      title: "Withdraw Application?",
+      text: "Are you sure you want to withdraw this application? This action cannot be undone.",
+      confirmButtonText: "Yes, Withdraw",
+      confirmButtonColor: "#dc2626",
+    });
+    if (!confirmed) return;
+
     try {
       await studentApi.withdrawApplication(appId);
-      await fetchApplications(); // refresh
+      await fetchApplications();
+      showToast("Application withdrawn successfully");
     } catch (err) {
-      alert(err.response?.data?.detail || "Failed to withdraw.");
+      showError("Withdraw Failed", err.response?.data?.detail || "Failed to withdraw.");
     }
   };
 

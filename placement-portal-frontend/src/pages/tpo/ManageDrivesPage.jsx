@@ -9,6 +9,7 @@ import Button from "../../components/common/Button";
 import Badge from "../../components/ui/Badge";
 import Input from "../../components/common/Input";
 import Spinner from "../../components/ui/Spinner";
+import { showError, showToast } from "../../utils/swal";
 
 export default function ManageDrivesPage() {
   const queryClient = useQueryClient();
@@ -46,6 +47,7 @@ export default function ManageDrivesPage() {
       if (res.data?.id) {
         setSelectedCompanyId(res.data.id.toString());
       }
+      showToast("Company added successfully");
     },
   });
 
@@ -56,7 +58,11 @@ export default function ManageDrivesPage() {
       setShowCreateModal(false);
       setSelectedCompanyId("");
       setSelectedDepts([]);
+      showToast("Drive created successfully");
     },
+    onError: (err) => {
+      showError("Create Drive Failed", err.response?.data?.detail || "Could not create drive.");
+    }
   });
 
   const handleCreateCompany = (e) => {
@@ -86,12 +92,12 @@ export default function ManageDrivesPage() {
     const companyId = parseInt(selectedCompanyId || formData.get("company_id"));
     
     if (!companyId) {
-      alert("Please select or add a company first.");
+      showError("Company Required", "Please select or add a company first.");
       return;
     }
 
     if (selectedDepts.length === 0) {
-      alert("Please select at least one eligible department/branch.");
+      showError("Eligible Branch Required", "Please select at least one eligible department/branch.");
       return;
     }
 

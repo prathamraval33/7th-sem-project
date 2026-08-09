@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { useLocation, useNavigate, Navigate } from "react-router-dom";
+import { useLocation, useNavigate, Navigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { forgotPasswordOtpSchema } from "../../utils/validators";
 import { authApi } from "../../api/auth.api";
+import { showToast, showError } from "../../utils/swal";
 import Button from "../../components/common/Button";
 import Input from "../../components/common/Input";
 
@@ -11,7 +12,7 @@ export default function ForgotPasswordOtpPage() {
   const [submitError, setSubmitError] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
-  const email = location.state?.email;
+  const email = location.state?.email || "";
 
   const {
     register,
@@ -19,24 +20,22 @@ export default function ForgotPasswordOtpPage() {
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(forgotPasswordOtpSchema),
-    defaultValues: { email: email || "" },
   });
 
   if (!email) {
-    return <Navigate to="/forgot-password/email" replace />;
+    return <Navigate to="/forgot-password" replace />;
   }
 
   const onSubmit = async (data) => {
     try {
       setSubmitError("");
-      const res = await authApi.forgotPasswordVerifyOtp(data.email, data.otp);
-      const resetToken = res.data.token;
-      
+      const res = await authApi.forgotPasswordVerifyOtp(email, data.otp);
       navigate("/forgot-password/reset", { 
-        state: { email: data.email, resetToken } 
+        state: { resetToken: res.data.reset_token } 
       });
     } catch (err) {
-      setSubmitError(err.response?.data?.detail || "Invalid or expired OTP. Please try again.");
+      console.error("OTP Verification Failed:", err);
+      setSubmitError(err.response?.data?.detail || "Invalid or expired OTP code.");
     }
   };
 
@@ -44,10 +43,10 @@ export default function ForgotPasswordOtpPage() {
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-900 font-heading">
-          Verify your email
+          Enter Verification Code
         </h2>
         <p className="mt-2 text-center text-sm text-slate-600">
-          We sent a 6-digit code to <span className="font-semibold text-slate-900">{email}</span>
+          We sent a 6-digit code to <strong>{email}</strong>
         </p>
       </div>
 
@@ -61,39 +60,42 @@ export default function ForgotPasswordOtpPage() {
             )}
 
             <Input
-              label="6-digit Verification Code"
+              label="6-Digit OTP Code"
               type="text"
               inputMode="numeric"
               maxLength={6}
-              placeholder="123456"
+              placeholder="e.g. 123456"
               {...register("otp")}
               error={errors.otp?.message}
             />
 
             <div>
               <Button type="submit" className="w-full" isLoading={isSubmitting}>
-                Verify Code
-              </Button>
-            </div>
-            
-            <div className="text-center mt-4">
-              <Button 
-                type="button" 
-                variant="ghost" 
-                size="sm"
-                onClick={async () => {
-                  try {
-                    await authApi.forgotPasswordRequestOtp(email);
-                    alert("A new OTP has been sent to your email.");
-                  } catch (e) {
-                    alert("Failed to resend OTP.");
-                  }
-                }}
-              >
-                Resend Code
+                Verify Code & Continue
               </Button>
             </div>
           </form>
+
+          <div className="mt-6 flex items-center justify-between">
+            <Link to="/forgot-password" className="text-sm font-medium text-slate-600 hover:text-slate-900">
+              Change email
+            </Link>
+            <Button 
+              type="button" 
+              variant="ghost" 
+              size="sm"
+              onClick={async () => {
+                try {
+                  await authApi.forgotPasswordRequestOtp(email);
+                  showToast("A new OTP code has been sent to your email.");
+                } catch (e) {
+                  showError("Resend Failed", "Failed to resend OTP code.");
+                }
+              }}
+            >
+              Resend Code
+            </Button>
+          </div>
         </div>
       </div>
     </div>

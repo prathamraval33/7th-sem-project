@@ -7,6 +7,8 @@ import Button from "../../components/common/Button";
 import Badge from "../../components/ui/Badge";
 import Spinner from "../../components/ui/Spinner";
 
+import { showConfirm, showToast, showSuccess } from "../../utils/swal";
+
 export default function AllStudentsPage() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
@@ -22,21 +24,39 @@ export default function AllStudentsPage() {
 
   const deactivateMutation = useMutation({
     mutationFn: (userId) => tpoApi.deactivateStudent(userId),
-    onSuccess: () => queryClient.invalidateQueries(["tpo-students"]),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["tpo-students"]);
+      showToast("Student account deactivated");
+    },
   });
 
   const overrideMutation = useMutation({
     mutationFn: ({ userId, enabled }) => tpoApi.setPlacementLockOverride(userId, enabled),
-    onSuccess: () => queryClient.invalidateQueries(["tpo-students"]),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["tpo-students"]);
+      showToast("Placement override status updated");
+    },
   });
 
   const warnMutation = useMutation({
     mutationFn: ({ userId, message }) => tpoApi.warnStudent(userId, message),
     onSuccess: () => {
       setWarnModal({ isOpen: false, userId: null, name: "" });
-      alert("Warning sent to student successfully.");
+      showSuccess("Warning Sent", "Warning notification delivered to student successfully.");
     },
   });
+
+  const handleDeactivate = async (student) => {
+    const confirmed = await showConfirm({
+      title: "Deactivate Student?",
+      text: `Are you sure you want to deactivate ${student.full_name}? They will lose access to placement drives.`,
+      confirmButtonText: "Yes, Deactivate",
+      confirmButtonColor: "#dc2626",
+    });
+    if (confirmed) {
+      deactivateMutation.mutate(student.user_id);
+    }
+  };
 
   const handleWarnSubmit = (e) => {
     e.preventDefault();
@@ -132,11 +152,7 @@ export default function AllStudentsPage() {
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => {
-                              if(window.confirm(`Are you sure you want to deactivate ${student.full_name}?`)) {
-                                deactivateMutation.mutate(student.user_id);
-                              }
-                            }}
+                            onClick={() => handleDeactivate(student)}
                             title="Deactivate Account"
                           >
                             <Ban size={14} className="text-danger" />

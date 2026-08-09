@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signupOtpSchema } from "../../utils/validators";
 import { authApi } from "../../api/auth.api";
+import { showToast, showError } from "../../utils/swal";
 import Button from "../../components/common/Button";
 import Input from "../../components/common/Input";
 
@@ -85,9 +86,9 @@ export default function SignupOtpPage() {
                 onClick={async () => {
                   try {
                     await authApi.signupRequestOtp(email);
-                    alert("A new OTP has been sent to your email.");
+                    showToast("A new OTP code has been sent to your email.");
                   } catch (e) {
-                    alert("Failed to resend OTP.");
+                    showError("Resend Failed", "Failed to resend OTP code.");
                   }
                 }}
               >

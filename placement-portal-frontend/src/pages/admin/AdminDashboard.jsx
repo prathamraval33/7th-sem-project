@@ -7,7 +7,8 @@ import Spinner from "../../components/ui/Spinner";
 import Button from "../../components/common/Button";
 import Input from "../../components/common/Input";
 import Badge from "../../components/ui/Badge";
-import { Users, Briefcase, FileText, CheckCircle, TrendingUp, Activity, CheckCircle2, GraduationCap, Plus, Trash2 } from "lucide-react";
+import { showConfirm, showSuccess, showError, showToast } from "../../utils/swal";
+import { Users, Briefcase, FileText, CheckCircle, TrendingUp, Activity, CheckCircle2, GraduationCap } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 export default function AdminDashboard() {
@@ -19,7 +20,7 @@ export default function AdminDashboard() {
     queryFn: () => adminApi.getAnalytics().then((res) => res.data),
   });
 
-  const { data: activityRes, isLoading: isActivityLoading } = useQuery({
+  const { data: activityRes = [], isLoading: isActivityLoading } = useQuery({
     queryKey: ["adminActivity"],
     queryFn: () => adminApi.getActivityFeed().then((res) => res.data),
   });
@@ -34,9 +35,10 @@ export default function AdminDashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries(["branches"]);
       setShowBranchModal(false);
+      showToast("Academic branch added successfully");
     },
     onError: (err) => {
-      alert(err.response?.data?.detail || "Failed to add branch");
+      showError("Add Branch Failed", err.response?.data?.detail || "Failed to add branch");
     },
   });
 
@@ -44,7 +46,11 @@ export default function AdminDashboard() {
     mutationFn: (branchId) => branchesApi.deleteBranch(branchId),
     onSuccess: () => {
       queryClient.invalidateQueries(["branches"]);
+      showToast("Branch deactivated");
     },
+    onError: (err) => {
+      showError("Action Failed", err.response?.data?.detail || "Failed to delete branch");
+    }
   });
 
   const handleCreateBranch = (e) => {
@@ -54,6 +60,18 @@ export default function AdminDashboard() {
       code: formData.get("code").toUpperCase().trim(),
       name: formData.get("name").trim(),
     });
+  };
+
+  const handleDeleteBranch = async (branch) => {
+    const confirmed = await showConfirm({
+      title: "Deactivate Branch?",
+      text: `Are you sure you want to deactivate branch ${branch.code} (${branch.name})?`,
+      confirmButtonText: "Yes, deactivate",
+      confirmButtonColor: "#dc2626",
+    });
+    if (confirmed) {
+      deleteBranchMutation.mutate(branch.id);
+    }
   };
 
   if (isAnalyticsLoading || isActivityLoading || isBranchesLoading) {
@@ -97,11 +115,7 @@ export default function AdminDashboard() {
               <span className="font-bold text-accent">{b.code}</span>
               <span className="text-slate-500 font-normal">({b.name})</span>
               <button 
-                onClick={() => {
-                  if (window.confirm(`Are you sure you want to deactivate branch ${b.code}?`)) {
-                    deleteBranchMutation.mutate(b.id);
-                  }
-                }}
+                onClick={() => handleDeleteBranch(b)}
                 className="text-slate-400 hover:text-red-500 ml-1 transition-colors"
                 title="Deactivate Branch"
               >
@@ -182,17 +196,17 @@ export default function AdminDashboard() {
           <p className="text-slate-500 text-sm">No recent activity found.</p>
         ) : (
           <div className="space-y-4">
-            {activities.map((item) => (
-              <div key={item.id} className="flex items-start space-x-3 p-3 hover:bg-slate-50 rounded-lg transition-colors border border-transparent hover:border-slate-100">
+            {activities.map((item, idx) => (
+              <div key={item.id || idx} className="flex items-start space-x-3 p-3 hover:bg-slate-50 rounded-lg transition-colors border border-transparent hover:border-slate-100">
                 <div className="mt-0.5 p-2 bg-blue-50 text-blue-600 rounded-full">
                   <Activity className="w-4 h-4" />
                 </div>
                 <div>
                   <p className="text-sm text-slate-800">
-                    <span className="font-semibold">{item.actor_email}</span> {item.action} <span className="font-medium text-slate-600">{item.target_entity}</span>
+                    <span className="font-semibold">{item.actor_email || "System"}</span> {item.action || ""} <span className="font-medium text-slate-600">{item.description || item.target_entity || ""}</span>
                   </p>
                   <p className="text-xs text-slate-500 mt-1">
-                    {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
+                    {item.created_at || item.timestamp ? formatDistanceToNow(new Date(item.created_at || item.timestamp), { addSuffix: true }) : "Recently"}
                   </p>
                 </div>
               </div>

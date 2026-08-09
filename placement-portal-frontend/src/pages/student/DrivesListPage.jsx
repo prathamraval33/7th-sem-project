@@ -6,6 +6,8 @@ import Spinner from "../../components/ui/Spinner";
 import Button from "../../components/common/Button";
 import { Building2, Calendar, GraduationCap, DollarSign, CheckCircle2, Clock } from "lucide-react";
 
+import { showConfirm, showToast, showError } from "../../utils/swal";
+
 export default function DrivesListPage() {
   const [drives, setDrives] = useState([]);
   const [applicationsMap, setApplicationsMap] = useState(new Map());
@@ -42,12 +44,20 @@ export default function DrivesListPage() {
   }, []);
 
   const handleWithdraw = async (appId) => {
-    if (!window.confirm("Are you sure you want to withdraw this application? This action cannot be undone.")) return;
+    const confirmed = await showConfirm({
+      title: "Withdraw Application?",
+      text: "Are you sure you want to withdraw this application? This action cannot be undone.",
+      confirmButtonText: "Yes, Withdraw",
+      confirmButtonColor: "#dc2626",
+    });
+    if (!confirmed) return;
+
     try {
       await studentApi.withdrawApplication(appId);
       await fetchDrivesAndApps();
+      showToast("Application withdrawn successfully");
     } catch (err) {
-      alert(err.response?.data?.detail || "Failed to withdraw application.");
+      showError("Withdraw Failed", err.response?.data?.detail || "Failed to withdraw application.");
     }
   };
 

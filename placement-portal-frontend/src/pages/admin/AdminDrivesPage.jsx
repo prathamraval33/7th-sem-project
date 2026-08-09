@@ -7,6 +7,8 @@ import Badge from "../../components/ui/Badge";
 import Button from "../../components/common/Button";
 import { Briefcase, Building, MapPin, Calendar, Trash2, Eye } from "lucide-react";
 
+import { showConfirm, showToast } from "../../utils/swal";
+
 export default function AdminDrivesPage() {
   const queryClient = useQueryClient();
   const [selectedDrive, setSelectedDrive] = useState(null);
@@ -21,6 +23,7 @@ export default function AdminDrivesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries(["adminDrivesAll"]);
       setSelectedDrive(null);
+      showToast("Drive deleted successfully");
     },
   });
 
@@ -32,8 +35,14 @@ export default function AdminDrivesPage() {
     );
   }
 
-  const handleDelete = (driveId) => {
-    if (window.confirm("Are you sure you want to delete this drive? This cannot be undone.")) {
+  const handleDelete = async (driveId) => {
+    const confirmed = await showConfirm({
+      title: "Delete Drive?",
+      text: "Are you sure you want to delete this placement drive? This action cannot be undone.",
+      confirmButtonText: "Yes, Delete Drive",
+      confirmButtonColor: "#dc2626",
+    });
+    if (confirmed) {
       deleteMutation.mutate(driveId);
     }
   };

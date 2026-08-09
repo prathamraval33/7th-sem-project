@@ -5,11 +5,12 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.dependencies import require_admin
+from app.core.security import hash_password
 from app.db.session import get_db
 from app.models.application import Application, ApplicationStatus
 from app.models.drive import Drive, DriveStatus
@@ -19,6 +20,7 @@ from app.models.user import User, UserType
 from app.models.analytics import Analytics
 from app.schemas.drive import DriveResponse, DriveUpdate
 from app.schemas.profile import ProfilePlacementOverrideUpdate, ProfileResponse
+from app.schemas.admin import AdminUserCreate, AdminUserUpdate
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -81,7 +83,6 @@ def list_students(
     for user in users:
         profile = user.profile
         
-        # Apply filters manually since they depend on the profile
         if branch is not None:
             if not profile or profile.branch != branch:
                 continue
@@ -110,25 +111,130 @@ class StudentCard(BaseModel):
     branch: str
     fee_verified: bool
     is_placed: bool
+    placement_lock_override: bool = False
+    readiness_score: float = 0.0
+    user_type: str = "student"
 
 
 @router.get("/students/all", response_model=list[StudentCard])
 def list_all_students_card(current_user: User = Depends(require_admin), db: Session = Depends(get_db)) -> list[StudentCard]:
-    users = db.scalars(select(User).where(User.user_type == UserType.STUDENT)).all()
+    users = db.scalars(select(User).order_by(User.created_at.desc())).all()
     cards: list[StudentCard] = []
     for user in users:
         profile = user.profile
+        analytics = user.analytics
+        readiness = analytics.readiness_score if analytics else 0.0
         cards.append(
             StudentCard(
                 user_id=user.id, 
                 email=user.email,
-                full_name=profile.full_name if profile else "Profile Not Setup", 
-                branch=profile.branch if profile else "N/A",
+                full_name=profile.full_name if profile else ("Admin / TPO Account" if user.user_type != UserType.STUDENT else "Profile Not Setup"), 
+                branch=profile.branch if profile else (user.user_type.value.upper() if user.user_type != UserType.STUDENT else "N/A"),
                 fee_verified=user.fee_verified, 
                 is_placed=profile.is_placed if profile else False,
+                placement_lock_override=profile.placement_lock_override if profile else False,
+                readiness_score=float(readiness) if readiness else 0.0,
+                user_type=user.user_type.value,
             )
         )
     return cards
+
+
+@router.post("/users", status_code=status.HTTP_201_CREATED)
+def create_user_direct(
+    payload: AdminUserCreate, current_user: User = Depends(require_admin), db: Session = Depends(get_db)
+):
+    existing = db.scalar(select(User).where(User.email == payload.email))
+    if existing:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Email already registered")
+
+    new_user = User(
+        email=payload.email,
+        hashed_password=hash_password(payload.password),
+        user_type=payload.user_type,
+        is_email_verified=True,
+        is_active=True,
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    if payload.user_type == UserType.STUDENT:
+        email_prefix = payload.email.split("@")[0].upper()
+        profile = Profile(
+            user_id=new_user.id,
+            student_id=email_prefix,
+            full_name=payload.full_name or "Student",
+            branch=payload.branch or "IT",
+            cgpa=payload.cgpa if payload.cgpa is not None else 0.0,
+            active_backlogs=payload.active_backlogs or 0,
+            tenth_percentage=payload.tenth_percentage if payload.tenth_percentage is not None else 0.0,
+            twelfth_percentage=payload.twelfth_percentage if payload.twelfth_percentage is not None else 0.0,
+            skills=payload.skills or [],
+        )
+        db.add(profile)
+        db.commit()
+
+    return {"message": "User created successfully", "user_id": new_user.id}
+
+
+@router.patch("/users/{user_id}")
+def update_user_direct(
+    user_id: int, payload: AdminUserUpdate, current_user: User = Depends(require_admin), db: Session = Depends(get_db)
+):
+    target_user = db.get(User, user_id)
+    if not target_user:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    if payload.email is not None:
+        target_user.email = payload.email
+    if payload.user_type is not None:
+        target_user.user_type = payload.user_type
+    if payload.is_active is not None:
+        target_user.is_active = payload.is_active
+
+    if target_user.user_type == UserType.STUDENT:
+        profile = target_user.profile
+        if not profile:
+            profile = Profile(
+                user_id=target_user.id,
+                student_id=target_user.email.split("@")[0].upper(),
+                full_name=payload.full_name or "Student",
+                branch=payload.branch or "IT",
+                cgpa=payload.cgpa or 0.0,
+                active_backlogs=payload.active_backlogs or 0,
+                tenth_percentage=0.0,
+                twelfth_percentage=0.0,
+            )
+            db.add(profile)
+        else:
+            if payload.full_name is not None:
+                profile.full_name = payload.full_name
+            if payload.branch is not None:
+                profile.branch = payload.branch
+            if payload.cgpa is not None:
+                profile.cgpa = payload.cgpa
+            if payload.active_backlogs is not None:
+                profile.active_backlogs = payload.active_backlogs
+            if payload.is_placed is not None:
+                profile.is_placed = payload.is_placed
+
+    db.commit()
+    return {"message": "User updated successfully"}
+
+
+@router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user_direct(
+    user_id: int, current_user: User = Depends(require_admin), db: Session = Depends(get_db)
+):
+    target_user = db.get(User, user_id)
+    if not target_user:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
+    if target_user.id == current_user.id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Cannot delete your own admin account")
+
+    db.delete(target_user)
+    db.commit()
 
 
 class WarnRequest(BaseModel):
@@ -149,78 +255,42 @@ def warn_student(
         )
     )
     db.commit()
-    return {"message": "Warning sent"}
+    return {"message": "Warning sent to student"}
 
 
-@router.delete("/students/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_student(
-    user_id: int, current_user: User = Depends(require_admin), db: Session = Depends(get_db)
-) -> None:
-    student = db.get(User, user_id)
-    if student is None or student.user_type != UserType.STUDENT:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Student not found")
-
-    db.delete(student)
-    db.commit()
-    return None
-
-
-@router.post("/students/{user_id}/deactivate", status_code=status.HTTP_200_OK)
-def deactivate_student(
-    user_id: int, current_user: User = Depends(require_admin), db: Session = Depends(get_db)
-) -> dict:
-    student = db.get(User, user_id)
-    if student is None or student.user_type != UserType.STUDENT:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Student not found")
-
-    student.is_active = False
-    db.add(
-        Notification(
-            recipient_id=user_id, sender_id=current_user.id, type=NotificationType.NOTICE,
-            message="Your account has been deactivated by the admin",
-        )
-    )
-    db.commit()
-    return {"message": "Student deactivated"}
-
-
-@router.patch("/students/{user_id}/placement-override", response_model=ProfileResponse)
-def toggle_placement_override(
-    user_id: int,
+@router.post("/placement-override")
+def set_placement_override(
     payload: ProfilePlacementOverrideUpdate,
+    user_id: int,
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
-) -> Profile:
+) -> dict:
     profile = db.scalar(select(Profile).where(Profile.user_id == user_id))
     if profile is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Student profile not found")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Profile not found")
 
     profile.placement_lock_override = payload.placement_lock_override
     db.commit()
-    db.refresh(profile)
-    return profile
+    return {"message": "Placement override updated"}
 
 
-@router.post("/tpo/{tpo_id}/notify", status_code=status.HTTP_201_CREATED)
-def notify_tpo(
-    tpo_id: int, payload: WarnRequest, current_user: User = Depends(require_admin), db: Session = Depends(get_db)
-) -> dict:
-    tpo_user = db.get(User, tpo_id)
-    if tpo_user is None or tpo_user.user_type != UserType.TPO:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="TPO account not found")
-
-    db.add(
-        Notification(
-            recipient_id=tpo_id, sender_id=current_user.id, type=NotificationType.NOTICE, message=payload.message
-        )
-    )
+@router.delete("/students/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_student(user_id: int, current_user: User = Depends(require_admin), db: Session = Depends(get_db)) -> None:
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
+    db.delete(user)
     db.commit()
-    return {"message": "Notice sent"}
 
 
 class ActivityEntry(BaseModel):
+    id: str
     type: str
     description: str
+    actor_email: str
+    action: str
+    target_entity: str
+    created_at: datetime
     timestamp: datetime
 
 
@@ -230,14 +300,29 @@ def get_activity_feed(current_user: User = Depends(require_admin), db: Session =
 
     for drive in db.scalars(select(Drive).order_by(Drive.created_at.desc()).limit(50)).all():
         entries.append(
-            ActivityEntry(type="drive_created", description=f"Drive created: {drive.role} (id {drive.id})", timestamp=drive.created_at)
+            ActivityEntry(
+                id=f"drive_{drive.id}",
+                type="drive_created",
+                description=f"Drive created: {drive.role}",
+                actor_email="TPO System",
+                action="created drive",
+                target_entity=drive.role,
+                created_at=drive.created_at,
+                timestamp=drive.created_at
+            )
         )
 
     for application in db.scalars(select(Application).order_by(Application.applied_on.desc()).limit(50)).all():
         entries.append(
             ActivityEntry(
-                type="application", description=f"Application #{application.id} -> {application.status.value}",
-                timestamp=application.applied_on,
+                id=f"app_{application.id}",
+                type="application",
+                description=f"Application #{application.id} -> {application.status.value}",
+                actor_email=application.user.email if application.user else "Student",
+                action="applied to drive",
+                target_entity=f"Application #{application.id}",
+                created_at=application.applied_on,
+                timestamp=application.applied_on
             )
         )
 
@@ -246,10 +331,19 @@ def get_activity_feed(current_user: User = Depends(require_admin), db: Session =
         .order_by(Notification.created_at.desc()).limit(50)
     ).all():
         entries.append(
-            ActivityEntry(type=notification.type.value, description=notification.message, timestamp=notification.created_at)
+            ActivityEntry(
+                id=f"notif_{notification.id}",
+                type=notification.type.value,
+                description=notification.message,
+                actor_email=notification.sender.email if notification.sender else "System",
+                action="sent notification",
+                target_entity="Student",
+                created_at=notification.created_at,
+                timestamp=notification.created_at
+            )
         )
 
-    entries.sort(key=lambda entry: entry.timestamp, reverse=True)
+    entries.sort(key=lambda entry: entry.created_at, reverse=True)
     return entries[:100]
 
 

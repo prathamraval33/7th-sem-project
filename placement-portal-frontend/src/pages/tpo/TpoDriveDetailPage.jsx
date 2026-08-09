@@ -93,9 +93,10 @@ export default function TpoDriveDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries(["tpo-drives"]);
       setShowEditModal(false);
+      showToast("Drive updated successfully");
     },
     onError: (err) => {
-      alert(err.response?.data?.detail || "Failed to update drive");
+      showError("Update Failed", err.response?.data?.detail || "Failed to update drive");
     }
   });
 
@@ -114,14 +115,21 @@ export default function TpoDriveDetailPage() {
     }
   };
 
-  const handleUpdateDriveSubmit = (e) => {
+  const handleUpdateDriveSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
 
     if (selectedDepts.length === 0) {
-      alert("Please select at least one eligible department/branch.");
+      showError("Branch Required", "Please select at least one eligible department/branch.");
       return;
     }
+
+    const confirmed = await showConfirm({
+      title: "Update Placement Drive?",
+      text: "Are you sure you want to update this drive's details?",
+      confirmButtonText: "Yes, Save Changes",
+    });
+    if (!confirmed) return;
 
     const minCtcVal = formData.get("min_ctc");
     const maxCtcVal = formData.get("max_ctc");
