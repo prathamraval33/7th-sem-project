@@ -28,6 +28,12 @@ import FeeReceiptUploadPage from "./pages/student/FeeReceiptUploadPage";
 import StudentDashboard from "./pages/student/StudentDashboard";
 import DrivesListPage from "./pages/student/DrivesListPage";
 import DriveDetailPage from "./pages/student/DriveDetailPage";
+import TestPrecheckPage from "./pages/student/TestPrecheckPage";
+import TestAttemptPage from "./pages/student/TestAttemptPage";
+import TestResultsPage from "./pages/student/TestResultsPage";
+import StudentTestsPage from "./pages/student/StudentTestsPage";
+import TpoCreateTestPage from "./pages/tpo/TpoCreateTestPage";
+import TpoTestAuditPage from "./pages/tpo/TpoTestAuditPage";
 import ApplicationsTrackerPage from "./pages/student/ApplicationsTrackerPage";
 import ResourcesLibraryPage from "./pages/student/ResourcesLibraryPage";
 
@@ -79,15 +85,19 @@ export default function App() {
             {/* Student Routes */}
             <Route element={<ProtectedRoute allowedRoles={[ROLES.STUDENT]} />}>
               <Route path="/student/onboarding" element={<OnboardingPage />} />
+              <Route path="/student/tests/:id/attempt" element={<TestAttemptPage />} />
               <Route element={<DashboardLayout />}>
                 <Route path="/student/dashboard" element={<StudentDashboard />} />
                 <Route path="/student/fee-receipt" element={<FeeReceiptUploadPage />} />
                 <Route path="/student/drives" element={<DrivesListPage />} />
                 <Route path="/student/drives/:id" element={<DriveDetailPage />} />
+                <Route path="/student/tests" element={<StudentTestsPage />} />
                 <Route path="/student/applications" element={<ApplicationsTrackerPage />} />
                 <Route path="/student/resources" element={<ResourcesLibraryPage />} />
                 <Route path="/student/profile" element={<ProfilePage />} />
                 <Route path="/student/change-password" element={<ChangePasswordPage />} />
+                <Route path="/student/tests/:id/precheck" element={<TestPrecheckPage />} />
+                <Route path="/student/tests/:id/results" element={<TestResultsPage />} />
                 
                 {/* Fallback for unbuilt student features (Phase 7) */}
                 <Route path="/student/*" element={<FoundationNotice label="Student Feature" />} />
@@ -101,6 +111,9 @@ export default function App() {
                 <Route path="/tpo/drives" element={<ManageDrivesPage />} />
                 <Route path="/tpo/drives/:id" element={<TpoDriveDetailPage />} />
                 <Route path="/tpo/students" element={<AllStudentsPage />} />
+                <Route path="/tpo/tests" element={<PastTestsPage />} />
+                <Route path="/tpo/tests/create" element={<TpoCreateTestPage />} />
+                <Route path="/tpo/tests/attempts/:attemptId/violations" element={<TpoTestAuditPage />} />
                 <Route path="/tpo/instant-tests/history" element={<PastTestsPage />} />
                 <Route path="/tpo/profile" element={<ProfilePage />} />
                 <Route path="/tpo/change-password" element={<ChangePasswordPage />} />

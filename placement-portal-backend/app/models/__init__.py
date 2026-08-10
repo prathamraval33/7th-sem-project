@@ -14,7 +14,7 @@ from app.models.interview_session import InterviewSession, InterviewMode, Interv
 from app.models.question import Question, QuestionType, DifficultyLevel
 from app.models.answer import Answer
 from app.models.instant_test import InstantTest, InstantTestStatus
-from app.models.test_attempt import TestAttempt, AttemptEndedReason
+from app.models.test_attempt import TestAttempt, AttemptStatus, AttemptEndedReason
 from app.models.test_violation import TestViolation, ViolationType
 from app.models.resource import Resource, ResourceCategory, ResourceContentType
 from app.models.refresh_token import RefreshToken

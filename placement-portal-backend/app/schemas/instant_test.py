@@ -7,28 +7,19 @@ from app.models.instant_test import InstantTestStatus
 
 
 class InstantTestCreate(BaseModel):
-    """POST /tpo/drives/{id}/instant-test. `min_passing_marks` can only be
-    schema-validated for non-negativity here — checking it against the
-    *actual* max possible score requires the generated question set, which
-    doesn't exist until test_generator.py (Phase 3) runs; that check belongs
-    at the service layer, not this request schema.
-    """
-
-    prompt_config: dict
+    title: str = Field(default="Placement Qualifying Test", min_length=2)
+    duration_minutes: int = Field(default=30, ge=1)
+    is_practice: bool = False
+    prompt_config: Optional[dict] = Field(default_factory=dict)
+    questions: list
     min_passing_marks: int = Field(ge=0)
     use_top_n: bool = False
     top_n_count: Optional[int] = Field(default=None, gt=0)
 
-    @model_validator(mode="after")
-    def top_n_count_requires_use_top_n(self) -> "InstantTestCreate":
-        if self.use_top_n and not self.top_n_count:
-            raise ValueError("top_n_count is required and must be positive when use_top_n is true")
-        if not self.use_top_n and self.top_n_count is not None:
-            raise ValueError("top_n_count must be omitted when use_top_n is false")
-        return self
-
 
 class InstantTestUpdate(BaseModel):
+    title: Optional[str] = None
+    duration_minutes: Optional[int] = Field(default=None, ge=1)
     min_passing_marks: Optional[int] = Field(default=None, ge=0)
     use_top_n: Optional[bool] = None
     top_n_count: Optional[int] = Field(default=None, gt=0)
@@ -39,6 +30,9 @@ class InstantTestResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    title: str
+    duration_minutes: int
+    is_practice: bool
     drive_id: Optional[int] = None
     created_by: int
     prompt_config: dict
@@ -47,3 +41,33 @@ class InstantTestResponse(BaseModel):
     use_top_n: bool
     top_n_count: Optional[int] = None
     status: InstantTestStatus
+
+
+class TestAttemptStartResponse(BaseModel):
+    attempt_id: int
+    test_id: int
+    title: str
+    duration_minutes: int
+    started_at: str
+    ends_at: str
+    questions: list
+
+
+class TestViolationCreate(BaseModel):
+    violation_type: str
+    meta: Optional[dict] = None
+
+
+class TestViolationResponse(BaseModel):
+    strike_number: int
+    category_total: int
+    global_total: int
+    auto_ended: bool
+    ended_reason: Optional[str] = None
+    category_counts: Optional[dict] = Field(default_factory=dict)
+
+
+class TestAnswerSubmit(BaseModel):
+    question_id: int
+    selected_option_index: int
+

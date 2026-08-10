@@ -21,6 +21,7 @@ const NAV_ITEMS = {
   student: [
     { label: "Dashboard", to: "/student/dashboard", icon: LayoutDashboard },
     { label: "Drives", to: "/student/drives", icon: Briefcase },
+    { label: "Tests", to: "/student/tests", icon: ListChecks },
     { label: "Resources", to: "/student/resources", icon: BookOpen },
     { label: "Mock Interview", to: "/student/mock-interview", icon: MessagesSquare },
     { label: "Resume", to: "/student/resume", icon: FileText },
@@ -30,7 +31,7 @@ const NAV_ITEMS = {
     { label: "Dashboard", to: "/tpo/dashboard", icon: LayoutDashboard },
     { label: "Manage Drives", to: "/tpo/drives", icon: Briefcase },
     { label: "All Students", to: "/tpo/students", icon: Users },
-    { label: "Past Tests", to: "/tpo/instant-tests/history", icon: ListChecks },
+    { label: "Tests", to: "/tpo/tests", icon: ListChecks },
     { label: "Analytics", to: "/tpo/analytics", icon: BarChart3 },
     { label: "Contact Messages", to: "/tpo/contact-messages", icon: Mail },
   ],

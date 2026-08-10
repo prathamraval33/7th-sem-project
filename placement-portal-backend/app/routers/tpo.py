@@ -4,7 +4,7 @@ students/create-test/close-test), applicants + approve flow, instant tests
 drive / deactivate / warn / placement override), and companies helper CRUD.
 """
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -317,8 +317,30 @@ def remove_student_from_drive(
 
 
 # --------------------------------------------------------------------------
-# Instant tests
-# --------------------------------------------------------------------------
+@router.post("/instant-tests", response_model=InstantTestResponse, status_code=status.HTTP_201_CREATED)
+def create_standalone_instant_test(
+    payload: InstantTestCreate,
+    current_user: User = Depends(require_tpo),
+    db: Session = Depends(get_db),
+) -> InstantTest:
+    instant_test = InstantTest(
+        title=payload.title,
+        duration_minutes=payload.duration_minutes,
+        is_practice=payload.is_practice,
+        created_by=current_user.id,
+        prompt_config=payload.prompt_config or {},
+        questions=payload.questions,
+        min_passing_marks=payload.min_passing_marks,
+        use_top_n=payload.use_top_n,
+        top_n_count=payload.top_n_count,
+        status=InstantTestStatus.OPEN,
+    )
+    db.add(instant_test)
+    db.commit()
+    db.refresh(instant_test)
+    return instant_test
+
+
 @router.post("/drives/{drive_id}/instant-test", response_model=InstantTestResponse, status_code=status.HTTP_201_CREATED)
 async def create_instant_test(
     drive_id: int,
@@ -330,16 +352,21 @@ async def create_instant_test(
     if drive is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Drive not found")
 
-    try:
-        questions = await test_generator.generate_questions(payload.prompt_config)
-        test_generator.validate_min_passing_marks(questions, payload.min_passing_marks)
-    except InstantTestConfigError as error:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=error.message) from error
+    questions = payload.questions
+    if not questions and payload.prompt_config:
+        try:
+            questions = await test_generator.generate_questions(payload.prompt_config)
+            test_generator.validate_min_passing_marks(questions, payload.min_passing_marks)
+        except InstantTestConfigError as error:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=error.message) from error
 
     instant_test = InstantTest(
+        title=payload.title or f"{drive.company.name if drive.company else 'Placement'} Placement Test",
+        duration_minutes=payload.duration_minutes,
+        is_practice=False,
         drive_id=drive_id,
         created_by=current_user.id,
-        prompt_config=payload.prompt_config,
+        prompt_config=payload.prompt_config or {},
         questions=questions,
         min_passing_marks=payload.min_passing_marks,
         use_top_n=payload.use_top_n,
@@ -351,6 +378,44 @@ async def create_instant_test(
     db.commit()
     db.refresh(instant_test)
     return instant_test
+
+
+@router.get("/instant-tests/attempts/{attempt_id}/violations")
+def get_attempt_violations(
+    attempt_id: int,
+    current_user: User = Depends(require_tpo),
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
+    attempt = db.get(TestAttempt, attempt_id)
+    if not attempt:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Attempt not found")
+
+    student_user = db.get(User, attempt.user_id)
+    student_profile = db.scalar(select(Profile).where(Profile.user_id == attempt.user_id))
+
+    violations = db.scalars(
+        select(TestViolation)
+        .where(TestViolation.attempt_id == attempt_id)
+        .order_by(TestViolation.detected_at.asc())
+    ).all()
+
+    return {
+        "attempt_id": attempt.id,
+        "student_name": student_profile.full_name if student_profile else "Student",
+        "student_email": student_user.email if student_user else "N/A",
+        "total_violations": attempt.total_violation_count,
+        "ended_reason": attempt.ended_reason,
+        "violations": [
+            {
+                "id": v.id,
+                "violation_type": v.violation_type,
+                "strike_number": v.strike_number,
+                "detected_at": v.detected_at.isoformat(),
+                "meta": v.meta,
+            }
+            for v in violations
+        ],
+    }
 
 
 class InstantTestResultEntry(BaseModel):

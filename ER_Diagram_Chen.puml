@@ -1,0 +1,441 @@
+@startuml ER_Diagram_Placement_Portal_Chen
+
+' ============================================================
+'  IEEE STANDARD ER DIAGRAM — CHEN'S NOTATION
+'  AI-Powered Smart Placement & Career Preparation Portal
+'  Black & White Theme (Microsoft Visio Style)
+'
+'  Symbols:
+'    Rectangle  = Entity
+'    Hexagon    = Relationship
+'    Oval       = Attribute  (PK is underlined)
+'    1 / M      = Cardinality
+' ============================================================
+
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor White
+skinparam defaultFontName "Arial"
+skinparam defaultFontSize 10
+
+skinparam rectangle {
+    BackgroundColor White
+    BorderColor Black
+    FontSize 11
+    FontStyle bold
+    BorderThickness 1.5
+}
+
+skinparam usecase {
+    BackgroundColor White
+    BorderColor Black
+    FontSize 9
+    BorderThickness 1
+}
+
+skinparam hexagon {
+    BackgroundColor White
+    BorderColor Black
+    FontSize 9
+    FontStyle italic
+    BorderThickness 1
+}
+
+skinparam note {
+    BackgroundColor White
+    BorderColor Black
+    FontSize 8
+}
+
+title <size:16><b>Entity-Relationship Diagram</b></size>\n<size:12>AI-Powered Smart Placement & Career Preparation Portal</size>\n<size:10><i>IEEE Standard — Chen's Notation</i></size>\n
+
+' ============================================================
+'  ENTITIES (Rectangles)
+' ============================================================
+
+rectangle "User" as USER
+rectangle "Profile" as PROFILE
+rectangle "Branch" as BRANCH
+rectangle "Company" as COMPANY
+rectangle "Drive" as DRIVE
+rectangle "Application" as APPLICATION
+rectangle "Resume" as RESUME
+rectangle "Interview\nSession" as INTERVIEW
+rectangle "Question" as QUESTION
+rectangle "Answer" as ANSWER
+rectangle "Instant\nTest" as ITEST
+rectangle "Test\nAttempt" as TATTEMPT
+rectangle "Test\nViolation" as TVIOLATION
+rectangle "Fee\nReceipt" as FEE
+rectangle "OTP\nVerification" as OTP
+rectangle "Refresh\nToken" as RTOKEN
+rectangle "Notification" as NOTIF
+rectangle "Analytics" as ANALYTICS
+rectangle "Resource" as RESOURCE
+rectangle "Contact\nMessage" as CONTACT
+rectangle "Dashboard\nInsight" as INSIGHT
+
+' ============================================================
+'  ATTRIBUTES (Ovals / Ellipses)
+'  Primary Keys are <u>underlined</u> per Chen's convention
+' ============================================================
+
+' ---- User Attributes ----
+usecase "<u>id</u>" as U_id
+usecase "email" as U_email
+usecase "user_type" as U_type
+usecase "is_active" as U_active
+
+' ---- Profile Attributes ----
+usecase "<u>id</u>" as PR_id
+usecase "full_name" as PR_name
+usecase "branch" as PR_branch
+usecase "cgpa" as PR_cgpa
+usecase "is_placed" as PR_placed
+
+' ---- Branch Attributes ----
+usecase "<u>id</u>" as BR_id
+usecase "code" as BR_code
+usecase "name" as BR_name
+
+' ---- Company Attributes ----
+usecase "<u>id</u>" as CO_id
+usecase "name" as CO_name
+usecase "location" as CO_loc
+usecase "industry_type" as CO_type
+
+' ---- Drive Attributes ----
+usecase "<u>id</u>" as DR_id
+usecase "role" as DR_role
+usecase "deadline" as DR_dead
+usecase "status" as DR_stat
+
+' ---- Application Attributes ----
+usecase "<u>id</u>" as AP_id
+usecase "status" as AP_stat
+usecase "current_stage" as AP_stage
+usecase "applied_on" as AP_date
+
+' ---- Resume Attributes ----
+usecase "<u>id</u>" as RE_id
+usecase "file_path" as RE_path
+usecase "ai_score" as RE_score
+usecase "source" as RE_src
+
+' ---- Interview Session Attributes ----
+usecase "<u>id</u>" as IS_id
+usecase "mode" as IS_mode
+usecase "overall_score" as IS_score
+usecase "status" as IS_stat
+
+' ---- Question Attributes ----
+usecase "<u>id</u>" as Q_id
+usecase "question_text" as Q_text
+usecase "q_type" as Q_type
+usecase "difficulty" as Q_diff
+
+' ---- Answer Attributes ----
+usecase "<u>id</u>" as AN_id
+usecase "answer_text" as AN_text
+usecase "score" as AN_score
+
+' ---- Instant Test Attributes ----
+usecase "<u>id</u>" as IT_id
+usecase "min_passing\n_marks" as IT_marks
+usecase "status" as IT_stat
+
+' ---- Test Attempt Attributes ----
+usecase "<u>id</u>" as TA_id
+usecase "score" as TA_score
+usecase "ended_reason" as TA_reason
+
+' ---- Test Violation Attributes ----
+usecase "<u>id</u>" as TV_id
+usecase "violation_type" as TV_type
+usecase "strike_number" as TV_strike
+
+' ---- Fee Receipt Attributes ----
+usecase "<u>id</u>" as FE_id
+usecase "file_path" as FE_path
+usecase "ai_verdict" as FE_verd
+
+' ---- OTP Verification Attributes ----
+usecase "<u>id</u>" as OT_id
+usecase "email" as OT_email
+usecase "purpose" as OT_purpose
+
+' ---- Refresh Token Attributes ----
+usecase "<u>id</u>" as RT_id
+usecase "token_hash" as RT_hash
+usecase "is_revoked" as RT_rev
+
+' ---- Notification Attributes ----
+usecase "<u>id</u>" as NO_id
+usecase "type" as NO_type
+usecase "message" as NO_msg
+usecase "is_read" as NO_read
+
+' ---- Analytics Attributes ----
+usecase "<u>id</u>" as AY_id
+usecase "readiness\n_score" as AY_ready
+usecase "avg_score" as AY_avg
+
+' ---- Resource Attributes ----
+usecase "<u>id</u>" as RS_id
+usecase "title" as RS_title
+usecase "category" as RS_cat
+usecase "content_type" as RS_ctype
+
+' ---- Contact Message Attributes ----
+usecase "<u>id</u>" as CM_id
+usecase "name" as CM_name
+usecase "message" as CM_msg
+usecase "category" as CM_cat
+
+' ---- Dashboard Insight Attributes ----
+usecase "<u>id</u>" as DI_id
+usecase "trending\n_skills" as DI_skills
+usecase "generated_at" as DI_gen
+
+
+' ============================================================
+'  RELATIONSHIPS (Hexagons)
+' ============================================================
+
+hexagon "has" as R01
+hexagon "has" as R02
+hexagon "has" as R03
+hexagon "uploads" as R04
+hexagon "uploads" as R05
+hexagon "submits" as R06
+hexagon "takes" as R07
+hexagon "attempts" as R08
+hexagon "owns" as R09
+hexagon "receives" as R10
+hexagon "creates (TPO)" as R11
+hexagon "creates (TPO)" as R12
+hexagon "creates (Admin)" as R13
+hexagon "submits" as R14
+hexagon "conducts" as R15
+hexagon "receives" as R16
+hexagon "linked to" as R17
+hexagon "has" as R18
+hexagon "contains" as R19
+hexagon "has" as R20
+hexagon "taken as" as R21
+hexagon "records" as R22
+
+
+' ============================================================
+'  ENTITY ↔ ATTRIBUTE CONNECTIONS
+' ============================================================
+
+USER -- U_id
+USER -- U_email
+USER -- U_type
+USER -- U_active
+
+PROFILE -- PR_id
+PROFILE -- PR_name
+PROFILE -- PR_branch
+PROFILE -- PR_cgpa
+PROFILE -- PR_placed
+
+BRANCH -- BR_id
+BRANCH -- BR_code
+BRANCH -- BR_name
+
+COMPANY -- CO_id
+COMPANY -- CO_name
+COMPANY -- CO_loc
+COMPANY -- CO_type
+
+DRIVE -- DR_id
+DRIVE -- DR_role
+DRIVE -- DR_dead
+DRIVE -- DR_stat
+
+APPLICATION -- AP_id
+APPLICATION -- AP_stat
+APPLICATION -- AP_stage
+APPLICATION -- AP_date
+
+RESUME -- RE_id
+RESUME -- RE_path
+RESUME -- RE_score
+RESUME -- RE_src
+
+INTERVIEW -- IS_id
+INTERVIEW -- IS_mode
+INTERVIEW -- IS_score
+INTERVIEW -- IS_stat
+
+QUESTION -- Q_id
+QUESTION -- Q_text
+QUESTION -- Q_type
+QUESTION -- Q_diff
+
+ANSWER -- AN_id
+ANSWER -- AN_text
+ANSWER -- AN_score
+
+ITEST -- IT_id
+ITEST -- IT_marks
+ITEST -- IT_stat
+
+TATTEMPT -- TA_id
+TATTEMPT -- TA_score
+TATTEMPT -- TA_reason
+
+TVIOLATION -- TV_id
+TVIOLATION -- TV_type
+TVIOLATION -- TV_strike
+
+FEE -- FE_id
+FEE -- FE_path
+FEE -- FE_verd
+
+OTP -- OT_id
+OTP -- OT_email
+OTP -- OT_purpose
+
+RTOKEN -- RT_id
+RTOKEN -- RT_hash
+RTOKEN -- RT_rev
+
+NOTIF -- NO_id
+NOTIF -- NO_type
+NOTIF -- NO_msg
+NOTIF -- NO_read
+
+ANALYTICS -- AY_id
+ANALYTICS -- AY_ready
+ANALYTICS -- AY_avg
+
+RESOURCE -- RS_id
+RESOURCE -- RS_title
+RESOURCE -- RS_cat
+RESOURCE -- RS_ctype
+
+CONTACT -- CM_id
+CONTACT -- CM_name
+CONTACT -- CM_msg
+CONTACT -- CM_cat
+
+INSIGHT -- DI_id
+INSIGHT -- DI_skills
+INSIGHT -- DI_gen
+
+
+' ============================================================
+'  ENTITY ↔ RELATIONSHIP ↔ ENTITY CONNECTIONS
+'  (with Cardinality Labels)
+' ============================================================
+
+USER "1" -- R01
+R01 -- "1" PROFILE
+
+USER "1" -- R02
+R02 -- "0..1" ANALYTICS
+
+USER "1" -- R03
+R03 -- "1" INSIGHT
+
+USER "1" -- R04
+R04 -- "M" FEE
+
+USER "1" -- R05
+R05 -- "M" RESUME
+
+USER "1" -- R06
+R06 -- "M" APPLICATION
+
+USER "1" -- R07
+R07 -- "M" INTERVIEW
+
+USER "1" -- R08
+R08 -- "M" TATTEMPT
+
+USER "1" -- R09
+R09 -- "M" RTOKEN
+
+USER "1" -- R10
+R10 -- "M" NOTIF
+
+USER "1" -- R11
+R11 -- "M" DRIVE
+
+USER "1" -- R12
+R12 -- "M" ITEST
+
+USER "1" -- R13
+R13 -- "M" RESOURCE
+
+USER "0..1" -- R14
+R14 -- "M" CONTACT
+
+COMPANY "1" -- R15
+R15 -- "M" DRIVE
+
+DRIVE "1" -- R16
+R16 -- "M" APPLICATION
+
+DRIVE "0..1" -- R17
+R17 -- "M" INTERVIEW
+
+DRIVE "0..1" -- R18
+R18 -- "M" ITEST
+
+INTERVIEW "1" -- R19
+R19 -- "M" QUESTION
+
+QUESTION "1" -- R20
+R20 -- "1" ANSWER
+
+ITEST "1" -- R21
+R21 -- "M" TATTEMPT
+
+TATTEMPT "1" -- R22
+R22 -- "M" TVIOLATION
+
+
+' ============================================================
+'  NOTES
+' ============================================================
+
+note bottom of BRANCH
+    <b>Lookup Table</b>
+    Referenced logically
+    by branch code in
+    Profile & Drive
+    eligibility (no FK)
+end note
+
+note bottom of OTP
+    <b>Standalone Utility</b>
+    Queried by email +
+    purpose (no direct FK)
+end note
+
+
+' ============================================================
+'  LEGEND
+' ============================================================
+
+legend bottom right
+    <b>Chen's Notation Legend</b>
+    |= Shape |= Represents |
+    | Rectangle | Entity |
+    | Oval / Ellipse | Attribute |
+    | Hexagon | Relationship |
+    | <u>underlined</u> text | Primary Key (PK) |
+    |= Cardinality |= Meaning |
+    | **1** | Exactly One (mandatory) |
+    | **M** | Many (zero or more) |
+    | **0..1** | Zero or One (optional) |
+    |= Totals |= |
+    | Entities | **21** |
+    | Relationships | **22** |
+endlegend
+
+@enduml

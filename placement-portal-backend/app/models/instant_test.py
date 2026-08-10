@@ -2,7 +2,7 @@
 import enum
 from typing import Optional
 
-from sqlalchemy import Boolean, Enum as SAEnum, ForeignKey, Integer, JSON
+from sqlalchemy import Boolean, Enum as SAEnum, ForeignKey, Integer, JSON, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -19,6 +19,9 @@ class InstantTest(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     drive_id: Mapped[int | None] = mapped_column(ForeignKey("drives.id", ondelete="CASCADE"), nullable=True)
     created_by: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
+    title: Mapped[str] = mapped_column(String(255), default="Placement Qualifying Test", nullable=False)
+    duration_minutes: Mapped[int] = mapped_column(Integer, default=30, nullable=False)
+    is_practice: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     # Topics/difficulty/company need as described by the TPO.
     prompt_config: Mapped[dict] = mapped_column(JSON, nullable=False)
     questions: Mapped[list] = mapped_column(JSON, nullable=False)
