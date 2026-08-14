@@ -57,6 +57,30 @@ export default function ApplicationsTrackerPage() {
     }
   };
 
+  const pipelineStages = [
+    { key: "applied", label: "Applied" },
+    { key: "eligible", label: "Eligible" },
+    { key: "shortlisted", label: "Shortlisted" },
+    { key: "test_cleared", label: "Test Cleared" },
+    { key: "technical_round", label: "Technical" },
+    { key: "hr_round", label: "HR" },
+    { key: "offered", label: "Offered" },
+  ];
+
+  const getStageKey = (app) => {
+    if (app.current_stage) return app.current_stage;
+    if (app.status === "selected") return "offered";
+    if (app.status === "shortlisted") return "shortlisted";
+    if (app.status === "eligible") return "eligible";
+    return "applied";
+  };
+
+  const getStageIndex = (app) => {
+    const stage = getStageKey(app);
+    const idx = pipelineStages.findIndex((item) => item.key === stage);
+    return idx < 0 ? 0 : idx;
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center py-12">
@@ -111,9 +135,31 @@ export default function ApplicationsTrackerPage() {
                         {new Date(app.applied_on).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className={`inline-flex items-center px-2.5 py-1 rounded-full border ${statusConf.bg} ${statusConf.color}`}>
-                          {React.cloneElement(statusConf.icon, { className: "w-3.5 h-3.5 mr-1.5" })}
-                          <span className="text-xs font-semibold uppercase">{app.status}</span>
+                        <div className="space-y-2">
+                          <div className={`inline-flex items-center px-2.5 py-1 rounded-full border ${statusConf.bg} ${statusConf.color}`}>
+                            {React.cloneElement(statusConf.icon, { className: "w-3.5 h-3.5 mr-1.5" })}
+                            <span className="text-xs font-semibold uppercase">{app.status}</span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5">
+                            {pipelineStages.map((stage, index) => {
+                              const currentIndex = getStageIndex(app);
+                              const isReached = index <= currentIndex;
+                              return (
+                                <div key={`${app.id}-${stage.key}`} className="flex items-center gap-1.5">
+                                  <span
+                                    className={`h-2 w-2 rounded-full ${
+                                      isReached ? "bg-blue-600" : "bg-slate-300"
+                                    }`}
+                                    title={stage.label}
+                                  />
+                                  {index < pipelineStages.length - 1 && (
+                                    <span className={`h-[2px] w-4 ${isReached ? "bg-blue-400" : "bg-slate-200"}`} />
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">

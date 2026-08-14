@@ -140,8 +140,8 @@ export default function TpoDashboard() {
                       </Link>
                     </td>
                     <td className="px-4 py-3">
-                      <Badge variant={drive.status === "open" ? "success" : "neutral"}>
-                        {drive.status === "open" ? "Active" : "Closed"}
+                      <Badge variant={drive.is_active ? "success" : "neutral"}>
+                        {drive.is_active ? "Active" : "Closed"}
                       </Badge>
                     </td>
                     <td className="px-4 py-3 text-slate-600">

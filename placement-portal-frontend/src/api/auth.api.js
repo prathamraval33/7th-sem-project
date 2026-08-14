@@ -33,20 +33,4 @@ export const authApi = {
       reset_token: resetToken,
       new_password: newPassword,
     }),
-
-  // Compatibility aliases used by existing pages.
-  requestChangePasswordOtp: () => axiosClient.post("/auth/change-password/request-otp"),
-  verifyChangePasswordOtp: ({ email, otp }) => axiosClient.post("/auth/change-password/verify-otp", { email, otp }),
-  completeChangePassword: ({ current_password, new_password, change_token }) =>
-    axiosClient.post("/auth/change-password/complete", {
-      current_password,
-      new_password,
-      change_token,
-    }),
-  resetPassword: ({ email, reset_token, new_password }) =>
-    axiosClient.post("/auth/forgot-password/reset", {
-      email,
-      reset_token,
-      new_password,
-    }),
 };

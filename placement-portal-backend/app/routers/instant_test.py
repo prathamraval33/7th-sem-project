@@ -264,9 +264,9 @@ def log_violation(
         test = db.get(InstantTest, attempt.test_id)
         if test and not test.is_practice:
             notif = Notification(
-                recipient_id=test.created_by,
-                sender_id=None,
+                user_id=test.created_by,
                 type=NotificationType.TEST_VIOLATION,
+                title="Proctoring Warning Alert",
                 message=f"Student {current_user.email} received 2nd warning for {payload.violation_type.replace('_', ' ')} in '{test.title}'",
             )
             db.add(notif)
@@ -285,9 +285,9 @@ def log_violation(
         if test and not test.is_practice:
             reason_txt = f"3 strikes in '{payload.violation_type.replace('_', ' ')}'" if strike_number >= 3 else "5 cumulative proctoring violations"
             notif = Notification(
-                recipient_id=test.created_by,
-                sender_id=None,
+                user_id=test.created_by,
                 type=NotificationType.TEST_AUTO_ENDED,
+                title="Test Attempt Force-Ended",
                 message=f"Student {current_user.email}'s test attempt in '{test.title}' was force-ended due to {reason_txt}.",
             )
             db.add(notif)

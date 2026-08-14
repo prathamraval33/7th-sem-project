@@ -30,6 +30,8 @@ class NotificationResponse(BaseModel):
     id: int
     recipient_id: int
     sender_id: Optional[int] = None
+    sender_name: Optional[str] = None
+    sender_role: Optional[str] = None
     type: NotificationType
     message: str
     is_read: bool

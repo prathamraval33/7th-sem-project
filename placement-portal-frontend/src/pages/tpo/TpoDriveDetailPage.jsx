@@ -4,6 +4,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { tpoApi } from "../../api/tpo.api";
 import { branchesApi } from "../../api/branches.api";
 import StudentRow from "../../components/drives/StudentRow";
+import ApplicationKanban, {
+  getNextStage,
+  getStageStatus,
+  KANBAN_STAGES,
+} from "../../components/drives/ApplicationKanban";
 import { 
   Users, 
   FileText, 
@@ -34,6 +39,7 @@ export default function TpoDriveDetailPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectModalApp, setSelectModalApp] = useState(null);
   const [selectedDepts, setSelectedDepts] = useState([]);
+  const [applicantsView, setApplicantsView] = useState("table");
 
   const driveId = parseInt(id, 10);
 
@@ -199,8 +205,37 @@ export default function TpoDriveDetailPage() {
     updateAppStatusMutation.mutate({
       appId: selectModalApp.id,
       status: "selected",
+      current_stage: "offered",
       package_offered: isNaN(ctc) ? null : ctc,
     });
+  };
+
+  const getApplicationStage = (application) => {
+    const validStages = new Set(KANBAN_STAGES.map((stage) => stage.key));
+    if (application.current_stage && validStages.has(application.current_stage)) {
+      return application.current_stage;
+    }
+
+    if (application.status === "selected") return "offered";
+    if (application.status === "shortlisted") return "shortlisted";
+    if (application.status === "eligible") return "eligible";
+    return "applied";
+  };
+
+  const moveApplicationToStage = (application, targetStage) => {
+    const nextStatus = getStageStatus(targetStage);
+    updateAppStatusMutation.mutate({
+      appId: application.id,
+      status: nextStatus,
+      current_stage: targetStage,
+    });
+  };
+
+  const promoteApplication = (application) => {
+    const stage = getApplicationStage(application);
+    const nextStage = getNextStage(stage);
+    if (!nextStage) return;
+    moveApplicationToStage(application, nextStage);
   };
 
   if (loadingDrives) return <div className="flex justify-center p-8"><Spinner size="lg" /></div>;
@@ -292,29 +327,80 @@ export default function TpoDriveDetailPage() {
           <div className="rounded-[12px] border border-gray-200 overflow-hidden bg-white shadow-sm">
             {loadingApplicants ? <div className="p-4"><Spinner /></div> : (
               <div>
-                {/* Table Header Row */}
-                <div className="grid grid-cols-[2.2fr_0.8fr_1fr_1fr_1.6fr] gap-3 items-center bg-gray-50 px-4 py-2.5 text-xs font-medium text-gray-500 text-left">
-                  <div>Student</div>
-                  <div>Branch</div>
-                  <div>Resume</div>
-                  <div>Status</div>
-                  <div className="text-right">Actions</div>
+                <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3">
+                  <p className="text-sm font-semibold text-gray-800">Candidate Pipeline</p>
+                  <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1">
+                    <button
+                      type="button"
+                      onClick={() => setApplicantsView("table")}
+                      className={`rounded-md px-3 py-1.5 text-xs font-medium ${
+                        applicantsView === "table" ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100"
+                      }`}
+                    >
+                      Table View
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setApplicantsView("kanban")}
+                      className={`rounded-md px-3 py-1.5 text-xs font-medium ${
+                        applicantsView === "kanban" ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100"
+                      }`}
+                    >
+                      Kanban Pipeline View
+                    </button>
+                  </div>
                 </div>
 
-                {/* Table Body Rows */}
                 {applicants?.length === 0 ? (
                   <div className="p-8 text-center text-gray-400 text-sm">No applicants for this drive yet.</div>
                 ) : (
-                  applicants?.map(app => (
-                    <StudentRow
-                      key={app.id}
-                      student={app}
-                      onShortlist={(appId) => updateAppStatusMutation.mutate({ appId, status: "shortlisted" })}
-                      onNotEligible={(appId) => updateAppStatusMutation.mutate({ appId, status: "not_eligible" })}
-                      onReject={(appId) => updateAppStatusMutation.mutate({ appId, status: "rejected" })}
-                      onSelect={(student) => setSelectModalApp(student)}
-                    />
-                  ))
+                  applicantsView === "table" ? (
+                    <div>
+                      {/* Table Header Row */}
+                      <div className="grid grid-cols-[2.2fr_0.8fr_1fr_1fr_1.6fr] gap-3 items-center bg-gray-50 px-4 py-2.5 text-xs font-medium text-gray-500 text-left">
+                        <div>Student</div>
+                        <div>Branch</div>
+                        <div>Resume</div>
+                        <div>Status</div>
+                        <div className="text-right">Actions</div>
+                      </div>
+
+                      {/* Table Body Rows */}
+                      {applicants?.map(app => (
+                        <StudentRow
+                          key={app.id}
+                          student={app}
+                          onShortlist={(appId) =>
+                            updateAppStatusMutation.mutate({ appId, status: "shortlisted", current_stage: "shortlisted" })
+                          }
+                          onNotEligible={(appId) =>
+                            updateAppStatusMutation.mutate({ appId, status: "not_eligible", current_stage: "applied" })
+                          }
+                          onReject={(appId) =>
+                            updateAppStatusMutation.mutate({ appId, status: "rejected", current_stage: "applied" })
+                          }
+                          onSelect={(student) => setSelectModalApp(student)}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-4">
+                      <ApplicationKanban
+                        applications={applicants}
+                        getStageKey={getApplicationStage}
+                        onMove={moveApplicationToStage}
+                        onPromote={promoteApplication}
+                        onReject={(application) =>
+                          updateAppStatusMutation.mutate({
+                            appId: application.id,
+                            status: "rejected",
+                            current_stage: getApplicationStage(application),
+                          })
+                        }
+                        onSetOffered={(application) => setSelectModalApp(application)}
+                      />
+                    </div>
+                  )
                 )}
               </div>
             )}

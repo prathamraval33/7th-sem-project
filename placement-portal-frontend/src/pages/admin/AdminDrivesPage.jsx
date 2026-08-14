@@ -101,7 +101,7 @@ export default function AdminDrivesPage() {
                       <div className="flex flex-col space-y-1 text-sm text-slate-600">
                         <div className="flex items-center space-x-1">
                           <Building className="w-3.5 h-3.5 text-slate-400" />
-                          <span>CTC: ₹{drive.min_ctc || "N/A"} {drive.max_ctc ? `- ₹${drive.max_ctc}` : ""} LPA</span>
+                          <span>CTC: ₹{drive.min_ctc || drive.ctc_lpa || "N/A"} {drive.max_ctc ? `- ₹${drive.max_ctc}` : ""} LPA</span>
                         </div>
                         <div className="flex items-center space-x-1">
                           <MapPin className="w-3.5 h-3.5 text-slate-400" />
@@ -114,7 +114,7 @@ export default function AdminDrivesPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {drive.status === "open" ? (
+                      {drive.status === "open" || drive.is_active ? (
                         <Badge variant="success">Active</Badge>
                       ) : (
                         <Badge variant="outline">Closed</Badge>

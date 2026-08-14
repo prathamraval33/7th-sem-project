@@ -43,6 +43,7 @@ import ManageDrivesPage from "./pages/tpo/ManageDrivesPage";
 import TpoDriveDetailPage from "./pages/tpo/TpoDriveDetailPage";
 import AllStudentsPage from "./pages/tpo/AllStudentsPage";
 import PastTestsPage from "./pages/tpo/PastTestsPage";
+import TpoReportsPage from "./pages/tpo/TpoReportsPage";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -112,6 +113,7 @@ export default function App() {
                 <Route path="/tpo/drives/:id" element={<TpoDriveDetailPage />} />
                 <Route path="/tpo/students" element={<AllStudentsPage />} />
                 <Route path="/tpo/tests" element={<PastTestsPage />} />
+                <Route path="/tpo/reports" element={<TpoReportsPage />} />
                 <Route path="/tpo/tests/create" element={<TpoCreateTestPage />} />
                 <Route path="/tpo/tests/attempts/:attemptId/violations" element={<TpoTestAuditPage />} />
                 <Route path="/tpo/instant-tests/history" element={<PastTestsPage />} />

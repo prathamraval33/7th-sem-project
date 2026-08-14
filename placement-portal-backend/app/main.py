@@ -27,6 +27,7 @@ from app.routers import (
     resume_enhancer,
     student_profile,
     tpo,
+    tpo_reports,
 )
 from app.utils.exceptions import AppError
 
@@ -57,7 +58,8 @@ async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
     logger.warning("AppError on %s %s: %s", request.method, request.url.path, exc.message)
     return JSONResponse(
         status_code=400, 
-        content={"detail": exc.message, "code": exc.code}
+        content={"detail": exc.message, "code": exc.code},
+        headers={"Access-Control-Allow-Origin": "*"}
     )
 
 
@@ -65,7 +67,8 @@ async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
     return JSONResponse(
         status_code=exc.status_code, 
-        content={"detail": exc.detail, "code": "http_error"}
+        content={"detail": exc.detail, "code": "http_error"},
+        headers={"Access-Control-Allow-Origin": "*"}
     )
 
 
@@ -74,7 +77,8 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
     logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
     return JSONResponse(
         status_code=500, 
-        content={"detail": "Internal server error. Check backend console logs.", "code": "internal_error"}
+        content={"detail": "Internal server error. Check backend console logs.", "code": "internal_error"},
+        headers={"Access-Control-Allow-Origin": "*"}
     )
 
 
@@ -99,5 +103,6 @@ app.include_router(notifications.router)
 app.include_router(insights.router)
 app.include_router(contact.router)
 app.include_router(tpo.router)
+app.include_router(tpo_reports.router)
 app.include_router(admin.router)
 app.include_router(analytics.router)

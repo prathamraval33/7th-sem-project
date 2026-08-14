@@ -23,15 +23,15 @@ export default function ForgotPasswordOtpPage() {
   });
 
   if (!email) {
-    return <Navigate to="/forgot-password/email" replace />;
+    return <Navigate to="/forgot-password" replace />;
   }
 
   const onSubmit = async (data) => {
     try {
       setSubmitError("");
       const res = await authApi.forgotPasswordVerifyOtp(email, data.otp);
-      navigate("/forgot-password/reset", {
-        state: { email, resetToken: res.data.token }
+      navigate("/forgot-password/reset", { 
+        state: { resetToken: res.data.reset_token } 
       });
     } catch (err) {
       console.error("OTP Verification Failed:", err);
@@ -77,7 +77,7 @@ export default function ForgotPasswordOtpPage() {
           </form>
 
           <div className="mt-6 flex items-center justify-between">
-            <Link to="/forgot-password/email" className="text-sm font-medium text-slate-600 hover:text-slate-900">
+            <Link to="/forgot-password" className="text-sm font-medium text-slate-600 hover:text-slate-900">
               Change email
             </Link>
             <Button 

@@ -13,7 +13,4 @@ export const contactApi = {
   getAllMessages: () => axiosClient.get("/contact/all"),
   updateMessageStatus: (messageId, status) =>
     axiosClient.patch(`/contact/${messageId}`, { status }),
-
-  // Compatibility alias used by ContactUsPage.
-  submitContactForm: (payload) => axiosClient.post("/contact/submit", payload),
 };

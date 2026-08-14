@@ -12,6 +12,7 @@ import {
   BarChart3,
   Mail,
   Activity,
+  ShieldCheck,
 } from "lucide-react";
 
 // Role-specific nav items, matching each role's page set from the master
@@ -32,6 +33,7 @@ const NAV_ITEMS = {
     { label: "Manage Drives", to: "/tpo/drives", icon: Briefcase },
     { label: "All Students", to: "/tpo/students", icon: Users },
     { label: "Tests", to: "/tpo/tests", icon: ListChecks },
+    { label: "Accreditation Reports", to: "/tpo/reports", icon: ShieldCheck },
     { label: "Analytics", to: "/tpo/analytics", icon: BarChart3 },
     { label: "Contact Messages", to: "/tpo/contact-messages", icon: Mail },
   ],
