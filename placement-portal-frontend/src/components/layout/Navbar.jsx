@@ -17,9 +17,11 @@ export default function Navbar() {
     .join("")
     .toUpperCase();
 
+  const dashboardPath = user?.user_type ? `/${user.user_type}/dashboard` : "/";
+
   return (
     <header className="flex h-16 items-center justify-between border-b border-border bg-card px-6 shadow-sm">
-      <Link to="/" className="flex items-center gap-2 font-heading text-lg font-semibold text-neutral-900">
+      <Link to={dashboardPath} className="flex items-center gap-2 font-heading text-lg font-semibold text-neutral-900">
         <GraduationCap size={22} className={theme.accentText} />
         Placement Portal
         {user && (

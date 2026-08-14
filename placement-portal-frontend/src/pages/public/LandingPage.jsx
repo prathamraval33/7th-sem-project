@@ -1,9 +1,16 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { Briefcase, Target, Brain, ArrowRight, ShieldCheck } from "lucide-react";
 import Button from "../../components/common/Button";
+import { useAuth } from "../../auth/useAuth";
 
 export default function LandingPage() {
+  const { user } = useAuth();
+
+  if (user?.user_type) {
+    return <Navigate to={`/${user.user_type}/dashboard`} replace />;
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
       {/* Navigation */}

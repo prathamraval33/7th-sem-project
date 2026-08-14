@@ -28,7 +28,7 @@ function ResumeSuggestionCard({ tip }) {
       <div className="flex items-start space-x-3">
         <Lightbulb className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
         <div>
-          <p className="text-sm text-slate-800">{tip.tip_text}</p>
+          <p className="text-sm text-slate-800">{tip.tip}</p>
           <p className="text-xs text-amber-700 font-medium mt-1.5">Based on trend: {tip.based_on_trend}</p>
         </div>
       </div>

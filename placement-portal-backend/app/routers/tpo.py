@@ -3,7 +3,7 @@ students/create-test/close-test), applicants + approve flow, instant tests
 (create/results/analytics/close/history), student management (remove from
 drive / deactivate / warn / placement override), and companies helper CRUD.
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -118,6 +118,14 @@ def create_drive(
     if company is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Company not found")
 
+    now_utc = datetime.now(timezone.utc)
+    deadline_utc = payload.deadline if payload.deadline.tzinfo else payload.deadline.replace(tzinfo=timezone.utc)
+    if deadline_utc < now_utc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Registration deadline must be a future date and time."
+        )
+
     drive = Drive(
         company_id=payload.company_id,
         role=payload.role,
@@ -144,6 +152,15 @@ def update_drive(
     drive = db.scalar(select(Drive).options(joinedload(Drive.company)).where(Drive.id == drive_id))
     if drive is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Drive not found")
+
+    if payload.deadline is not None:
+        now_utc = datetime.now(timezone.utc)
+        deadline_utc = payload.deadline if payload.deadline.tzinfo else payload.deadline.replace(tzinfo=timezone.utc)
+        if deadline_utc < now_utc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Registration deadline must be a future date and time."
+            )
 
     update_data = payload.model_dump(exclude_unset=True)
     if "eligibility_criteria" in update_data and update_data["eligibility_criteria"] is not None:

@@ -86,6 +86,16 @@ export default function ManageDrivesPage() {
     }
   };
 
+  const getMinDateTimeLocal = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
   const handleCreateDrive = (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -101,6 +111,13 @@ export default function ManageDrivesPage() {
       return;
     }
 
+    const deadlineVal = formData.get("deadline");
+    const deadlineDate = new Date(deadlineVal);
+    if (isNaN(deadlineDate.getTime()) || deadlineDate < new Date()) {
+      showError("Invalid Deadline", "Registration deadline must be a future date and time.");
+      return;
+    }
+
     const minCtcVal = formData.get("min_ctc");
     const maxCtcVal = formData.get("max_ctc");
 
@@ -113,7 +130,7 @@ export default function ManageDrivesPage() {
       min_ctc: minCtcVal ? parseFloat(minCtcVal) : null,
       max_ctc: maxCtcVal ? parseFloat(maxCtcVal) : null,
       bond_details: formData.get("bond_details") || null,
-      deadline: new Date(formData.get("deadline")).toISOString(),
+      deadline: deadlineDate.toISOString(),
       eligibility_criteria: {
         min_cgpa: parseFloat(formData.get("min_cgpa")),
         max_backlogs: parseInt(formData.get("max_backlogs")),
@@ -298,7 +315,7 @@ export default function ManageDrivesPage() {
                     </select>
                   </div>
 
-                  <Input label="Registration Deadline *" name="deadline" type="datetime-local" required />
+                  <Input label="Registration Deadline *" name="deadline" type="datetime-local" min={getMinDateTimeLocal()} required />
 
                   <Input label="Min CTC (LPA)" name="min_ctc" type="number" step="0.1" placeholder="e.g. 6.0" />
                   <Input label="Max CTC (LPA)" name="max_ctc" type="number" step="0.1" placeholder="e.g. 12.0" />

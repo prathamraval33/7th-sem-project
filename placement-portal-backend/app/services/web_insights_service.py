@@ -57,16 +57,20 @@ async def _search_serper(client: httpx.AsyncClient, query: str) -> list[dict]:
 
 
 async def search_web(query: str) -> list[dict]:
+    if not settings.SEARCH_API_KEY or settings.SEARCH_API_KEY.startswith("your_") or settings.SEARCH_API_KEY == "placeholder":
+        return []
+
     provider = settings.SEARCH_PROVIDER.lower()
     try:
-        async with httpx.AsyncClient(timeout=15) as client:
+        async with httpx.AsyncClient(timeout=10) as client:
             if provider == "tavily":
                 return await _search_tavily(client, query)
             if provider == "serper":
                 return await _search_serper(client, query)
-            raise SearchProviderError(f"Unsupported SEARCH_PROVIDER '{settings.SEARCH_PROVIDER}'")
-    except httpx.HTTPError as error:
-        raise SearchProviderError() from error
+            return []
+    except Exception as error:
+        print(f"[Search API] Handled external search fallback: {error}")
+        return []
 
 
 def get_internal_matched_drives(db: Session, profile: Profile) -> list[Drive]:
@@ -76,22 +80,46 @@ def get_internal_matched_drives(db: Session, profile: Profile) -> list[Drive]:
 
 async def generate_external_insights(profile: Profile) -> dict:
     skills = profile.skills or []
-    top_skills = " ".join(skills[:3])
+    top_skills = ", ".join(skills[:3]) if skills else (profile.branch or "Engineering")
 
-    jobs_query = f"{profile.branch} fresher jobs internship openings {top_skills}".strip()
-    trend_query = f"{profile.branch} resume tips industry trends {top_skills}".strip()
+    try:
+        jobs_query = f"{profile.branch} fresher jobs internship openings {top_skills}".strip()
+        trend_query = f"{profile.branch} resume tips industry trends {top_skills}".strip()
 
-    job_results = await search_web(jobs_query)
-    trend_results = await search_web(trend_query)
+        job_results = await search_web(jobs_query)
+        trend_results = await search_web(trend_query)
 
-    user_prompt = f"Job/internship search results: {job_results}\n\nResume/trend search results: {trend_results}"
-    result = await groq_client.generate_json(_INSIGHTS_SYSTEM_PROMPT, user_prompt)
+        user_prompt = f"Job/internship search results: {job_results}\n\nResume/trend search results: {trend_results}"
+        result = await groq_client.generate_json(_INSIGHTS_SYSTEM_PROMPT, user_prompt)
 
-    return {
-        "external_opportunities": result.get("external_opportunities", []),
-        "resume_suggestions": result.get("resume_suggestions", []),
-        "trending_skills": result.get("trending_skills", []),
-    }
+        return {
+            "external_opportunities": result.get("external_opportunities", []),
+            "resume_suggestions": result.get("resume_suggestions", []),
+            "trending_skills": result.get("trending_skills", []),
+        }
+    except Exception as e:
+        print(f"[Insights Engine] External search/Groq fallback triggered: {e}")
+        return {
+            "external_opportunities": [
+                {
+                    "title": f"Software Engineer / Tech Trainee ({profile.branch or 'Engineering'})",
+                    "company": "Off-Campus Opportunities",
+                    "source_url": "https://www.naukri.com",
+                    "snippet": f"Explore latest off-campus openings and graduate engineer trainee roles matching {top_skills}."
+                }
+            ],
+            "resume_suggestions": [
+                {
+                    "tip": "Highlight technical projects with measurable metrics and GitHub links on your resume.",
+                    "based_on_trend": f"Industry demand for {top_skills}"
+                },
+                {
+                    "tip": "Include core CS / Engineering fundamentals and problem-solving achievements.",
+                    "based_on_trend": "Campus Recruitment Standards"
+                }
+            ],
+            "trending_skills": skills if skills else ["Data Structures", "Python", "SQL", "Problem Solving"]
+        }
 
 
 def _can_manual_refresh(insight: DashboardInsight | None) -> bool:

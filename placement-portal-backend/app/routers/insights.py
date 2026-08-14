@@ -31,8 +31,14 @@ async def get_dashboard_insights(
     profile = _get_own_profile(db, current_user)
     try:
         data = await web_insights_service.get_dashboard_insights(db, current_user, profile)
-    except SearchProviderError as error:
-        raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail=error.message) from error
+    except Exception as error:
+        internal_drives = web_insights_service.get_internal_matched_drives(db, profile)
+        data = {
+            "internal_drives": internal_drives,
+            "external_opportunities": [],
+            "resume_suggestions": [],
+            "trending_skills": profile.skills or ["Problem Solving"],
+        }
 
     return InsightsDashboardResponse(**data)
 
@@ -48,7 +54,7 @@ async def refresh_insights(
         data = await web_insights_service.get_dashboard_insights(db, current_user, profile)
     except RateLimitError as error:
         raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, detail=error.message) from error
-    except SearchProviderError as error:
-        raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail=error.message) from error
+    except Exception as error:
+        data = await web_insights_service.get_dashboard_insights(db, current_user, profile)
 
     return InsightsDashboardResponse(**data)

@@ -153,8 +153,14 @@ export default function TpoDriveDetailPage() {
 
     const minCtcVal = formData.get("min_ctc");
     const maxCtcVal = formData.get("max_ctc");
-    const minPercentileVal = formData.get("min_percentile");
     const deadlineValue = formData.get("deadline");
+    if (deadlineValue) {
+      const deadlineDate = new Date(deadlineValue);
+      if (isNaN(deadlineDate.getTime()) || deadlineDate < new Date()) {
+        showError("Invalid Deadline", "Registration deadline must be a future date and time.");
+        return;
+      }
+    }
 
     const updatedPayload = {
       role: formData.get("role"),
@@ -199,6 +205,16 @@ export default function TpoDriveDetailPage() {
 
   if (loadingDrives) return <div className="flex justify-center p-8"><Spinner size="lg" /></div>;
   if (!drive) return <div className="p-8 text-center text-red-500">Drive not found.</div>;
+
+  const getMinDateTimeLocal = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
 
   const defaultDeadlineISO = drive.deadline 
     ? new Date(drive.deadline).toISOString().slice(0, 16) 
@@ -476,7 +492,7 @@ export default function TpoDriveDetailPage() {
                   </div>
 
                   <Input label="Bond / Service Agreement Details" name="bond_details" defaultValue={drive.bond_details || ""} placeholder="e.g. 18 months service agreement" />
-                  <Input label="Registration Deadline" name="deadline" type="datetime-local" defaultValue={defaultDeadlineISO} required />
+                  <Input label="Registration Deadline" name="deadline" type="datetime-local" defaultValue={defaultDeadlineISO} min={getMinDateTimeLocal()} required />
 
                   <div className="col-span-1 sm:col-span-2">
                     <label className="block text-sm font-medium text-slate-700 mb-1">Instructions For Students</label>

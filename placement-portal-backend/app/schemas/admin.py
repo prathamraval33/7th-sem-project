@@ -1,11 +1,12 @@
 from typing import Optional
 from pydantic import BaseModel, EmailStr, Field
 from app.models.user import UserType
+from app.schemas.common import StrongPassword
 
 
 class AdminUserCreate(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=6)
+    password: StrongPassword
     user_type: UserType
     full_name: Optional[str] = None
     branch: Optional[str] = None

@@ -44,7 +44,7 @@ export default function ChangePasswordPage() {
       setIsLoading(true);
       setError("");
       const res = await authApi.verifyChangePasswordOtp({ email: user.email, otp });
-      setChangeToken(res.data.change_token);
+      setChangeToken(res.data.token);
       setStep(3);
     } catch (err) {
       setError(err.response?.data?.detail || "Invalid or expired OTP.");

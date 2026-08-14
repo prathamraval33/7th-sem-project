@@ -57,8 +57,7 @@ async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
     logger.warning("AppError on %s %s: %s", request.method, request.url.path, exc.message)
     return JSONResponse(
         status_code=400, 
-        content={"detail": exc.message, "code": exc.code},
-        headers={"Access-Control-Allow-Origin": "*"}
+        content={"detail": exc.message, "code": exc.code}
     )
 
 
@@ -66,8 +65,7 @@ async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
     return JSONResponse(
         status_code=exc.status_code, 
-        content={"detail": exc.detail, "code": "http_error"},
-        headers={"Access-Control-Allow-Origin": "*"}
+        content={"detail": exc.detail, "code": "http_error"}
     )
 
 
@@ -76,8 +74,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
     logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
     return JSONResponse(
         status_code=500, 
-        content={"detail": "Internal server error. Check backend console logs.", "code": "internal_error"},
-        headers={"Access-Control-Allow-Origin": "*"}
+        content={"detail": "Internal server error. Check backend console logs.", "code": "internal_error"}
     )
 
 

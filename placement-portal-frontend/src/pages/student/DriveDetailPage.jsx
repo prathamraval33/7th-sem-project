@@ -67,7 +67,7 @@ export default function DriveDetailPage() {
     );
   }
 
-  const isFeeVerified = true;
+  const isFeeVerified = Boolean(user?.fee_verified);
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
