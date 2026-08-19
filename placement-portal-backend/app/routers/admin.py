@@ -274,6 +274,47 @@ def set_placement_override(
     return {"message": "Placement override updated"}
 
 
+@router.post("/students/{user_id}/deactivate")
+def deactivate_student(
+    user_id: int, current_user: User = Depends(require_admin), db: Session = Depends(get_db)
+) -> dict:
+    student = db.get(User, user_id)
+    if student is None or student.user_type != UserType.STUDENT:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Student not found")
+
+    student.is_active = False
+    db.add(
+        Notification(
+            recipient_id=user_id,
+            sender_id=current_user.id,
+            type=NotificationType.NOTICE,
+            message="Your student account has been deactivated by the administrator.",
+        )
+    )
+    db.commit()
+    return {"message": "Student account deactivated successfully"}
+
+
+@router.post("/tpo/{tpo_id}/notify", status_code=status.HTTP_201_CREATED)
+def notify_tpo(
+    tpo_id: int, payload: WarnRequest, current_user: User = Depends(require_admin), db: Session = Depends(get_db)
+) -> dict:
+    tpo_user = db.get(User, tpo_id)
+    if tpo_user is None or tpo_user.user_type != UserType.TPO:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="TPO not found")
+
+    db.add(
+        Notification(
+            recipient_id=tpo_id,
+            sender_id=current_user.id,
+            type=NotificationType.NOTICE,
+            message=payload.message,
+        )
+    )
+    db.commit()
+    return {"message": "Notice sent to TPO"}
+
+
 @router.delete("/students/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_student(user_id: int, current_user: User = Depends(require_admin), db: Session = Depends(get_db)) -> None:
     user = db.get(User, user_id)

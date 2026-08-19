@@ -23,6 +23,6 @@ export const studentApi = {
     axiosClient.post(`/student/applications/${applicationId}/withdraw`),
 
   getInstantTest: (testId) => axiosClient.get(`/instant-tests/${testId}`),
-  submitInstantTestAttempt: (testId, answers) =>
-    axiosClient.post(`/instant-tests/${testId}/attempt`, { answers }),
+  submitInstantTestAttempt: (attemptId) =>
+    axiosClient.post(`/instant-tests/attempts/${attemptId}/submit`),
 };

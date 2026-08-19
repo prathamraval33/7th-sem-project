@@ -10,39 +10,47 @@ from app.models.drive import Drive, DriveStatus
 from app.models.profile import Profile
 
 
-def check_eligibility(profile: Profile, criteria: dict) -> tuple[bool, list[str]]:
+def check_eligibility(profile: Profile, criteria: dict | None) -> tuple[bool, list[str]]:
     """Returns (is_eligible, reasons_if_not). `criteria` matches the
     `eligibility_criteria` JSON shape: min_cgpa, max_backlogs,
     department_list, min_tenth, min_twelfth, min_percentile (optional).
     """
     reasons: list[str] = []
+    criteria = criteria or {}
 
-    if profile.cgpa < criteria["min_cgpa"]:
-        reasons.append(f"CGPA {profile.cgpa} is below the required {criteria['min_cgpa']}")
+    student_cgpa = float(profile.cgpa or 0.0)
+    min_cgpa = float(criteria.get("min_cgpa") or 0.0)
+    if student_cgpa < min_cgpa:
+        reasons.append(f"CGPA {student_cgpa} is below the required {min_cgpa}")
 
-    if profile.active_backlogs > criteria["max_backlogs"]:
-        reasons.append(f"{profile.active_backlogs} active backlog(s) exceed the allowed {criteria['max_backlogs']}")
+    student_backlogs = int(profile.active_backlogs or 0)
+    max_backlogs = int(criteria.get("max_backlogs") or 0)
+    if student_backlogs > max_backlogs:
+        reasons.append(f"{student_backlogs} active backlog(s) exceed the allowed {max_backlogs}")
 
     department_list = criteria.get("department_list") or []
     if department_list:
-        normalized_depts = {d.strip().upper() for d in department_list}
+        normalized_depts = {str(d).strip().upper() for d in department_list if d}
         student_branch = (profile.branch or "").strip().upper()
         if student_branch not in normalized_depts:
-            reasons.append(f"Branch '{profile.branch}' is not in the eligible department list")
+            reasons.append(f"Branch '{profile.branch or 'N/A'}' is not in the eligible department list")
 
-    if profile.tenth_percentage < criteria["min_tenth"]:
-        reasons.append(f"10th percentage {profile.tenth_percentage} is below the required {criteria['min_tenth']}")
+    student_tenth = float(profile.tenth_percentage or 0.0)
+    min_tenth = float(criteria.get("min_tenth") or 0.0)
+    if student_tenth < min_tenth:
+        reasons.append(f"10th percentage {student_tenth}% is below the required {min_tenth}%")
 
-    if profile.twelfth_percentage < criteria["min_twelfth"]:
-        reasons.append(
-            f"12th percentage {profile.twelfth_percentage} is below the required {criteria['min_twelfth']}"
-        )
+    student_twelfth = float(profile.twelfth_percentage or 0.0)
+    min_twelfth = float(criteria.get("min_twelfth") or 0.0)
+    if student_twelfth < min_twelfth:
+        reasons.append(f"12th percentage {student_twelfth}% is below the required {min_twelfth}%")
 
-    min_percentile = criteria.get("min_percentile")
-    if min_percentile is not None:
+    raw_min_percentile = criteria.get("min_percentile")
+    if raw_min_percentile is not None and str(raw_min_percentile).strip() != "":
+        min_percentile = float(raw_min_percentile)
         if profile.competitive_exam_percentile is None:
             reasons.append("No competitive exam percentile on record")
-        elif profile.competitive_exam_percentile < min_percentile:
+        elif float(profile.competitive_exam_percentile) < min_percentile:
             reasons.append(
                 f"Competitive exam percentile {profile.competitive_exam_percentile} is below the required {min_percentile}"
             )

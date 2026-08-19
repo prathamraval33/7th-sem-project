@@ -15,7 +15,6 @@ router = APIRouter(tags=["branches"])
 
 @router.get("/branches", response_model=list[BranchResponse])
 def list_branches(
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[Branch]:
     """Returns all active academic branches for profile setup & drive selection."""

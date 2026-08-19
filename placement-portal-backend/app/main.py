@@ -36,6 +36,12 @@ logger = logging.getLogger(__name__)
 import os
 from fastapi.staticfiles import StaticFiles
 
+from app.db.base import Base
+from app.db.session import engine
+import app.models  # noqa: F401
+
+Base.metadata.create_all(bind=engine)
+
 app = FastAPI(title="Placement Portal API", version="1.0.0")
 
 uploads_dir = os.path.join(os.getcwd(), "uploads")

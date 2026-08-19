@@ -24,17 +24,36 @@ date, and a recognizable payee/institution. Respond ONLY with a JSON object of t
 If the text is empty, garbled, or clearly not a receipt, is_valid must be false with a low confidence."""
 
 
+import os
+import shutil
+
 def extract_receipt_text(relative_file_path: str) -> str:
-    absolute_path = get_absolute_path(relative_file_path)
-    extension = absolute_path.suffix.lower()
+    try:
+        # Check standard Windows Tesseract path if not in system PATH
+        if shutil.which("tesseract") is None:
+            tesseract_win_path = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+            if os.path.exists(tesseract_win_path):
+                pytesseract.pytesseract.tesseract_cmd = tesseract_win_path
 
-    if extension == ".pdf":
-        images = convert_from_path(str(absolute_path))
-    else:
-        images = [Image.open(absolute_path)]
+        absolute_path = get_absolute_path(relative_file_path)
+        extension = absolute_path.suffix.lower()
 
-    pages_text = [pytesseract.image_to_string(image) for image in images]
-    return "\n".join(pages_text).strip()
+        if extension == ".pdf":
+            try:
+                images = convert_from_path(str(absolute_path))
+            except Exception:
+                # Fallback to pdf text extraction if poppler is missing
+                from pypdf import PdfReader
+                reader = PdfReader(str(absolute_path))
+                text_parts = [page.extract_text() or "" for page in reader.pages]
+                return "\n".join(text_parts).strip()
+        else:
+            images = [Image.open(absolute_path)]
+
+        pages_text = [pytesseract.image_to_string(image) for image in images]
+        return "\n".join(pages_text).strip()
+    except Exception as e:
+        return ""
 
 
 async def get_ai_verdict(extracted_text: str) -> dict:

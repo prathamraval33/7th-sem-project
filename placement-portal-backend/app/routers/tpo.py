@@ -183,6 +183,33 @@ def list_my_drives(current_user: User = Depends(require_tpo), db: Session = Depe
     )
 
 
+@router.get("/drives/{drive_id}", response_model=DriveResponse)
+def get_drive_detail(
+    drive_id: int, current_user: User = Depends(require_tpo), db: Session = Depends(get_db)
+) -> Drive:
+    drive = db.scalar(select(Drive).options(joinedload(Drive.company)).where(Drive.id == drive_id))
+    if drive is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Drive not found")
+    return drive
+
+
+@router.post("/drives/{drive_id}/close-test")
+def close_drive_test(
+    drive_id: int, current_user: User = Depends(require_tpo), db: Session = Depends(get_db)
+) -> dict:
+    drive = db.get(Drive, drive_id)
+    if drive is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Drive not found")
+
+    drive.test_status = DriveTestStatus.CLOSED
+    tests = db.scalars(select(InstantTest).where(InstantTest.drive_id == drive_id)).all()
+    for t in tests:
+        t.status = InstantTestStatus.CLOSED
+
+    db.commit()
+    return {"message": "Drive test closed successfully"}
+
+
 @router.get("/drives/{drive_id}/eligible-students", response_model=list[ProfileResponse])
 def get_eligible_students(
     drive_id: int, current_user: User = Depends(require_tpo), db: Session = Depends(get_db)

@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { tpoApi } from "../../api/tpo.api";
 import { branchesApi } from "../../api/branches.api";
 import StudentRow from "../../components/drives/StudentRow";
+import DriveDetailsView from "../../components/drives/DriveDetailsView";
 import ApplicationKanban, {
   getNextStage,
   getStageStatus,
