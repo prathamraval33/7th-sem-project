@@ -50,6 +50,17 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminStudentsPage from "./pages/admin/AdminStudentsPage";
 import AdminDrivesPage from "./pages/admin/AdminDrivesPage";
 
+// SuperAdmin Pages (Phase 1 — design preview, no real backend)
+import ConsoleShell from "./components/superadmin/ConsoleShell";
+import SuperAdminDashboard from "./pages/superadmin/SuperAdminDashboard";
+import CollegesListPage from "./pages/superadmin/CollegesListPage";
+import CollegeDetailPage from "./pages/superadmin/CollegeDetailPage";
+import FeatureCatalogPage from "./pages/superadmin/FeatureCatalogPage";
+import FeatureRequestsPage from "./pages/superadmin/FeatureRequestsPage";
+import PlatformAnalyticsPage from "./pages/superadmin/PlatformAnalyticsPage";
+import AnnouncementsPage from "./pages/superadmin/AnnouncementsPage";
+import AuditLogPage from "./pages/superadmin/AuditLogPage";
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: { retry: 1, refetchOnWindowFocus: false },
@@ -132,6 +143,21 @@ export default function App() {
                 <Route path="/admin/profile" element={<ProfilePage />} />
                 <Route path="/admin/change-password" element={<ChangePasswordPage />} />
                 <Route path="/admin/*" element={<FoundationNotice label="Admin Dashboard" />} />
+              </Route>
+            </Route>
+
+            {/* SuperAdmin Routes */}
+            <Route element={<ProtectedRoute allowedRoles={[ROLES.SUPERADMIN]} />}>
+              <Route path="/superadmin" element={<ConsoleShell />}>
+                <Route index element={<Navigate to="/superadmin/dashboard" replace />} />
+                <Route path="dashboard" element={<SuperAdminDashboard />} />
+                <Route path="colleges" element={<CollegesListPage />} />
+                <Route path="colleges/:id" element={<CollegeDetailPage />} />
+                <Route path="features" element={<FeatureCatalogPage />} />
+                <Route path="requests" element={<FeatureRequestsPage />} />
+                <Route path="analytics" element={<PlatformAnalyticsPage />} />
+                <Route path="announcements" element={<AnnouncementsPage />} />
+                <Route path="audit-log" element={<AuditLogPage />} />
               </Route>
             </Route>
 

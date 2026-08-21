@@ -2,7 +2,9 @@
 import enum
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Enum as SAEnum, Integer, String, func
+from typing import Optional
+
+from sqlalchemy import Boolean, DateTime, Enum as SAEnum, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -12,12 +14,14 @@ class UserType(str, enum.Enum):
     STUDENT = "student"
     TPO = "tpo"
     ADMIN = "admin"
+    SUPERADMIN = "superadmin"
 
 
 class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    college_id: Mapped[int | None] = mapped_column(ForeignKey("colleges.id", ondelete="CASCADE"), nullable=True, index=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     user_type: Mapped[UserType] = mapped_column(SAEnum(UserType, name="user_type_enum", values_callable=lambda obj: [e.value for e in obj]), nullable=False)
@@ -28,6 +32,9 @@ class User(Base):
     failed_login_attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    # Multi-tenant college association (None for superadmin)
+    college: Mapped[Optional["College"]] = relationship(back_populates="users")
 
     # One-to-one
     profile: Mapped["Profile"] = relationship(back_populates="user", uselist=False, cascade="all, delete-orphan")

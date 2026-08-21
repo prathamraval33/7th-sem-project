@@ -72,25 +72,39 @@ class TpoDashboardSummary(BaseModel):
 
 @router.get("/dashboard/summary", response_model=TpoDashboardSummary)
 def get_dashboard_summary(current_user: User = Depends(require_tpo), db: Session = Depends(get_db)) -> TpoDashboardSummary:
-    total_students = db.scalar(select(func.count()).select_from(Profile).join(User).where(User.user_type == UserType.STUDENT))
+    cid = current_user.college_id
+    user_cond = [User.user_type == UserType.STUDENT]
+    drive_cond = []
+    app_cond = []
+    if cid is not None:
+        user_cond.append(User.college_id == cid)
+        drive_cond.append(Drive.college_id == cid)
+        app_cond.append(Application.drive_id.in_(select(Drive.id).where(Drive.college_id == cid)))
+
+    total_students = db.scalar(select(func.count()).select_from(Profile).join(User).where(*user_cond))
     fee_verified_students = db.scalar(
-        select(func.count()).select_from(User).where(User.user_type == UserType.STUDENT, User.fee_verified.is_(True))
+        select(func.count()).select_from(User).where(*user_cond, User.fee_verified.is_(True))
     )
-    total_drives = db.scalar(select(func.count()).select_from(Drive))
-    total_applied = db.scalar(select(func.count()).select_from(Application))
+    total_drives = db.scalar(select(func.count()).select_from(Drive).where(*drive_cond))
+    total_applied = db.scalar(select(func.count()).select_from(Application).where(*app_cond) if app_cond else select(func.count()).select_from(Application))
     total_selected = db.scalar(
-        select(func.count()).select_from(Application).where(Application.status == ApplicationStatus.SELECTED)
+        select(func.count()).select_from(Application).where(*app_cond, Application.status == ApplicationStatus.SELECTED) if app_cond else select(func.count()).select_from(Application).where(Application.status == ApplicationStatus.SELECTED)
     )
-    total_instant_tests = db.scalar(select(func.count()).select_from(InstantTest))
-    recent_drives = db.scalars(select(Drive).order_by(Drive.created_at.desc()).limit(10)).all()
+    total_instant_tests = db.scalar(select(func.count()).select_from(InstantTest).where(InstantTest.created_by == current_user.id))
+    recent_drives = db.scalars(select(Drive).where(*drive_cond).order_by(Drive.created_at.desc()).limit(10)).all()
     
-    placed_students = db.scalar(select(func.count()).select_from(Profile).join(User).where(User.user_type == UserType.STUDENT, Profile.is_placed == True))
-    active_drives = db.scalar(select(func.count()).select_from(Drive).where(Drive.status == DriveStatus.OPEN))
+    placed_students = db.scalar(select(func.count()).select_from(Profile).join(User).where(*user_cond, Profile.is_placed == True))
+    active_drives = db.scalar(select(func.count()).select_from(Drive).where(*drive_cond, Drive.status == DriveStatus.OPEN))
     
-    avg_readiness = db.scalar(select(func.avg(Analytics.readiness_score)))
+    avg_readiness = db.scalar(
+        select(func.avg(Analytics.readiness_score)).join(User, Analytics.user_id == User.id).where(*user_cond)
+        if cid is not None else select(func.avg(Analytics.readiness_score))
+    )
     average_readiness_score = float(avg_readiness) if avg_readiness else 0.0
     
-    highest_ctc = db.scalar(select(func.max(Application.package_offered)))
+    highest_ctc = db.scalar(
+        select(func.max(Application.package_offered)).where(*app_cond) if app_cond else select(func.max(Application.package_offered))
+    )
 
     return TpoDashboardSummary(
         total_students=total_students or 0,
@@ -127,6 +141,7 @@ def create_drive(
         )
 
     drive = Drive(
+        college_id=current_user.college_id,
         company_id=payload.company_id,
         role=payload.role,
         jd_text=payload.jd_text,
@@ -176,11 +191,12 @@ def update_drive(
 
 @router.get("/drives", response_model=list[DriveResponse])
 def list_my_drives(current_user: User = Depends(require_tpo), db: Session = Depends(get_db)) -> list[Drive]:
-    return list(
-        db.scalars(
-            select(Drive).options(joinedload(Drive.company)).where(Drive.created_by == current_user.id).order_by(Drive.created_at.desc())
-        ).all()
-    )
+    query = select(Drive).options(joinedload(Drive.company))
+    if current_user.college_id is not None:
+        query = query.where(Drive.college_id == current_user.college_id)
+    else:
+        query = query.where(Drive.created_by == current_user.id)
+    return list(db.scalars(query.order_by(Drive.created_at.desc())).all())
 
 
 @router.get("/drives/{drive_id}", response_model=DriveResponse)
@@ -190,6 +206,12 @@ def get_drive_detail(
     drive = db.scalar(select(Drive).options(joinedload(Drive.company)).where(Drive.id == drive_id))
     if drive is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Drive not found")
+    if (
+        current_user.college_id is not None
+        and drive.college_id is not None
+        and drive.college_id != current_user.college_id
+    ):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="You do not have access to this drive")
     return drive
 
 
@@ -200,6 +222,12 @@ def close_drive_test(
     drive = db.get(Drive, drive_id)
     if drive is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Drive not found")
+    if (
+        current_user.college_id is not None
+        and drive.college_id is not None
+        and drive.college_id != current_user.college_id
+    ):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="You do not have access to this drive")
 
     drive.test_status = DriveTestStatus.CLOSED
     tests = db.scalars(select(InstantTest).where(InstantTest.drive_id == drive_id)).all()
@@ -217,8 +245,17 @@ def get_eligible_students(
     drive = db.get(Drive, drive_id)
     if drive is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Drive not found")
+    if (
+        current_user.college_id is not None
+        and drive.college_id is not None
+        and drive.college_id != current_user.college_id
+    ):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="You do not have access to this drive")
 
-    profiles = db.scalars(select(Profile)).all()
+    query = select(Profile).join(User, Profile.user_id == User.id)
+    if current_user.college_id is not None:
+        query = query.where(User.college_id == current_user.college_id)
+    profiles = db.scalars(query).all()
     return [profile for profile in profiles if check_drive_eligibility(profile, drive)[0]]
 
 
@@ -640,7 +677,10 @@ class StudentCard(BaseModel):
 
 @router.get("/students/all", response_model=list[StudentCard])
 def list_all_students(current_user: User = Depends(require_tpo), db: Session = Depends(get_db)) -> list[StudentCard]:
-    users = db.scalars(select(User).where(User.user_type == UserType.STUDENT)).all()
+    query = select(User).where(User.user_type == UserType.STUDENT)
+    if current_user.college_id is not None:
+        query = query.where(User.college_id == current_user.college_id)
+    users = db.scalars(query).all()
     cards: list[StudentCard] = []
     for user in users:
         profile = user.profile
@@ -668,6 +708,12 @@ def warn_student(
     student = db.get(User, user_id)
     if student is None or student.user_type != UserType.STUDENT:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Student not found")
+    if (
+        current_user.college_id is not None
+        and student.college_id is not None
+        and student.college_id != current_user.college_id
+    ):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="You do not have permission to manage this student")
 
     db.add(
         Notification(
@@ -685,6 +731,12 @@ def deactivate_student(
     student = db.get(User, user_id)
     if student is None or student.user_type != UserType.STUDENT:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Student not found")
+    if (
+        current_user.college_id is not None
+        and student.college_id is not None
+        and student.college_id != current_user.college_id
+    ):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="You do not have permission to manage this student")
 
     student.is_active = False
     db.add(
@@ -704,6 +756,16 @@ def toggle_placement_override(
     current_user: User = Depends(require_tpo),
     db: Session = Depends(get_db),
 ) -> Profile:
+    student = db.get(User, user_id)
+    if student is None or student.user_type != UserType.STUDENT:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Student not found")
+    if (
+        current_user.college_id is not None
+        and student.college_id is not None
+        and student.college_id != current_user.college_id
+    ):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="You do not have permission to manage this student")
+
     profile = db.scalar(select(Profile).where(Profile.user_id == user_id))
     if profile is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Student profile not found")

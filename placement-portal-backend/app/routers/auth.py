@@ -61,8 +61,8 @@ def _hash_token(token: str) -> str:
 
 
 def _issue_tokens(db: Session, user: User) -> TokenResponse:
-    access_token = create_access_token(str(user.id), user.user_type.value)
-    refresh_token = create_refresh_token(str(user.id), user.user_type.value)
+    access_token = create_access_token(str(user.id), user.user_type.value, college_id=user.college_id)
+    refresh_token = create_refresh_token(str(user.id), user.user_type.value, college_id=user.college_id)
 
     db.add(
         RefreshToken(
@@ -215,6 +215,8 @@ def get_me(current_user: User = Depends(get_current_user), db: Session = Depends
 
     return MeResponse(
         id=current_user.id,
+        college_id=current_user.college_id,
+        college_name=current_user.college.name if current_user.college else None,
         email=current_user.email,
         user_type=current_user.user_type,
         is_active=current_user.is_active,

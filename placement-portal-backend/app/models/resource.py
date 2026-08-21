@@ -28,6 +28,7 @@ class Resource(Base):
     __tablename__ = "resources"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    college_id: Mapped[int] = mapped_column(ForeignKey("colleges.id", ondelete="CASCADE"), nullable=False, index=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     category: Mapped[ResourceCategory] = mapped_column(
         SAEnum(ResourceCategory, name="resource_category_enum", values_callable=lambda obj: [e.value for e in obj]), nullable=False
@@ -39,4 +40,5 @@ class Resource(Base):
     content: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_by: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
 
+    college: Mapped["College"] = relationship(back_populates="resources")
     created_by_user: Mapped["User"] = relationship(back_populates="resources_created", foreign_keys=[created_by])

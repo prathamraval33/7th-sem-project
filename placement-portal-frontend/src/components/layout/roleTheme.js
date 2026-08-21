@@ -4,4 +4,5 @@ export const ROLE_THEME = {
   student: { label: "Student", accentText: "text-role-student", accentBg: "bg-role-student" },
   tpo: { label: "TPO", accentText: "text-role-tpo", accentBg: "bg-role-tpo" },
   admin: { label: "Admin", accentText: "text-role-admin", accentBg: "bg-role-admin" },
+  superadmin: { label: "SuperAdmin", accentText: "text-slate-800", accentBg: "bg-slate-800" },
 };

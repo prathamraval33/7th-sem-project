@@ -1,0 +1,1014 @@
+/* ============================================================
+   COMMAND DECK — SuperAdmin Console Design System
+   Fixed CSS layout, tokens, and robust component styling.
+   ============================================================ */
+
+/* --- 1. Design Tokens --- */
+:root {
+  --cd-bg: #F8FAFC;
+  --cd-surface: #FFFFFF;
+  --cd-surface-sunken: #F1F5FD;
+  --cd-border: #E2E8F0;
+  --cd-text-primary: #0F172A;
+  --cd-text-secondary: #475569;
+  --cd-text-muted: #94A3B8;
+  --cd-primary: #2563EB;
+  --cd-primary-hover: #1D4ED8;
+  --cd-primary-bg: #EFF6FF;
+  --cd-success: #059669;
+  --cd-success-bg: #ECFDF5;
+  --cd-warning: #F59E0B;
+  --cd-warning-text: #92400E;
+  --cd-warning-bg: #FFFBEB;
+  --cd-danger: #DC2626;
+  --cd-danger-bg: #FEF2F2;
+
+  /* Typography matching the rest of the application */
+  --cd-font-body: 'Roboto', 'Inter', system-ui, -apple-system, sans-serif;
+  --cd-font-mono: 'JetBrains Mono', monospace;
+
+  /* Metrics */
+  --cd-radius-card: 12px;
+  --cd-radius-control: 8px;
+  --cd-radius-pill: 999px;
+  --cd-sidebar-width: 240px;
+  --cd-header-height: 64px;
+  --cd-content-padding: 28px;
+  --cd-card-padding: 20px;
+  --cd-table-row-height: 52px;
+  --cd-gap-sm: 8px;
+  --cd-gap-md: 16px;
+  --cd-gap-lg: 24px;
+}
+
+/* --- 2. Global Shell --- */
+.cd-shell {
+  display: flex !important;
+  min-height: 100vh !important;
+  width: 100% !important;
+  background: var(--cd-bg) !important;
+  font-family: var(--cd-font-body) !important;
+  color: var(--cd-text-primary) !important;
+  box-sizing: border-box !important;
+}
+
+/* --- 2a. Sidebar --- */
+.cd-sidebar {
+  width: var(--cd-sidebar-width) !important;
+  min-width: var(--cd-sidebar-width) !important;
+  max-width: var(--cd-sidebar-width) !important;
+  height: 100vh !important;
+  position: sticky !important;
+  top: 0 !important;
+  background: var(--cd-surface-sunken) !important;
+  border-right: 1px solid var(--cd-border) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  z-index: 40 !important;
+  flex-shrink: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.cd-sidebar__logo {
+  padding: 16px 20px !important;
+  height: var(--cd-header-height) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  font-family: var(--cd-font-body) !important;
+  font-weight: 700 !important;
+  font-size: 16px !important;
+  color: var(--cd-text-primary) !important;
+  border-bottom: 1px solid var(--cd-border) !important;
+  box-sizing: border-box !important;
+}
+
+.cd-sidebar__logo-icon {
+  width: 32px !important;
+  height: 32px !important;
+  background: var(--cd-primary) !important;
+  border-radius: var(--cd-radius-control) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #fff !important;
+  flex-shrink: 0 !important;
+}
+
+.cd-sidebar__nav {
+  flex: 1 !important;
+  padding: 16px 0 !important;
+  overflow-y: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+}
+
+.cd-sidebar__nav-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 10px 16px !important;
+  margin: 0 12px !important;
+  border-radius: var(--cd-radius-control) !important;
+  font-family: var(--cd-font-body) !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+  color: var(--cd-text-secondary) !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  border: none !important;
+  background: transparent !important;
+  box-sizing: border-box !important;
+}
+
+.cd-sidebar__nav-item:hover {
+  background: rgba(37, 99, 235, 0.08) !important;
+  color: var(--cd-primary) !important;
+}
+
+.cd-sidebar__nav-item--active {
+  background: var(--cd-primary-bg) !important;
+  color: var(--cd-primary) !important;
+  font-weight: 600 !important;
+}
+
+.cd-sidebar__nav-icon {
+  width: 18px !important;
+  height: 18px !important;
+  flex-shrink: 0 !important;
+}
+
+.cd-sidebar__badge {
+  min-width: 20px !important;
+  height: 20px !important;
+  padding: 0 6px !important;
+  border-radius: var(--cd-radius-pill) !important;
+  background: var(--cd-warning) !important;
+  color: #fff !important;
+  font-family: var(--cd-font-body) !important;
+  font-weight: 700 !important;
+  font-size: 11px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-left: auto !important;
+}
+
+.cd-sidebar__badge--urgent {
+  background: var(--cd-danger) !important;
+}
+
+.cd-sidebar__account {
+  padding: 16px !important;
+  border-top: 1px solid var(--cd-border) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  box-sizing: border-box !important;
+}
+
+.cd-sidebar__account-label {
+  font-family: var(--cd-font-body) !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  color: var(--cd-text-secondary) !important;
+}
+
+.cd-sidebar__signout {
+  background: none !important;
+  border: none !important;
+  color: var(--cd-text-muted) !important;
+  cursor: pointer !important;
+  padding: 6px !important;
+  border-radius: var(--cd-radius-control) !important;
+  transition: color 0.15s ease !important;
+}
+
+.cd-sidebar__signout:hover {
+  color: var(--cd-danger) !important;
+}
+
+/* --- 2b. Content Area --- */
+.cd-content {
+  flex: 1 !important;
+  min-width: 0 !important;
+  padding: var(--cd-content-padding) !important;
+  background: var(--cd-bg) !important;
+  min-height: 100vh !important;
+  box-sizing: border-box !important;
+}
+
+/* --- 3. Topbar --- */
+.cd-topbar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  margin-bottom: var(--cd-gap-lg) !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.cd-topbar__title {
+  font-family: var(--cd-font-body) !important;
+  font-weight: 700 !important;
+  font-size: 26px !important;
+  line-height: 1.2 !important;
+  color: var(--cd-text-primary) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  flex: 1 !important;
+}
+
+.cd-topbar__actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  flex-shrink: 0 !important;
+}
+
+/* --- 4. Search and Filters Bar --- */
+.cd-search-bar {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  margin-bottom: var(--cd-gap-lg) !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.cd-search-bar .cd-input {
+  width: 320px !important;
+  max-width: 320px !important;
+  min-width: 240px !important;
+  flex-shrink: 0 !important;
+}
+
+.cd-search-bar .cd-select {
+  width: 160px !important;
+  max-width: 160px !important;
+  flex-shrink: 0 !important;
+}
+
+/* --- 5. Form Inputs --- */
+.cd-input-group {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  margin-bottom: 16px !important;
+  width: 100% !important;
+}
+
+.cd-label {
+  font-family: var(--cd-font-body) !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  color: var(--cd-text-primary) !important;
+  margin-bottom: 2px !important;
+}
+
+.cd-input {
+  height: 42px !important;
+  padding: 0 14px !important;
+  border: 1px solid var(--cd-border) !important;
+  border-radius: var(--cd-radius-control) !important;
+  background: var(--cd-surface) !important;
+  font-family: var(--cd-font-body) !important;
+  font-weight: 400 !important;
+  font-size: 14px !important;
+  color: var(--cd-text-primary) !important;
+  outline: none !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+  box-sizing: border-box !important;
+  display: block !important;
+  width: 100% !important;
+}
+
+.cd-input::placeholder {
+  color: var(--cd-text-muted) !important;
+}
+
+.cd-input:focus {
+  border-color: var(--cd-primary) !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
+}
+
+.cd-select {
+  height: 42px !important;
+  padding: 0 14px !important;
+  border: 1px solid var(--cd-border) !important;
+  border-radius: var(--cd-radius-control) !important;
+  background: var(--cd-surface) !important;
+  font-family: var(--cd-font-body) !important;
+  font-weight: 400 !important;
+  font-size: 14px !important;
+  color: var(--cd-text-primary) !important;
+  outline: none !important;
+  cursor: pointer !important;
+  box-sizing: border-box !important;
+}
+
+.cd-select:focus {
+  border-color: var(--cd-primary) !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
+}
+
+.cd-textarea {
+  padding: 12px 14px !important;
+  min-height: 110px !important;
+  border: 1px solid var(--cd-border) !important;
+  border-radius: var(--cd-radius-control) !important;
+  background: var(--cd-surface) !important;
+  font-family: var(--cd-font-body) !important;
+  font-weight: 400 !important;
+  font-size: 14px !important;
+  color: var(--cd-text-primary) !important;
+  outline: none !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+  width: 100% !important;
+  resize: vertical !important;
+  box-sizing: border-box !important;
+}
+
+.cd-textarea:focus {
+  border-color: var(--cd-primary) !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
+}
+
+.cd-helper-text {
+  font-family: var(--cd-font-body) !important;
+  font-weight: 400 !important;
+  font-size: 12px !important;
+  color: var(--cd-text-muted) !important;
+  line-height: 1.4 !important;
+}
+
+/* --- 6. Buttons --- */
+.cd-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  padding: 10px 20px !important;
+  border-radius: var(--cd-radius-control) !important;
+  font-family: var(--cd-font-body) !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  border: none !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+}
+
+.cd-btn--primary {
+  background: var(--cd-primary) !important;
+  color: #FFFFFF !important;
+}
+
+.cd-btn--primary:hover {
+  background: var(--cd-primary-hover) !important;
+}
+
+.cd-btn--secondary {
+  background: var(--cd-surface) !important;
+  border: 1px solid var(--cd-border) !important;
+  color: var(--cd-text-primary) !important;
+}
+
+.cd-btn--secondary:hover {
+  border-color: var(--cd-primary) !important;
+  color: var(--cd-primary) !important;
+}
+
+.cd-btn--danger {
+  background: transparent !important;
+  border: 1px solid var(--cd-danger) !important;
+  color: var(--cd-danger) !important;
+}
+
+.cd-btn--danger:hover {
+  background: var(--cd-danger-bg) !important;
+}
+
+.cd-btn--success {
+  background: var(--cd-success) !important;
+  color: #FFFFFF !important;
+}
+
+.cd-btn--success:hover {
+  background: #047857 !important;
+}
+
+.cd-btn--compact {
+  padding: 6px 14px !important;
+  font-size: 13px !important;
+  height: 32px !important;
+}
+
+.cd-btn--ghost {
+  background: transparent !important;
+  border: none !important;
+  color: var(--cd-text-muted) !important;
+  padding: 6px !important;
+}
+
+.cd-btn--ghost:hover {
+  color: var(--cd-text-primary) !important;
+}
+
+/* --- 7. KPI Card --- */
+.cd-kpi-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)) !important;
+  gap: var(--cd-gap-lg) !important;
+  width: 100% !important;
+}
+
+.cd-kpi-card {
+  background: var(--cd-surface) !important;
+  border: 1px solid var(--cd-border) !important;
+  border-radius: var(--cd-radius-card) !important;
+  padding: var(--cd-card-padding) !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05) !important;
+  box-sizing: border-box !important;
+}
+
+.cd-kpi-card--clickable {
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.cd-kpi-card--clickable:hover {
+  border-color: var(--cd-primary) !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12) !important;
+}
+
+.cd-kpi-card__label {
+  font-family: var(--cd-font-body) !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  color: var(--cd-text-secondary) !important;
+  letter-spacing: 0.5px !important;
+  text-transform: uppercase !important;
+  margin-bottom: 8px !important;
+}
+
+.cd-kpi-card__value {
+  font-family: var(--cd-font-mono) !important;
+  font-weight: 700 !important;
+  font-size: 32px !important;
+  color: var(--cd-text-primary) !important;
+  line-height: 1.1 !important;
+}
+
+.cd-kpi-card__value--warning {
+  color: var(--cd-warning) !important;
+}
+
+.cd-kpi-card__trend {
+  margin-top: 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  font-family: var(--cd-font-body) !important;
+  font-weight: 500 !important;
+  font-size: 12px !important;
+}
+
+.cd-kpi-card__trend--up {
+  color: var(--cd-success) !important;
+}
+
+.cd-kpi-card__trend--down {
+  color: var(--cd-danger) !important;
+}
+
+/* --- 8. Status Pill / Badge --- */
+.cd-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 4px 10px !important;
+  border-radius: var(--cd-radius-pill) !important;
+  font-family: var(--cd-font-body) !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  white-space: nowrap !important;
+}
+
+.cd-pill--active,
+.cd-pill--approved {
+  background: var(--cd-success-bg) !important;
+  color: var(--cd-success) !important;
+}
+
+.cd-pill--pending {
+  background: var(--cd-warning-bg) !important;
+  color: var(--cd-warning-text) !important;
+}
+
+.cd-pill--suspended,
+.cd-pill--rejected {
+  background: var(--cd-danger-bg) !important;
+  color: var(--cd-danger) !important;
+}
+
+.cd-pill--neutral {
+  background: var(--cd-surface-sunken) !important;
+  color: var(--cd-text-secondary) !important;
+}
+
+.cd-pill--info {
+  background: #EEF2FF !important;
+  color: #4F46E5 !important;
+}
+
+.cd-pill--role {
+  background: #F0FDF4 !important;
+  color: #166534 !important;
+  border: 1px solid #BBF7D0 !important;
+}
+
+.cd-pill__dot {
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 50% !important;
+  background: currentColor !important;
+  flex-shrink: 0 !important;
+}
+
+/* --- 9. Data Table --- */
+.cd-table-container {
+  background: var(--cd-surface) !important;
+  border: 1px solid var(--cd-border) !important;
+  border-radius: var(--cd-radius-card) !important;
+  overflow-x: auto !important;
+  width: 100% !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05) !important;
+  box-sizing: border-box !important;
+}
+
+.cd-table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  text-align: left !important;
+}
+
+.cd-table thead {
+  background: var(--cd-surface-sunken) !important;
+}
+
+.cd-table thead th {
+  height: 44px !important;
+  padding: 0 20px !important;
+  font-family: var(--cd-font-body) !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  color: var(--cd-text-secondary) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  text-align: left !important;
+  white-space: nowrap !important;
+  border-bottom: 1px solid var(--cd-border) !important;
+}
+
+.cd-table tbody tr {
+  height: var(--cd-table-row-height) !important;
+  border-bottom: 1px solid var(--cd-border) !important;
+  transition: background 0.1s ease !important;
+}
+
+.cd-table tbody tr:last-child {
+  border-bottom: none !important;
+}
+
+.cd-table tbody tr:hover {
+  background: rgba(37, 99, 235, 0.03) !important;
+}
+
+.cd-table tbody tr.cd-table__row--clickable {
+  cursor: pointer !important;
+}
+
+.cd-table tbody td {
+  padding: 0 20px !important;
+  font-family: var(--cd-font-body) !important;
+  font-weight: 400 !important;
+  font-size: 14px !important;
+  color: var(--cd-text-primary) !important;
+  vertical-align: middle !important;
+}
+
+.cd-table tbody td.cd-table__cell--secondary {
+  color: var(--cd-text-secondary) !important;
+}
+
+.cd-table tbody td.cd-table__cell--bold {
+  font-weight: 600 !important;
+}
+
+.cd-table tbody td.cd-table__cell--actions {
+  text-align: right !important;
+}
+
+.cd-table tbody td.cd-table__cell--meta {
+  font-size: 13px !important;
+  color: var(--cd-text-muted) !important;
+}
+
+/* --- 10. Panels & Cards --- */
+.cd-panel {
+  background: var(--cd-surface) !important;
+  border: 1px solid var(--cd-border) !important;
+  border-radius: var(--cd-radius-card) !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05) !important;
+  overflow: hidden !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.cd-panel__header {
+  padding: 16px 20px !important;
+  border-bottom: 1px solid var(--cd-border) !important;
+  font-family: var(--cd-font-body) !important;
+  font-weight: 600 !important;
+  font-size: 18px !important;
+  color: var(--cd-text-primary) !important;
+}
+
+.cd-activity-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  padding: 14px 20px !important;
+  border-bottom: 1px solid var(--cd-border) !important;
+  box-sizing: border-box !important;
+}
+
+.cd-activity-row:last-child {
+  border-bottom: none !important;
+}
+
+.cd-activity-row__icon {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+.cd-activity-row__icon--green {
+  background: var(--cd-success-bg) !important;
+  color: var(--cd-success) !important;
+}
+
+.cd-activity-row__icon--amber {
+  background: var(--cd-warning-bg) !important;
+  color: var(--cd-warning-text) !important;
+}
+
+.cd-activity-row__icon--blue {
+  background: var(--cd-primary-bg) !important;
+  color: var(--cd-primary) !important;
+}
+
+.cd-activity-row__icon--red {
+  background: var(--cd-danger-bg) !important;
+  color: var(--cd-danger) !important;
+}
+
+.cd-activity-row__text {
+  flex: 1 !important;
+  font-family: var(--cd-font-body) !important;
+  font-weight: 400 !important;
+  font-size: 14px !important;
+  color: var(--cd-text-primary) !important;
+}
+
+.cd-activity-row__time {
+  font-family: var(--cd-font-body) !important;
+  font-weight: 400 !important;
+  font-size: 12px !important;
+  color: var(--cd-text-muted) !important;
+  white-space: nowrap !important;
+}
+
+/* --- 11. Modal Overlay --- */
+.cd-modal-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  background: rgba(15, 23, 42, 0.5) !important;
+  z-index: 50 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 20px !important;
+}
+
+.cd-modal {
+  max-width: 500px !important;
+  width: 100% !important;
+  background: var(--cd-surface) !important;
+  border-radius: var(--cd-radius-card) !important;
+  padding: 28px !important;
+  box-shadow: 0 20px 25px rgba(15, 23, 42, 0.15) !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  position: relative !important;
+  box-sizing: border-box !important;
+}
+
+.cd-modal__title {
+  font-family: var(--cd-font-body) !important;
+  font-weight: 700 !important;
+  font-size: 20px !important;
+  color: var(--cd-text-primary) !important;
+  margin-bottom: 20px !important;
+}
+
+.cd-steps {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  margin-bottom: 24px !important;
+}
+
+.cd-steps__item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-family: var(--cd-font-body) !important;
+  font-weight: 500 !important;
+  font-size: 13px !important;
+}
+
+.cd-steps__dot {
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+}
+
+.cd-steps__item--current .cd-steps__dot {
+  background: var(--cd-primary) !important;
+  color: #fff !important;
+}
+
+.cd-steps__item--current .cd-steps__label {
+  color: var(--cd-primary) !important;
+  font-weight: 600 !important;
+}
+
+.cd-steps__item--completed .cd-steps__dot {
+  background: var(--cd-success) !important;
+  color: #fff !important;
+}
+
+.cd-steps__item--completed .cd-steps__label {
+  color: var(--cd-success) !important;
+}
+
+.cd-steps__item--upcoming .cd-steps__dot {
+  background: var(--cd-surface-sunken) !important;
+  color: var(--cd-text-muted) !important;
+  border: 1px solid var(--cd-border) !important;
+}
+
+.cd-steps__item--upcoming .cd-steps__label {
+  color: var(--cd-text-muted) !important;
+}
+
+.cd-steps__separator {
+  flex: 1 !important;
+  height: 1px !important;
+  background: var(--cd-border) !important;
+}
+
+.cd-modal__footer {
+  display: flex !important;
+  justify-content: flex-end !important;
+  gap: 12px !important;
+  margin-top: 24px !important;
+}
+
+/* --- 12. Toast --- */
+.cd-toast {
+  position: fixed !important;
+  top: 20px !important;
+  right: 20px !important;
+  z-index: 60 !important;
+  background: var(--cd-success-bg) !important;
+  color: var(--cd-success) !important;
+  border: 1px solid var(--cd-success) !important;
+  border-radius: var(--cd-radius-control) !important;
+  padding: 12px 18px !important;
+  font-family: var(--cd-font-body) !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12) !important;
+}
+
+/* --- 13. Detail Page Grid --- */
+.cd-detail-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: var(--cd-gap-lg) !important;
+}
+
+@media (max-width: 900px) {
+  .cd-detail-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.cd-detail-row {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 12px 0 !important;
+  border-bottom: 1px solid var(--cd-border) !important;
+}
+
+.cd-detail-row:last-child {
+  border-bottom: none !important;
+}
+
+.cd-detail-row__label {
+  font-family: var(--cd-font-body) !important;
+  font-weight: 500 !important;
+  font-size: 13px !important;
+  color: var(--cd-text-secondary) !important;
+}
+
+.cd-detail-row__value {
+  font-family: var(--cd-font-body) !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+  color: var(--cd-text-primary) !important;
+}
+
+.cd-detail-row__value--mono {
+  font-family: var(--cd-font-mono) !important;
+  font-weight: 700 !important;
+  font-size: 18px !important;
+}
+
+/* --- 14. Feature Grid --- */
+.cd-feature-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+  gap: var(--cd-gap-md) !important;
+  width: 100% !important;
+}
+
+.cd-feature-card {
+  background: var(--cd-surface) !important;
+  border: 1px solid var(--cd-border) !important;
+  border-radius: var(--cd-radius-card) !important;
+  padding: 20px !important;
+  position: relative !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05) !important;
+  box-sizing: border-box !important;
+}
+
+.cd-feature-card__name {
+  font-family: var(--cd-font-body) !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
+  color: var(--cd-text-primary) !important;
+  padding-right: 50px !important;
+}
+
+.cd-feature-card__desc {
+  margin-top: 10px !important;
+  font-family: var(--cd-font-body) !important;
+  font-weight: 400 !important;
+  font-size: 14px !important;
+  color: var(--cd-text-secondary) !important;
+  line-height: 1.6 !important;
+}
+
+.cd-feature-card__actions {
+  position: absolute !important;
+  top: 16px !important;
+  right: 16px !important;
+  display: flex !important;
+  gap: 4px !important;
+}
+
+.cd-feature-card__action-btn {
+  background: transparent !important;
+  border: none !important;
+  padding: 6px !important;
+  cursor: pointer !important;
+  color: var(--cd-text-muted) !important;
+  border-radius: 4px !important;
+  transition: color 0.15s ease !important;
+}
+
+.cd-feature-card__action-btn:hover {
+  color: var(--cd-text-primary) !important;
+}
+
+/* --- 15. Charts Grid --- */
+.cd-chart-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: var(--cd-gap-lg) !important;
+}
+
+@media (max-width: 900px) {
+  .cd-chart-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* --- 16. Section Headings & Spacers --- */
+.cd-section-heading {
+  font-family: var(--cd-font-body) !important;
+  font-weight: 600 !important;
+  font-size: 18px !important;
+  color: var(--cd-text-primary) !important;
+  margin-bottom: var(--cd-gap-md) !important;
+}
+
+.cd-mt-lg {
+  margin-top: var(--cd-gap-lg) !important;
+}
+
+.cd-mt-md {
+  margin-top: var(--cd-gap-md) !important;
+}
+
+.cd-radio-group {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  margin-top: 6px !important;
+}
+
+.cd-radio-option {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  font-family: var(--cd-font-body) !important;
+  font-size: 14px !important;
+  color: var(--cd-text-primary) !important;
+  cursor: pointer !important;
+}
+
+.cd-confirm-inline {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-family: var(--cd-font-body) !important;
+  font-size: 13px !important;
+  color: var(--cd-danger) !important;
+}
+
+.cd-empty-state {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  padding: 48px 24px !important;
+  text-align: center !important;
+}
+
+.cd-empty-state__icon {
+  width: 44px !important;
+  height: 44px !important;
+  color: var(--cd-text-muted) !important;
+}
+
+.cd-empty-state__title {
+  margin-top: 16px !important;
+  font-family: var(--cd-font-body) !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
+  color: var(--cd-text-primary) !important;
+}
+
+.cd-empty-state__text {
+  margin-top: 6px !important;
+  font-family: var(--cd-font-body) !important;
+  font-weight: 400 !important;
+  font-size: 14px !important;
+  color: var(--cd-text-secondary) !important;
+  max-width: 340px !important;
+}

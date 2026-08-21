@@ -21,33 +21,38 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def _create_token(subject: str, user_type: str, token_type: str, expires_delta: timedelta) -> str:
+def _create_token(
+    subject: str, user_type: str, token_type: str, expires_delta: timedelta, college_id: int | None = None
+) -> str:
     now = datetime.now(timezone.utc)
     to_encode: dict[str, Any] = {
         "sub": subject,
         "user_type": user_type,
         "type": token_type,
+        "college_id": college_id,
         "iat": now,
         "exp": now + expires_delta,
     }
     return jwt.encode(to_encode, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
 
 
-def create_access_token(subject: str, user_type: str) -> str:
+def create_access_token(subject: str, user_type: str, college_id: int | None = None) -> str:
     return _create_token(
         subject,
         user_type,
         ACCESS_TOKEN_TYPE,
         timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+        college_id=college_id,
     )
 
 
-def create_refresh_token(subject: str, user_type: str) -> str:
+def create_refresh_token(subject: str, user_type: str, college_id: int | None = None) -> str:
     return _create_token(
         subject,
         user_type,
         REFRESH_TOKEN_TYPE,
         timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+        college_id=college_id,
     )
 
 

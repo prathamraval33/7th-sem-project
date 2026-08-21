@@ -44,6 +44,8 @@ export default function LoginPage() {
         navigate("/tpo/dashboard", { replace: true });
       } else if (user.user_type === ROLES.ADMIN) {
         navigate("/admin/dashboard", { replace: true });
+      } else if (user.user_type === ROLES.SUPERADMIN) {
+        navigate("/superadmin/dashboard", { replace: true });
       }
     } catch (err) {
       setSubmitError(err.response?.data?.detail || "Invalid email or password");

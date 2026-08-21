@@ -37,9 +37,11 @@ def get_matched_drives(
     db: Session = Depends(get_db),
 ) -> list[Drive]:
     profile = _get_own_profile(db, current_user)
-    open_drives = db.scalars(
-        select(Drive).options(joinedload(Drive.company)).where(Drive.status == DriveStatus.OPEN)
-    ).all()
+    query = select(Drive).options(joinedload(Drive.company)).where(Drive.status == DriveStatus.OPEN)
+    if current_user.college_id is not None:
+        query = query.where(Drive.college_id == current_user.college_id)
+
+    open_drives = db.scalars(query).all()
     return [drive for drive in open_drives if check_drive_eligibility(profile, drive)[0]]
 
 
@@ -50,6 +52,8 @@ def list_drives(
     db: Session = Depends(get_db),
 ) -> list[DriveWithEligibility]:
     query = select(Drive).options(joinedload(Drive.company))
+    if current_user.college_id is not None and current_user.user_type.value != "superadmin":
+        query = query.where(Drive.college_id == current_user.college_id)
     if status_filter is not None:
         query = query.where(Drive.status == status_filter)
     drives = db.scalars(query.order_by(Drive.created_at.desc())).all()
@@ -80,6 +84,14 @@ def get_drive(
     drive = db.scalar(select(Drive).options(joinedload(Drive.company)).where(Drive.id == drive_id))
     if drive is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Drive not found")
+
+    if (
+        current_user.college_id is not None
+        and current_user.user_type.value != "superadmin"
+        and drive.college_id is not None
+        and drive.college_id != current_user.college_id
+    ):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="You do not have access to this drive")
 
     is_eligible, reasons = False, ["No profile on record"]
     if current_user.user_type.value == "student":

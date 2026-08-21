@@ -29,6 +29,13 @@ def apply_to_drive(
     if drive is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Drive not found")
 
+    if (
+        current_user.college_id is not None
+        and drive.college_id is not None
+        and drive.college_id != current_user.college_id
+    ):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="You cannot apply to a drive from another institution")
+
     profile = db.scalar(select(Profile).where(Profile.user_id == current_user.id))
     if profile is None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Complete onboarding before applying")
