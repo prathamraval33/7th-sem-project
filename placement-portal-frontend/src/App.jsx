@@ -36,6 +36,12 @@ import TpoCreateTestPage from "./pages/tpo/TpoCreateTestPage";
 import TpoTestAuditPage from "./pages/tpo/TpoTestAuditPage";
 import ApplicationsTrackerPage from "./pages/student/ApplicationsTrackerPage";
 import ResourcesLibraryPage from "./pages/student/ResourcesLibraryPage";
+import MockInterviewSetupPage from "./pages/student/MockInterviewSetupPage";
+import MockInterviewSessionPage from "./pages/student/MockInterviewSessionPage";
+import MockInterviewResultPage from "./pages/student/MockInterviewResultPage";
+import ResumeAnalyzerPage from "./pages/student/ResumeAnalyzerPage";
+import ResumeEnhancerPage from "./pages/student/ResumeEnhancerPage";
+import WeakAreasPage from "./pages/student/WeakAreasPage";
 
 // TPO Pages
 import TpoDashboard from "./pages/tpo/TpoDashboard";
@@ -99,6 +105,14 @@ export default function App() {
                 <Route path="/student/change-password" element={<ChangePasswordPage />} />
                 <Route path="/student/tests/:id/precheck" element={<TestPrecheckPage />} />
                 <Route path="/student/tests/:id/results" element={<TestResultsPage />} />
+                <Route path="/student/mock-interview" element={<MockInterviewSetupPage />} />
+                <Route path="/student/mock-interview/:sessionId" element={<MockInterviewSessionPage />} />
+                <Route path="/student/mock-interview/:sessionId/result" element={<MockInterviewResultPage />} />
+                <Route path="/student/resume" element={<ResumeAnalyzerPage />} />
+                <Route path="/student/resume-analyzer" element={<ResumeAnalyzerPage />} />
+                <Route path="/student/resume-enhancer" element={<ResumeEnhancerPage />} />
+                <Route path="/student/resume/enhance" element={<ResumeEnhancerPage />} />
+                <Route path="/student/weak-areas" element={<WeakAreasPage />} />
                 
                 {/* Fallback for unbuilt student features (Phase 7) */}
                 <Route path="/student/*" element={<FoundationNotice label="Student Feature" />} />

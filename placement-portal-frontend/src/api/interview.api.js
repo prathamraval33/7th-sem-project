@@ -14,5 +14,6 @@ export const interviewApi = {
     axiosClient.post("/mock-interview/from-resume", { resume_id: resumeId, company_name: companyName }),
   submitAnswer: (sessionId, answerText) =>
     axiosClient.post(`/mock-interview/${sessionId}/answer`, { answer_text: answerText }),
+  getNextQuestion: (sessionId) => axiosClient.get(`/mock-interview/${sessionId}/next-question`),
   getResult: (sessionId) => axiosClient.get(`/mock-interview/${sessionId}/result`),
 };

@@ -24,7 +24,7 @@ class Settings(BaseSettings):
 
     # Groq (server-side only — never exposed to the frontend)
     GROQ_API_KEY: str
-    GROQ_MODEL: str = "llama-3.3-70b-versatile"
+    GROQ_MODEL: str = "openai/gpt-oss-20b"
 
     # SMTP — used to send signup/forgot-password/change-password OTP emails
     SMTP_HOST: str

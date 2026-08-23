@@ -6,6 +6,7 @@ import {
   BookOpen,
   MessagesSquare,
   FileText,
+  Wand2,
   TrendingDown,
   Users,
   ListChecks,
@@ -26,6 +27,7 @@ const NAV_ITEMS = {
     { label: "Resources", to: "/student/resources", icon: BookOpen },
     { label: "Mock Interview", to: "/student/mock-interview", icon: MessagesSquare },
     { label: "Resume", to: "/student/resume", icon: FileText },
+    { label: "Resume Enhancer", to: "/student/resume-enhancer", icon: Wand2 },
     { label: "Weak Areas", to: "/student/weak-areas", icon: TrendingDown },
   ],
   tpo: [
