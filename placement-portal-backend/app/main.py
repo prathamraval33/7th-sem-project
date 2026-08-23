@@ -2,12 +2,17 @@
 exception handler for a consistent JSON error shape.
 """
 import logging
+import os
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
+from app.db.base import Base
+from app.db.session import engine
+import app.models  # noqa: F401
 from app.routers import (
     admin,
     analytics,
@@ -32,13 +37,6 @@ from app.routers import (
 from app.utils.exceptions import AppError
 
 logger = logging.getLogger(__name__)
-
-import os
-from fastapi.staticfiles import StaticFiles
-
-from app.db.base import Base
-from app.db.session import engine
-import app.models  # noqa: F401
 
 Base.metadata.create_all(bind=engine)
 

@@ -23,6 +23,7 @@ class Drive(Base):
     __tablename__ = "drives"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    college_id: Mapped[int] = mapped_column(ForeignKey("colleges.id", ondelete="CASCADE"), nullable=False, index=True)
     company_id: Mapped[int] = mapped_column(ForeignKey("companies.id", ondelete="CASCADE"), nullable=False)
     role: Mapped[str] = mapped_column(String(255), nullable=False)
     jd_text: Mapped[str] = mapped_column(Text, nullable=False)
@@ -43,6 +44,7 @@ class Drive(Base):
     created_by: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
+    college: Mapped["College"] = relationship(back_populates="drives")
     company: Mapped["Company"] = relationship(back_populates="drives")
     created_by_user: Mapped["User"] = relationship(back_populates="drives_created", foreign_keys=[created_by])
     applications: Mapped[list["Application"]] = relationship(back_populates="drive", cascade="all, delete-orphan")

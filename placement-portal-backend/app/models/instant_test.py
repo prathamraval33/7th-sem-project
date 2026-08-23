@@ -17,6 +17,7 @@ class InstantTest(Base):
     __tablename__ = "instant_tests"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    college_id: Mapped[int | None] = mapped_column(ForeignKey("colleges.id", ondelete="CASCADE"), nullable=True, index=True)
     drive_id: Mapped[int | None] = mapped_column(ForeignKey("drives.id", ondelete="CASCADE"), nullable=True)
     created_by: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
     title: Mapped[str] = mapped_column(String(255), default="Placement Qualifying Test", nullable=False)

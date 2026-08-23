@@ -36,6 +36,7 @@ class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    college_id: Optional[int] = None
     email: str
     user_type: UserType
     is_active: bool
@@ -51,6 +52,7 @@ class MeResponse(UserResponse):
     to force onboarding, per the master prompt's Roles & Auth section.
     """
 
+    college_name: Optional[str] = None
     profile_complete: bool
     profile: Optional[ProfileResponse] = None
 

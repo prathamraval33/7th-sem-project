@@ -2,6 +2,11 @@
 autogenerate and so mapper configuration (relationships) resolves cleanly.
 """
 from app.models.user import User, UserType
+from app.models.college import College, CollegeStatus
+from app.models.feature import Feature
+from app.models.college_feature import CollegeFeature, FeatureRequestStatus
+from app.models.announcement import Announcement
+from app.models.audit_log import AuditLog
 from app.models.otp_verification import OtpVerification, OtpPurpose
 from app.models.fee_receipt import FeeReceipt, FeeVerdict
 from app.models.profile import Profile
@@ -26,6 +31,13 @@ from app.models.contact_message import ContactMessage, ContactCategory, ContactS
 __all__ = [
     "User",
     "UserType",
+    "College",
+    "CollegeStatus",
+    "Feature",
+    "CollegeFeature",
+    "FeatureRequestStatus",
+    "Announcement",
+    "AuditLog",
     "OtpVerification",
     "OtpPurpose",
     "FeeReceipt",

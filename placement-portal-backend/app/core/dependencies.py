@@ -37,6 +37,18 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is inactive")
 
+    # If the user belongs to a college, ensure that college is active
+    if (
+        user.college is not None
+        and getattr(user.college, "status", None) is not None
+        and getattr(user.college.status, "value", str(user.college.status)) == "suspended"
+        and user.user_type != UserType.SUPERADMIN
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your institution account is currently suspended. Please contact platform support.",
+        )
+
     return user
 
 
@@ -57,3 +69,6 @@ def require_role(*allowed_roles: UserType):
 require_student = require_role(UserType.STUDENT)
 require_tpo = require_role(UserType.TPO)
 require_admin = require_role(UserType.ADMIN)
+require_superadmin = require_role(UserType.SUPERADMIN)
+require_admin_or_superadmin = require_role(UserType.ADMIN, UserType.SUPERADMIN)
+

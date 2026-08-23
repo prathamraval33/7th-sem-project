@@ -5,6 +5,7 @@ export const ROLES = Object.freeze({
   STUDENT: "student",
   TPO: "tpo",
   ADMIN: "admin",
+  SUPERADMIN: "superadmin",
 });
 
 export const STORAGE_KEYS = Object.freeze({

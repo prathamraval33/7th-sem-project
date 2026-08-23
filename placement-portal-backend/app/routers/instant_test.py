@@ -28,13 +28,21 @@ from app.schemas.instant_test import (
 router = APIRouter(prefix="/instant-tests", tags=["instant-test"])
 
 
-def _ensure_attemptable(test: InstantTest, db: Session) -> None:
+def _ensure_attemptable(test: InstantTest, db: Session, current_user: User | None = None) -> None:
     if test.status != InstantTestStatus.OPEN:
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail="This test is closed")
     if test.drive_id is not None:
         drive = db.get(Drive, test.drive_id)
-        if drive is not None and drive.test_status != DriveTestStatus.OPEN:
-            raise HTTPException(status.HTTP_403_FORBIDDEN, detail="This test is closed")
+        if drive is not None:
+            if drive.test_status != DriveTestStatus.OPEN:
+                raise HTTPException(status.HTTP_403_FORBIDDEN, detail="This test is closed")
+            if (
+                current_user is not None
+                and current_user.college_id is not None
+                and drive.college_id is not None
+                and drive.college_id != current_user.college_id
+            ):
+                raise HTTPException(status.HTTP_403_FORBIDDEN, detail="You do not have access to this test")
 
 
 @router.get("", response_model=dict[str, list[InstantTestResponse]])
@@ -47,8 +55,16 @@ def list_student_tests(
         select(InstantTest).where(InstantTest.status == InstantTestStatus.OPEN)
     ).all()
 
-    practice_tests = [t for t in tests if t.is_practice]
-    official_tests = [t for t in tests if not t.is_practice]
+    filtered_tests = []
+    for t in tests:
+        if t.drive_id is not None and current_user.college_id is not None:
+            drive = db.get(Drive, t.drive_id)
+            if drive and drive.college_id is not None and drive.college_id != current_user.college_id:
+                continue
+        filtered_tests.append(t)
+
+    practice_tests = [t for t in filtered_tests if t.is_practice]
+    official_tests = [t for t in filtered_tests if not t.is_practice]
 
     return {
         "practice_tests": practice_tests,
@@ -65,7 +81,7 @@ def get_instant_test(
     test = db.get(InstantTest, test_id)
     if test is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Test not found")
-    _ensure_attemptable(test, db)
+    _ensure_attemptable(test, db, current_user)
     return test
 
 
@@ -78,7 +94,7 @@ def start_test_attempt(
     test = db.get(InstantTest, test_id)
     if test is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Test not found")
-    _ensure_attemptable(test, db)
+    _ensure_attemptable(test, db, current_user)
 
     now = datetime.now(timezone.utc)
 

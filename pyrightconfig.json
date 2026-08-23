@@ -1,0 +1,14 @@
+{
+  "include": [
+    "placement-portal-backend"
+  ],
+  "extraPaths": [
+    "placement-portal-backend"
+  ],
+  "venvPath": "placement-portal-backend",
+  "venv": "venv",
+  "typeCheckingMode": "off",
+  "reportMissingImports": "none",
+  "reportAttributeAccessIssue": "none",
+  "reportGeneralTypeIssues": "none"
+}

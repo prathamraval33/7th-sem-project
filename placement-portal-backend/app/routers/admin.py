@@ -27,7 +27,10 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 @router.get("/drives", response_model=list[DriveResponse])
 def list_all_drives(current_user: User = Depends(require_admin), db: Session = Depends(get_db)) -> list[Drive]:
-    return list(db.scalars(select(Drive).options(joinedload(Drive.company)).order_by(Drive.created_at.desc())).all())
+    query = select(Drive).options(joinedload(Drive.company))
+    if current_user.college_id is not None:
+        query = query.where(Drive.college_id == current_user.college_id)
+    return list(db.scalars(query.order_by(Drive.created_at.desc())).all())
 
 
 @router.patch("/drives/{drive_id}", response_model=DriveResponse)
@@ -37,6 +40,12 @@ def update_drive(
     drive = db.get(Drive, drive_id)
     if drive is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Drive not found")
+    if (
+        current_user.college_id is not None
+        and drive.college_id is not None
+        and drive.college_id != current_user.college_id
+    ):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="You do not have access to this drive")
 
     update_data = payload.model_dump(exclude_unset=True)
     if "eligibility_criteria" in update_data and update_data["eligibility_criteria"] is not None:
@@ -55,6 +64,12 @@ def delete_drive(drive_id: int, current_user: User = Depends(require_admin), db:
     drive = db.get(Drive, drive_id)
     if drive is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Drive not found")
+    if (
+        current_user.college_id is not None
+        and drive.college_id is not None
+        and drive.college_id != current_user.college_id
+    ):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="You do not have access to this drive")
     db.delete(drive)
     db.commit()
 
@@ -77,6 +92,8 @@ def list_students(
     db: Session = Depends(get_db),
 ) -> list[StudentListEntry]:
     query = select(User).where(User.user_type == UserType.STUDENT)
+    if current_user.college_id is not None:
+        query = query.where(User.college_id == current_user.college_id)
     
     users = db.scalars(query).all()
     entries: list[StudentListEntry] = []
@@ -118,7 +135,10 @@ class StudentCard(BaseModel):
 
 @router.get("/students/all", response_model=list[StudentCard])
 def list_all_students_card(current_user: User = Depends(require_admin), db: Session = Depends(get_db)) -> list[StudentCard]:
-    users = db.scalars(select(User).order_by(User.created_at.desc())).all()
+    query = select(User).order_by(User.created_at.desc())
+    if current_user.college_id is not None:
+        query = query.where(User.college_id == current_user.college_id)
+    users = db.scalars(query).all()
     cards: list[StudentCard] = []
     for user in users:
         profile = user.profile
@@ -149,6 +169,7 @@ def create_user_direct(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Email already registered")
 
     new_user = User(
+        college_id=current_user.college_id,
         email=payload.email,
         hashed_password=hash_password(payload.password),
         user_type=payload.user_type,
@@ -185,6 +206,12 @@ def update_user_direct(
     target_user = db.get(User, user_id)
     if not target_user:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
+    if (
+        current_user.college_id is not None
+        and target_user.college_id is not None
+        and target_user.college_id != current_user.college_id
+    ):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="You do not have permission to manage this user")
 
     if payload.email is not None:
         target_user.email = payload.email
@@ -232,6 +259,12 @@ def delete_user_direct(
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
     if target_user.id == current_user.id:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Cannot delete your own admin account")
+    if (
+        current_user.college_id is not None
+        and target_user.college_id is not None
+        and target_user.college_id != current_user.college_id
+    ):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="You do not have permission to manage this user")
 
     db.delete(target_user)
     db.commit()
@@ -424,7 +457,17 @@ class AdminAnalyticsResponse(BaseModel):
 
 @router.get("/analytics", response_model=AdminAnalyticsResponse)
 def get_admin_analytics(current_user: User = Depends(require_admin), db: Session = Depends(get_db)) -> AdminAnalyticsResponse:
-    applications = db.scalars(select(Application)).all()
+    cid = current_user.college_id
+    app_query = select(Application)
+    drive_query = select(Drive)
+    user_cond = [User.user_type == UserType.STUDENT]
+
+    if cid is not None:
+        app_query = app_query.join(Drive, Application.drive_id == Drive.id).where(Drive.college_id == cid)
+        drive_query = drive_query.where(Drive.college_id == cid)
+        user_cond.append(User.college_id == cid)
+
+    applications = db.scalars(app_query).all()
 
     department_counts: dict[str, dict[str, int]] = {}
     packages: list[float] = []
@@ -452,13 +495,16 @@ def get_admin_analytics(current_user: User = Depends(require_admin), db: Session
     )
 
     total_selected = sum(1 for a in applications if a.status == ApplicationStatus.SELECTED)
-    total_drives = len(db.scalars(select(Drive)).all())
-    active_drives = len(db.scalars(select(Drive).where(Drive.status == DriveStatus.OPEN)).all())
+    total_drives = len(db.scalars(drive_query).all())
+    active_drives = len(db.scalars(drive_query.where(Drive.status == DriveStatus.OPEN)).all())
     
-    total_students = db.scalar(select(func.count()).select_from(Profile).join(User).where(User.user_type == UserType.STUDENT))
-    placed_students = db.scalar(select(func.count()).select_from(Profile).join(User).where(User.user_type == UserType.STUDENT, Profile.is_placed == True))
+    total_students = db.scalar(select(func.count()).select_from(Profile).join(User).where(*user_cond))
+    placed_students = db.scalar(select(func.count()).select_from(Profile).join(User).where(*user_cond, Profile.is_placed == True))
     
-    avg_readiness = db.scalar(select(func.avg(Analytics.readiness_score)))
+    avg_readiness = db.scalar(
+        select(func.avg(Analytics.readiness_score)).join(User, Analytics.user_id == User.id).where(*user_cond)
+        if cid is not None else select(func.avg(Analytics.readiness_score))
+    )
     average_readiness_score = float(avg_readiness) if avg_readiness else 0.0
 
     return AdminAnalyticsResponse(
