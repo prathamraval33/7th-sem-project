@@ -160,6 +160,7 @@ export default function TpoDriveDetailPage() {
 
     const minCtcVal = formData.get("min_ctc");
     const maxCtcVal = formData.get("max_ctc");
+    const minPercentileVal = formData.get("min_percentile");
     const deadlineValue = formData.get("deadline");
     if (deadlineValue) {
       const deadlineDate = new Date(deadlineValue);
