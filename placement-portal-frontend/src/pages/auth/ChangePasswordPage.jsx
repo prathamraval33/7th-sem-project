@@ -29,7 +29,7 @@ export default function ChangePasswordPage() {
     try {
       setIsLoading(true);
       setError("");
-      await authApi.requestChangePasswordOtp();
+      await authApi.changePasswordRequestOtp();
       setStep(2);
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to request OTP.");
@@ -43,8 +43,8 @@ export default function ChangePasswordPage() {
     try {
       setIsLoading(true);
       setError("");
-      const res = await authApi.verifyChangePasswordOtp({ email: user.email, otp });
-      setChangeToken(res.data.change_token);
+      const res = await authApi.changePasswordVerifyOtp(user.email, otp);
+      setChangeToken(res.data.token);
       setStep(3);
     } catch (err) {
       setError(err.response?.data?.detail || "Invalid or expired OTP.");
@@ -56,11 +56,7 @@ export default function ChangePasswordPage() {
   const onSubmitPassword = async (data) => {
     try {
       setError("");
-      await authApi.completeChangePassword({
-        current_password: data.currentPassword,
-        new_password: data.newPassword,
-        change_token: changeToken
-      });
+      await authApi.changePasswordComplete(data.currentPassword, data.newPassword, changeToken);
       setStep(4);
       reset();
     } catch (err) {

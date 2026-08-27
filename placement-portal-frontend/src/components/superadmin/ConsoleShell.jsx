@@ -1,12 +1,12 @@
 // ConsoleShell — Global layout shell for the SuperAdmin console.
 // Fixed 240px sidebar with navigation + live pending badge,
 // top bar with page title, and scrollable content area (§3).
+import { useEffect } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Building2,
   Puzzle,
-  MessageSquareWarning,
   BarChart3,
   Megaphone,
   ScrollText,
@@ -20,8 +20,7 @@ import "../../styles/commandDeck.css";
 const NAV_ITEMS = [
   { to: "/superadmin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/superadmin/colleges", label: "Colleges", icon: Building2 },
-  { to: "/superadmin/features", label: "Feature Catalog", icon: Puzzle },
-  { to: "/superadmin/requests", label: "Feature Requests", icon: MessageSquareWarning, showBadge: true },
+  { to: "/superadmin/features", label: "Feature Management", icon: Puzzle, showBadge: true },
   { to: "/superadmin/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/superadmin/announcements", label: "Announcements", icon: Megaphone },
   { to: "/superadmin/audit-log", label: "Audit Log", icon: ScrollText },
@@ -32,7 +31,12 @@ export default function ConsoleShell() {
   const navigate = useNavigate();
   const featureRequests = useSuperAdminStore((s) => s.featureRequests);
   const toast = useSuperAdminStore((s) => s.toast);
+  const hydrateSuperAdmin = useSuperAdminStore((s) => s.hydrateSuperAdmin);
   const location = useLocation();
+
+  useEffect(() => {
+    hydrateSuperAdmin();
+  }, [hydrateSuperAdmin]);
 
   const pendingCount = featureRequests.filter((r) => r.status === "pending").length;
 

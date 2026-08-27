@@ -32,11 +32,7 @@ export default function ResetPasswordPage() {
   const onSubmit = async (data) => {
     try {
       setSubmitError("");
-      await authApi.resetPassword({
-        email,
-        reset_token: resetToken,
-        new_password: data.password
-      });
+      await authApi.forgotPasswordReset(email, resetToken, data.password);
       setIsSuccess(true);
     } catch (err) {
       setSubmitError(err.response?.data?.detail || "Failed to reset password. Please try again.");

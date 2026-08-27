@@ -47,7 +47,7 @@ export default function SuperAdminDashboard() {
           label="Pending Requests"
           value={pendingRequests}
           warning
-          onClick={() => navigate("/superadmin/requests")}
+          onClick={() => navigate("/superadmin/features", { state: { tab: "requests" } })}
         />
       </div>
 

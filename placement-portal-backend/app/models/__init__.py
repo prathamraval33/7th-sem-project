@@ -3,7 +3,7 @@ autogenerate and so mapper configuration (relationships) resolves cleanly.
 """
 from app.models.user import User, UserType
 from app.models.college import College, CollegeStatus
-from app.models.feature import Feature
+from app.models.feature import Feature, FeatureStatus
 from app.models.college_feature import CollegeFeature, FeatureRequestStatus
 from app.models.announcement import Announcement
 from app.models.audit_log import AuditLog
@@ -34,6 +34,7 @@ __all__ = [
     "College",
     "CollegeStatus",
     "Feature",
+    "FeatureStatus",
     "CollegeFeature",
     "FeatureRequestStatus",
     "Announcement",

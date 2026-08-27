@@ -32,6 +32,7 @@ export default function AddCollegeModal({ onClose }) {
       domain: form.domain.trim(),
       adminName: form.adminName.trim(),
       adminEmail: form.adminEmail.trim(),
+      accessMethod: form.accessMethod,
     });
     onClose();
   };

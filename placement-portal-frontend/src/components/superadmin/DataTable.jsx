@@ -37,8 +37,15 @@ export default function DataTable({
           {data.map((row) => (
             <tr
               key={row[rowKeyField]}
-              className={clickable ? "cd-table__row--clickable" : ""}
-              onClick={clickable ? () => onRowClick(row) : undefined}
+              className={`${clickable ? "cd-table__row--clickable" : ""} ${row._highlighted ? "cd-table__row--highlighted" : ""}`.trim()}
+              onClick={
+                clickable
+                  ? (e) => {
+                      if (e.target.closest("button, a, input, select, textarea")) return;
+                      onRowClick(row);
+                    }
+                  : undefined
+              }
               tabIndex={clickable ? 0 : undefined}
               onKeyDown={
                 clickable
