@@ -27,7 +27,7 @@ export default function ContactUsPage() {
   const onSubmit = async (data) => {
     try {
       setSubmitError("");
-      await contactApi.submitContactForm(data);
+      await contactApi.submit(data);
       setIsSuccess(true);
       reset();
     } catch (err) {

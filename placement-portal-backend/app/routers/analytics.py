@@ -45,6 +45,57 @@ class DriveAnalyticsResponse(BaseModel):
     package_stats: PackageStats
 
 
+class OverviewAnalyticsResponse(BaseModel):
+    total_drives: int
+    total_applicants: int
+    total_selected: int
+    department_stats: list[DepartmentStat]
+    package_stats: PackageStats
+
+
+@router.get("/tpo/overview", response_model=OverviewAnalyticsResponse)
+def get_overview_analytics(
+    current_user: User = Depends(require_tpo), db: Session = Depends(get_db)
+) -> OverviewAnalyticsResponse:
+    """Aggregate placement stats across ALL drives — used by the TPO Analytics page."""
+    all_applications = db.scalars(select(Application)).all()
+
+    department_counts: dict[str, dict[str, int]] = {}
+    packages: list[float] = []
+    drive_ids: set[int] = set()
+
+    for application in all_applications:
+        drive_ids.add(application.drive_id)
+        profile = db.scalar(select(Profile).where(Profile.user_id == application.user_id))
+        branch = profile.branch if profile else "Unknown"
+        bucket = department_counts.setdefault(branch, {"applied": 0, "selected": 0})
+        bucket["applied"] += 1
+        if application.status == ApplicationStatus.SELECTED:
+            bucket["selected"] += 1
+            if application.package_offered is not None:
+                packages.append(application.package_offered)
+
+    department_stats = [
+        DepartmentStat(department=branch, applied=counts["applied"], selected=counts["selected"])
+        for branch, counts in sorted(department_counts.items())
+    ]
+
+    packages_sorted = sorted(packages)
+    package_stats = PackageStats(
+        top=max(packages) if packages else None,
+        median=(packages_sorted[len(packages_sorted) // 2] if packages_sorted else None),
+        average=(round(sum(packages) / len(packages), 2) if packages else None),
+    )
+
+    return OverviewAnalyticsResponse(
+        total_drives=len(drive_ids),
+        total_applicants=len(all_applications),
+        total_selected=sum(1 for a in all_applications if a.status == ApplicationStatus.SELECTED),
+        department_stats=department_stats,
+        package_stats=package_stats,
+    )
+
+
 @router.get("/tpo/{drive_id}", response_model=DriveAnalyticsResponse)
 def get_drive_analytics(drive_id: int, current_user: User = Depends(require_tpo), db: Session = Depends(get_db)) -> DriveAnalyticsResponse:
     drive = db.get(Drive, drive_id)

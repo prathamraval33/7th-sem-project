@@ -50,6 +50,8 @@ import TpoDriveDetailPage from "./pages/tpo/TpoDriveDetailPage";
 import AllStudentsPage from "./pages/tpo/AllStudentsPage";
 import PastTestsPage from "./pages/tpo/PastTestsPage";
 import TpoReportsPage from "./pages/tpo/TpoReportsPage";
+import ContactMessagesPage from "./pages/tpo/ContactMessagesPage";
+import AnalyticsPage from "./pages/tpo/AnalyticsPage";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -142,6 +144,8 @@ export default function App() {
                 <Route path="/tpo/tests/create" element={<TpoCreateTestPage />} />
                 <Route path="/tpo/tests/attempts/:attemptId/violations" element={<TpoTestAuditPage />} />
                 <Route path="/tpo/instant-tests/history" element={<PastTestsPage />} />
+                <Route path="/tpo/contact-messages" element={<ContactMessagesPage />} />
+                <Route path="/tpo/analytics" element={<AnalyticsPage />} />
                 <Route path="/tpo/profile" element={<ProfilePage />} />
                 <Route path="/tpo/change-password" element={<ChangePasswordPage />} />
                 <Route path="/tpo/*" element={<FoundationNotice label="TPO Feature" />} />

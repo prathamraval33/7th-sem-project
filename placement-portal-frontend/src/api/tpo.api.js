@@ -32,7 +32,8 @@ export const tpoApi = {
   closeInstantTest: (testId) => axiosClient.post(`/tpo/instant-tests/${testId}/close`),
   getInstantTestHistory: () => axiosClient.get("/tpo/instant-tests/history"),
 
-  getAnalytics: (driveId) => axiosClient.get(`/tpo/analytics/${driveId}`),
+  getAnalytics: (driveId) => axiosClient.get(`/analytics/tpo/${driveId}`),
+  getOverviewAnalytics: () => axiosClient.get("/analytics/tpo/overview"),
 
   getReportSummary: () => axiosClient.get("/tpo/reports/summary"),
   downloadReportCSV: (reportType) =>
