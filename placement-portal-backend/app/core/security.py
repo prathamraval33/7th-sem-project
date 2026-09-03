@@ -1,6 +1,7 @@
 """JWT creation/verification and password hashing utilities."""
 from datetime import datetime, timedelta, timezone
 from typing import Any
+from uuid import uuid4
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -30,6 +31,7 @@ def _create_token(
         "user_type": user_type,
         "type": token_type,
         "college_id": college_id,
+        "jti": uuid4().hex,
         "iat": now,
         "exp": now + expires_delta,
     }

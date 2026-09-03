@@ -4,9 +4,12 @@
 const VARIANT_MAP = {
   active: "cd-pill--active",
   approved: "cd-pill--approved",
+  enabled: "cd-pill--approved",
   pending: "cd-pill--pending",
   suspended: "cd-pill--suspended",
   rejected: "cd-pill--rejected",
+  revoked: "cd-pill--rejected",
+  not_requested: "cd-pill--neutral",
   neutral: "cd-pill--neutral",
   info: "cd-pill--info",
   role: "cd-pill--role",
@@ -15,9 +18,12 @@ const VARIANT_MAP = {
 const LABELS = {
   active: "Active",
   approved: "Approved",
+  enabled: "Enabled",
   pending: "Pending",
   suspended: "Suspended",
   rejected: "Rejected",
+  revoked: "Revoked",
+  not_requested: "Not Requested",
   info: "Info",
 };
 

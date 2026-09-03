@@ -23,15 +23,15 @@ export default function ForgotPasswordOtpPage() {
   });
 
   if (!email) {
-    return <Navigate to="/forgot-password" replace />;
+    return <Navigate to="/forgot-password/email" replace />;
   }
 
   const onSubmit = async (data) => {
     try {
       setSubmitError("");
       const res = await authApi.forgotPasswordVerifyOtp(email, data.otp);
-      navigate("/forgot-password/reset", { 
-        state: { resetToken: res.data.reset_token } 
+      navigate("/forgot-password/reset", {
+        state: { email, resetToken: res.data.token }
       });
     } catch (err) {
       console.error("OTP Verification Failed:", err);

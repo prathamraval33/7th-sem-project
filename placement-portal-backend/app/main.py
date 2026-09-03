@@ -31,6 +31,7 @@ from app.routers import (
     resume_analyzer,
     resume_enhancer,
     student_profile,
+    superadmin,
     tpo,
     tpo_reports,
 )
@@ -109,4 +110,5 @@ app.include_router(contact.router)
 app.include_router(tpo.router)
 app.include_router(tpo_reports.router)
 app.include_router(admin.router)
+app.include_router(superadmin.router)
 app.include_router(analytics.router)

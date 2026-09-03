@@ -12,6 +12,10 @@ class FeatureRequestStatus(str, enum.Enum):
     PENDING = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
+    # Set when a SuperAdmin turns off a feature that was previously APPROVED
+    # (via request-approval or a direct grant) — distinct from REJECTED, which
+    # only ever applies to a request that was never enabled.
+    REVOKED = "revoked"
 
 
 class CollegeFeature(Base):
