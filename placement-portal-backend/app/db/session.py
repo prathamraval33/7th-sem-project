@@ -1,7 +1,9 @@
 """Database engine, session factory, and the `get_db` FastAPI dependency."""
 from collections.abc import Generator
 
+# pyrefly: ignore [missing-import]
 from sqlalchemy import create_engine
+# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import settings
