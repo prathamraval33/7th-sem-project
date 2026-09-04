@@ -24,6 +24,8 @@ const normalizeFeature = (row) => ({
   description: row.description,
   category: row.category,
   targetRole: row.target_role ?? row.targetRole ?? "Student",
+  price: row.price != null ? Number(row.price) : null,
+  billingType: row.billing_type ?? row.billingType ?? "one_time",
   status: row.status ?? "active",
   createdAt: row.created_at ?? row.createdAt,
 });
@@ -97,7 +99,7 @@ export const useSuperAdminStore = create((set, get) => ({
         collegeFeatures[college.id] = [];
       }
       for (const request of featureRequests) {
-        if (request.status === "approved") {
+        if (request.status === "approved" || request.status === "active") {
           const collegeId = request.collegeId;
           const featureId = request.featureId;
           collegeFeatures[collegeId] = [...new Set([...(collegeFeatures[collegeId] || []), featureId])];
@@ -192,16 +194,17 @@ export const useSuperAdminStore = create((set, get) => ({
   approveFeatureRequest: async (requestId) => {
     try {
       const response = await superadminApi.approveFeatureRequest(requestId);
+      const newStatus = response.data?.status || "active";
       const request = get().featureRequests.find((item) => item.id === requestId);
       set((state) => ({
         featureRequests: state.featureRequests.map((item) =>
-          item.id === requestId ? { ...item, status: "approved", decidedAt: new Date().toISOString() } : item
+          item.id === requestId ? { ...item, status: newStatus, decidedAt: new Date().toISOString() } : item
         ),
-        collegeFeatures: {
+        collegeFeatures: (newStatus === "active" && request) ? {
           ...state.collegeFeatures,
           [request.collegeId]: [...new Set([...(state.collegeFeatures[request.collegeId] || []), request.featureId])],
-        },
-        toast: response.data?.message || `${request.featureName} approved for ${request.collegeName}.`,
+        } : state.collegeFeatures,
+        toast: response.data?.message || `${request?.featureName || "Feature"} approved.`,
       }));
       setTimeout(() => set({ toast: null }), 4000);
     } catch (error) {
@@ -227,7 +230,7 @@ export const useSuperAdminStore = create((set, get) => ({
     }
   },
 
-  addFeature: async ({ name, description, category, targetRole, status }) => {
+  addFeature: async ({ name, description, category, targetRole, price, billingType, status }) => {
     try {
       const response = await superadminApi.createFeature({
         code: name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "feature",
@@ -235,6 +238,8 @@ export const useSuperAdminStore = create((set, get) => ({
         description,
         category: category || "General",
         target_role: targetRole || "Student",
+        price: price ? Number(price) : null,
+        billing_type: billingType || "one_time",
         status: status || "active",
       });
       const created = normalizeFeature(response.data);
@@ -249,13 +254,15 @@ export const useSuperAdminStore = create((set, get) => ({
     }
   },
 
-  updateFeature: async (featureId, { name, description, category, targetRole, status }) => {
+  updateFeature: async (featureId, { name, description, category, targetRole, price, billingType, status }) => {
     try {
       const response = await superadminApi.updateFeature(featureId, {
         name,
         description,
         category: category || "General",
         target_role: targetRole || "Student",
+        price: price ? Number(price) : null,
+        billing_type: billingType || "one_time",
         status: status || "active",
       });
       const updated = normalizeFeature(response.data);

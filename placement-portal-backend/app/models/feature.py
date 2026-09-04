@@ -2,7 +2,7 @@
 import enum
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum as SAEnum, Integer, String, Text, func
+from sqlalchemy import DateTime, Enum as SAEnum, Integer, Numeric, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -11,6 +11,12 @@ from app.db.base import Base
 class FeatureStatus(str, enum.Enum):
     ACTIVE = "active"
     DEPRECATED = "deprecated"
+
+
+class BillingType(str, enum.Enum):
+    ONE_TIME = "one_time"
+    MONTHLY = "monthly"
+    ANNUAL = "annual"
 
 
 class Feature(Base):
@@ -22,8 +28,15 @@ class Feature(Base):
     description: Mapped[str] = mapped_column(Text, nullable=False)
     category: Mapped[str] = mapped_column(String(100), default="General", nullable=False)
     target_role: Mapped[str] = mapped_column(String(100), default="Student", nullable=False)
+    # Price in INR — null or 0 means free (payment step is skipped entirely).
+    price: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True, default=None)
+    billing_type: Mapped[BillingType] = mapped_column(
+        SAEnum(BillingType, name="billing_type_enum", values_callable=lambda obj: [e.value for e in obj]),
+        default=BillingType.ONE_TIME,
+        nullable=False,
+    )
     # CROSS-CUTTING REQUIREMENT: the College Admin "browse available features" endpoint
-    # (not yet implemented) must filter status == DEPRECATED out of what's requestable,
+    # must filter status == DEPRECATED out of what's requestable,
     # while endpoints reporting a college's already-enabled features must keep showing them.
     status: Mapped[FeatureStatus] = mapped_column(
         SAEnum(FeatureStatus, name="feature_status_enum", values_callable=lambda obj: [e.value for e in obj]),
@@ -35,3 +48,4 @@ class Feature(Base):
     college_associations: Mapped[list["CollegeFeature"]] = relationship(
         back_populates="feature", cascade="all, delete-orphan"
     )
+

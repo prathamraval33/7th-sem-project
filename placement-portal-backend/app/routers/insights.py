@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import require_student
+from app.core.feature_gating import require_feature
 from app.db.session import get_db
 from app.models.profile import Profile
 from app.models.user import User
@@ -13,7 +14,11 @@ from app.schemas.dashboard_insight import InsightsDashboardResponse
 from app.services import web_insights_service
 from app.utils.exceptions import RateLimitError, SearchProviderError
 
-router = APIRouter(prefix="/insights", tags=["insights"])
+router = APIRouter(
+    prefix="/insights",
+    tags=["insights"],
+    dependencies=[Depends(require_feature("career_insights"))],
+)
 
 
 def _get_own_profile(db: Session, user: User) -> Profile:

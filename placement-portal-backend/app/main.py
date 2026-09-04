@@ -26,6 +26,7 @@ from app.routers import (
     instant_test,
     mock_interview,
     notifications,
+    payments,
     resources,
     resume,
     resume_analyzer,
@@ -112,3 +113,5 @@ app.include_router(tpo_reports.router)
 app.include_router(admin.router)
 app.include_router(superadmin.router)
 app.include_router(analytics.router)
+app.include_router(payments.router)
+app.include_router(payments.api_router)

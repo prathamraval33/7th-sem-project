@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.models.college import CollegeStatus
 from app.models.college_feature import FeatureRequestStatus
-from app.models.feature import FeatureStatus
+from app.models.feature import BillingType, FeatureStatus
 
 
 class CollegeCreate(BaseModel):
@@ -62,6 +62,8 @@ class FeatureCreate(BaseModel):
     description: str = Field(min_length=5)
     category: str = Field(default="General", max_length=100)
     target_role: str = Field(default="Student", max_length=100)
+    price: Optional[float] = None
+    billing_type: Optional[BillingType] = BillingType.ONE_TIME
     status: FeatureStatus = FeatureStatus.ACTIVE
 
 
@@ -71,6 +73,8 @@ class FeatureUpdate(BaseModel):
     description: Optional[str] = Field(default=None, min_length=5)
     category: Optional[str] = Field(default=None, max_length=100)
     target_role: Optional[str] = Field(default=None, max_length=100)
+    price: Optional[float] = None
+    billing_type: Optional[BillingType] = None
     status: Optional[FeatureStatus] = None
 
 
@@ -83,6 +87,8 @@ class FeatureResponse(BaseModel):
     description: str
     category: str
     target_role: str
+    price: Optional[float] = None
+    billing_type: BillingType = BillingType.ONE_TIME
     status: FeatureStatus
     created_at: datetime
 
@@ -91,7 +97,7 @@ class FeatureCollegeStatus(BaseModel):
     college_id: int
     college_name: str
     request_id: Optional[int] = None
-    status: Literal["not_requested", "pending", "enabled", "revoked", "rejected"]
+    status: Literal["not_requested", "pending_review", "rejected", "approved_awaiting_payment", "active", "payment_failed", "expired", "revoked"]
     date: Optional[datetime] = None
 
 
@@ -154,7 +160,15 @@ class SuperadminAnalyticsPoint(BaseModel):
     count: int
 
 
+class RevenueBreakdownItem(BaseModel):
+    name: str
+    revenue: float
+
+
 class SuperadminAnalyticsResponse(BaseModel):
     colleges_over_time: list[SuperadminAnalyticsPoint]
     feature_usage: list[dict]
     totals: DashboardSummary
+    total_revenue: float = 0
+    revenue_by_feature: list[RevenueBreakdownItem] = []
+    revenue_by_college: list[RevenueBreakdownItem] = []

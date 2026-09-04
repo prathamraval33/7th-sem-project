@@ -57,6 +57,7 @@ import AnalyticsPage from "./pages/tpo/AnalyticsPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminStudentsPage from "./pages/admin/AdminStudentsPage";
 import AdminDrivesPage from "./pages/admin/AdminDrivesPage";
+import AdminFeaturesPage from "./pages/admin/AdminFeaturesPage";
 
 // SuperAdmin Pages (Phase 1 — design preview, no real backend)
 import ConsoleShell from "./components/superadmin/ConsoleShell";
@@ -157,6 +158,7 @@ export default function App() {
                 <Route path="/admin/dashboard" element={<AdminDashboard />} />
                 <Route path="/admin/students" element={<AdminStudentsPage />} />
                 <Route path="/admin/drives" element={<AdminDrivesPage />} />
+                <Route path="/admin/features" element={<AdminFeaturesPage />} />
                 <Route path="/admin/profile" element={<ProfilePage />} />
                 <Route path="/admin/change-password" element={<ChangePasswordPage />} />
                 <Route path="/admin/*" element={<FoundationNotice label="Admin Dashboard" />} />

@@ -23,4 +23,10 @@ export const adminApi = {
 
   getActivityFeed: () => axiosClient.get("/admin/activity"),
   getAnalytics: () => axiosClient.get("/admin/analytics"),
+
+  // Available Features & Razorpay Payment Flow
+  getFeatures: () => axiosClient.get("/admin/features"),
+  requestFeature: (featureId) => axiosClient.post(`/admin/features/${featureId}/request`),
+  createPaymentOrder: (payload) => axiosClient.post("/payments/create-order", payload),
+  verifyPayment: (payload) => axiosClient.post("/payments/verify", payload),
 };

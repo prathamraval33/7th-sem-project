@@ -26,6 +26,8 @@ function FeatureFormModal({ feature, onClose }) {
   const [description, setDescription] = useState(feature?.description || "");
   const [category, setCategory] = useState(feature?.category || "");
   const [featureStatus, setFeatureStatus] = useState(feature?.status || "active");
+  const [price, setPrice] = useState(feature?.price != null ? String(feature.price) : "");
+  const [billingType, setBillingType] = useState(feature?.billingType || "one_time");
   const initialRoles = feature?.targetRole
     ? feature.targetRole === "All Roles"
       ? ["Student", "TPO", "Admin"]
@@ -57,6 +59,8 @@ function FeatureFormModal({ feature, onClose }) {
       description: description.trim(),
       category: category.trim() || "General",
       targetRole: getTargetRoleString(),
+      price: price ? Number(price) : null,
+      billingType,
       status: featureStatus,
     };
     if (isEdit) {
@@ -82,6 +86,35 @@ function FeatureFormModal({ feature, onClose }) {
         <div className="cd-input-group">
           <label className="cd-label" htmlFor="featCat">Category</label>
           <input id="featCat" className="cd-input" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g. AI, Learning, Assessment" />
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+          <div className="cd-input-group">
+            <label className="cd-label" htmlFor="featPrice">Price (₹ INR)</label>
+            <input
+              id="featPrice"
+              type="number"
+              min="0"
+              step="0.01"
+              className="cd-input"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder="0.00 (Free if empty)"
+            />
+            <div className="cd-helper-text" style={{ fontSize: 11 }}>Leave blank or 0 for free</div>
+          </div>
+          <div className="cd-input-group">
+            <label className="cd-label" htmlFor="featBilling">Billing Interval</label>
+            <select
+              id="featBilling"
+              className="cd-input"
+              value={billingType}
+              onChange={(e) => setBillingType(e.target.value)}
+            >
+              <option value="one_time">One-time purchase</option>
+              <option value="monthly">Monthly subscription</option>
+              <option value="annual">Annual subscription</option>
+            </select>
+          </div>
         </div>
         <div className="cd-input-group">
           <label className="cd-label">Belongs To / Applicable Roles</label>
@@ -212,6 +245,10 @@ function CatalogGrid({ onSelectFeature, onEditFeature, onAddFeature }) {
             <div style={{ display: "flex", gap: "6px", alignItems: "center", marginTop: 8, flexWrap: "wrap" }}>
               {f.category && <StatusPill status="neutral" label={f.category} />}
               <StatusPill status="info" label={f.targetRole ? `For: ${f.targetRole}` : "For: Student"} />
+              <StatusPill
+                status="role"
+                label={f.price ? `₹${f.price} (${f.billingType?.replace("_", " ")})` : "Free"}
+              />
               {f.status === "deprecated" && <StatusPill status="rejected" label="Deprecated" />}
             </div>
             <div className="cd-feature-card__desc">{f.description}</div>
@@ -282,14 +319,14 @@ function FeatureDetailView({ featureId, onBack, onEditFeature, onGoToRequests })
       header: "",
       className: "cd-table__cell--actions",
       render: (row) => {
-        if (row.status === "pending") {
+        if (row.status === "pending" || row.status === "pending_review") {
           return (
             <button className="cd-text-link" onClick={() => onGoToRequests(row.requestId)}>
               Review in Requests tab
             </button>
           );
         }
-        if (row.status === "enabled") {
+        if (row.status === "enabled" || row.status === "active") {
           if (confirmRevokeId === row.collegeId) {
             return (
               <div className="cd-confirm-inline" style={{ justifyContent: "flex-end" }}>
@@ -310,6 +347,20 @@ function FeatureDetailView({ featureId, onBack, onEditFeature, onGoToRequests })
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
               <button className="cd-btn cd-btn--compact cd-btn--danger" onClick={() => setConfirmRevokeId(row.collegeId)}>
                 Revoke
+              </button>
+            </div>
+          );
+        }
+        if (row.status === "approved_awaiting_payment") {
+          return (
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", justifyContent: "flex-end" }}>
+              <span style={{ fontSize: "12px", color: "var(--cd-text-secondary)" }}>Awaiting Payment</span>
+              <button
+                className="cd-btn cd-btn--compact cd-btn--secondary"
+                onClick={() => grantFeatureToCollege(featureId, row.collegeId)}
+                title="Override and activate directly"
+              >
+                Direct Grant
               </button>
             </div>
           );
@@ -387,8 +438,8 @@ function RequestsTab({ highlightRequestId }) {
   const rejectFeatureRequest = useSuperAdminStore((s) => s.rejectFeatureRequest);
   const [confirmRejectId, setConfirmRejectId] = useState(null);
 
-  const pending = featureRequests.filter((r) => r.status === "pending");
-  const history = featureRequests.filter((r) => r.status !== "pending");
+  const pending = featureRequests.filter((r) => r.status === "pending" || r.status === "pending_review");
+  const history = featureRequests.filter((r) => r.status !== "pending" && r.status !== "pending_review");
 
   const pendingColumns = [
     { key: "collegeName", header: "College", className: "cd-table__cell--bold" },

@@ -39,6 +39,11 @@ class Settings(BaseSettings):
     SEARCH_PROVIDER: str = "tavily"
     SEARCH_API_KEY: str
 
+    # Razorpay — test/sandbox mode only (never use live keys)
+    RAZORPAY_KEY_ID: str = ""
+    RAZORPAY_KEY_SECRET: str = ""
+    RAZORPAY_WEBHOOK_SECRET: str = ""
+
     # Logging
     LOG_LEVEL: str = "INFO"
 

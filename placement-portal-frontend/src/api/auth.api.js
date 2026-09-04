@@ -33,4 +33,7 @@ export const authApi = {
       reset_token: resetToken,
       new_password: newPassword,
     }),
+
+  getActiveFeatures: () => axiosClient.get("/auth/active-features"),
 };
+

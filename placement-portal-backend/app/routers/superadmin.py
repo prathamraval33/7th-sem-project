@@ -1,7 +1,8 @@
 """SuperAdmin routes for multi-tenant platform management."""
 from __future__ import annotations
 
-from datetime import datetime
+import logging
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import func, select
@@ -17,8 +18,9 @@ from app.models.audit_log import AuditLog
 from app.models.college import College, CollegeStatus
 from app.models.college_feature import CollegeFeature, FeatureRequestStatus
 from app.models.drive import Drive
-from app.models.feature import Feature, FeatureStatus
+from app.models.feature import Feature, FeatureStatus, BillingType
 from app.models.profile import Profile
+from app.models.transaction import Transaction, TransactionStatus
 from app.models.user import User, UserType
 from app.schemas.superadmin import (
     AnnouncementCreate,
@@ -40,6 +42,10 @@ from app.schemas.superadmin import (
 from app.services import email_service, otp_service
 from app.models.otp_verification import OtpPurpose
 
+logger = logging.getLogger(__name__)
+
+BVM_DOMAIN = "bvmengineering.ac.in"
+
 router = APIRouter(prefix="/superadmin", tags=["superadmin"])
 
 
@@ -52,7 +58,7 @@ def dashboard_summary(current_user: User = Depends(require_superadmin), db: Sess
     total_tpos = db.scalar(select(func.count()).select_from(User).where(User.user_type == UserType.TPO)) or 0
     total_drives = db.scalar(select(func.count()).select_from(Drive)) or 0
     pending_feature_requests = db.scalar(
-        select(func.count()).select_from(CollegeFeature).where(CollegeFeature.status == FeatureRequestStatus.PENDING)
+        select(func.count()).select_from(CollegeFeature).where(CollegeFeature.status == FeatureRequestStatus.PENDING_REVIEW)
     ) or 0
 
     return DashboardSummary(
@@ -202,12 +208,12 @@ def get_college(college_id: int, current_user: User = Depends(require_superadmin
     enabled_features = db.scalars(
         select(Feature.name)
         .join(CollegeFeature, CollegeFeature.feature_id == Feature.id)
-        .where(CollegeFeature.college_id == college.id, CollegeFeature.status == FeatureRequestStatus.APPROVED)
+        .where(CollegeFeature.college_id == college.id, CollegeFeature.status == FeatureRequestStatus.ACTIVE)
     ).all()
     pending_features = db.scalars(
         select(Feature.name)
         .join(CollegeFeature, CollegeFeature.feature_id == Feature.id)
-        .where(CollegeFeature.college_id == college.id, CollegeFeature.status == FeatureRequestStatus.PENDING)
+        .where(CollegeFeature.college_id == college.id, CollegeFeature.status == FeatureRequestStatus.PENDING_REVIEW)
     ).all()
 
     return CollegeDetail(
@@ -291,9 +297,35 @@ def create_feature(payload: FeatureCreate, current_user: User = Depends(require_
         description=payload.description.strip(),
         category=payload.category.strip(),
         target_role=payload.target_role.strip(),
+        price=payload.price,
+        billing_type=payload.billing_type or BillingType.ONE_TIME,
         status=payload.status,
     )
     db.add(feature)
+    db.flush()  # get feature.id before auto-granting to BVM
+
+    # Auto-grant to BVM (the default fully-featured testing tenant)
+    bvm = db.scalar(select(College).where(College.domain == BVM_DOMAIN))
+    if bvm is not None:
+        existing = db.scalar(
+            select(CollegeFeature).where(
+                CollegeFeature.college_id == bvm.id,
+                CollegeFeature.feature_id == feature.id,
+            )
+        )
+        if existing is None:
+            cf = CollegeFeature(
+                college_id=bvm.id,
+                feature_id=feature.id,
+                status=FeatureRequestStatus.ACTIVE,
+                is_auto_granted=True,
+                decided_by=current_user.id,
+                decided_at=datetime.now(timezone.utc),
+                approved_at=datetime.now(timezone.utc),
+            )
+            db.add(cf)
+            logger.info("Auto-granted feature '%s' to BVM (college_id=%s)", feature.name, bvm.id)
+
     db.commit()
     db.refresh(feature)
     return FeatureResponse.model_validate(feature)
@@ -330,9 +362,12 @@ def delete_feature(feature_id: int, current_user: User = Depends(require_superad
 
 
 _COLLEGE_FEATURE_STATUS_LABELS = {
-    FeatureRequestStatus.PENDING: "pending",
-    FeatureRequestStatus.APPROVED: "enabled",
+    FeatureRequestStatus.PENDING_REVIEW: "pending_review",
     FeatureRequestStatus.REJECTED: "rejected",
+    FeatureRequestStatus.APPROVED_AWAITING_PAYMENT: "approved_awaiting_payment",
+    FeatureRequestStatus.ACTIVE: "active",
+    FeatureRequestStatus.PAYMENT_FAILED: "payment_failed",
+    FeatureRequestStatus.EXPIRED: "expired",
     FeatureRequestStatus.REVOKED: "revoked",
 }
 
@@ -394,20 +429,21 @@ def grant_feature_to_college(
     row = db.scalar(
         select(CollegeFeature).where(CollegeFeature.college_id == college_id, CollegeFeature.feature_id == feature_id)
     )
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     if row is None:
-        row = CollegeFeature(college_id=college_id, feature_id=feature_id, status=FeatureRequestStatus.APPROVED)
+        row = CollegeFeature(college_id=college_id, feature_id=feature_id, status=FeatureRequestStatus.ACTIVE)
         db.add(row)
     else:
-        row.status = FeatureRequestStatus.APPROVED
+        row.status = FeatureRequestStatus.ACTIVE
     row.decided_at = now
+    row.approved_at = now
     row.decided_by = current_user.id
     db.commit()
 
     log = AuditLog(action="feature_granted", details=f"{college.name} -> {feature.name}", performed_by=current_user.id)
     db.add(log)
     db.commit()
-    return {"message": "Feature granted", "status": "enabled"}
+    return {"message": "Feature granted", "status": "active"}
 
 
 @router.post("/features/{feature_id}/colleges/{college_id}/revoke", response_model=StatusUpdateResponse)
@@ -425,11 +461,11 @@ def revoke_feature_from_college(
     row = db.scalar(
         select(CollegeFeature).where(CollegeFeature.college_id == college_id, CollegeFeature.feature_id == feature_id)
     )
-    if row is None or row.status != FeatureRequestStatus.APPROVED:
+    if row is None or row.status != FeatureRequestStatus.ACTIVE:
         raise HTTPException(status.HTTP_409_CONFLICT, detail="This college does not currently have this feature enabled")
 
     row.status = FeatureRequestStatus.REVOKED
-    row.decided_at = datetime.utcnow()
+    row.decided_at = datetime.now(timezone.utc)
     row.decided_by = current_user.id
     db.commit()
 
@@ -476,15 +512,32 @@ def approve_feature_request(
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Feature request not found")
     if request_row.college.status == CollegeStatus.SUSPENDED:
         raise HTTPException(status.HTTP_409_CONFLICT, detail="Cannot approve a feature request for a suspended college. Reactivate it first.")
-    request_row.status = FeatureRequestStatus.APPROVED
-    request_row.decided_at = datetime.utcnow()
+
+    now = datetime.now(timezone.utc)
+    feature = db.get(Feature, request_row.feature_id)
+    price = float(feature.price) if feature and feature.price else 0
+
+    if price <= 0:
+        # Free feature — skip payment, go straight to ACTIVE
+        request_row.status = FeatureRequestStatus.ACTIVE
+        request_row.approved_at = now
+        result_status = "active"
+        msg = "Feature request approved (free — activated immediately)"
+    else:
+        # Paid feature — wait for payment
+        request_row.status = FeatureRequestStatus.APPROVED_AWAITING_PAYMENT
+        request_row.approved_at = now
+        result_status = "approved_awaiting_payment"
+        msg = "Feature request approved — awaiting payment"
+
+    request_row.decided_at = now
     request_row.decided_by = current_user.id
     db.commit()
 
     log = AuditLog(action="feature_approved", details=f"{request_row.college.name} -> {request_row.feature.name}", performed_by=current_user.id)
     db.add(log)
     db.commit()
-    return {"message": "Feature request approved", "status": "approved"}
+    return {"message": msg, "status": result_status}
 
 
 @router.post("/feature-requests/{request_id}/reject", response_model=StatusUpdateResponse)
@@ -497,7 +550,7 @@ def reject_feature_request(
     if request_row is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Feature request not found")
     request_row.status = FeatureRequestStatus.REJECTED
-    request_row.decided_at = datetime.utcnow()
+    request_row.decided_at = datetime.now(timezone.utc)
     request_row.decided_by = current_user.id
     db.commit()
 
@@ -569,10 +622,39 @@ def list_analytics(
     current_user: User = Depends(require_superadmin),
     db: Session = Depends(get_db),
 ) -> SuperadminAnalyticsResponse:
+    # Revenue analytics — exclude BVM auto-grants (is_test_data=True)
+    total_revenue = db.scalar(
+        select(func.coalesce(func.sum(Transaction.amount), 0))
+        .where(Transaction.status == TransactionStatus.PAID, Transaction.is_test_data == False)
+    ) or 0
+
+    # Revenue by feature
+    revenue_by_feature_rows = db.execute(
+        select(Feature.name, func.coalesce(func.sum(Transaction.amount), 0).label("revenue"))
+        .join(Feature, Feature.id == Transaction.feature_id)
+        .where(Transaction.status == TransactionStatus.PAID, Transaction.is_test_data == False)
+        .group_by(Feature.name)
+        .order_by(func.sum(Transaction.amount).desc())
+    ).all()
+    revenue_by_feature = [{"name": row[0], "revenue": float(row[1])} for row in revenue_by_feature_rows]
+
+    # Revenue by college
+    revenue_by_college_rows = db.execute(
+        select(College.name, func.coalesce(func.sum(Transaction.amount), 0).label("revenue"))
+        .join(College, College.id == Transaction.college_id)
+        .where(Transaction.status == TransactionStatus.PAID, Transaction.is_test_data == False)
+        .group_by(College.name)
+        .order_by(func.sum(Transaction.amount).desc())
+    ).all()
+    revenue_by_college = [{"name": row[0], "revenue": float(row[1])} for row in revenue_by_college_rows]
+
     return {
         "colleges_over_time": [
             {"month": "Aug 2026", "count": db.scalar(select(func.count()).select_from(College)) or 0},
         ],
         "feature_usage": [],
         "totals": dashboard_summary(current_user, db).model_dump(),
+        "total_revenue": float(total_revenue),
+        "revenue_by_feature": revenue_by_feature,
+        "revenue_by_college": revenue_by_college,
     }

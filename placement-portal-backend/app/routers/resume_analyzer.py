@@ -8,13 +8,18 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
 from app.core.dependencies import require_student
+from app.core.feature_gating import require_feature
 from app.db.session import get_db
 from app.models.resume import Resume
 from app.models.user import User
 from app.services import groq_client, scoring
 from sqlalchemy.orm import Session
 
-router = APIRouter(prefix="/resume-analyzer", tags=["resume-analyzer"])
+router = APIRouter(
+    prefix="/resume-analyzer",
+    tags=["resume-analyzer"],
+    dependencies=[Depends(require_feature("resume_analyzer"))],
+)
 
 _ANALYZER_SYSTEM_PROMPT = """You are a resume reviewer for college placements. Given the parsed
 text of a student's resume, respond ONLY with a JSON object of the exact shape:

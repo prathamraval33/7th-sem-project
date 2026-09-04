@@ -28,7 +28,7 @@ export default function SuperAdminDashboard() {
   const totalStudents = colleges.reduce((sum, c) => sum + (c.students || 0), 0);
   const totalTPOs = colleges.reduce((sum, c) => sum + (c.tpos || 0), 0);
   const totalDrives = colleges.reduce((sum, c) => sum + (c.drives || 0), 0);
-  const pendingRequests = featureRequests.filter((r) => r.status === "pending").length;
+  const pendingRequests = featureRequests.filter((r) => r.status === "pending" || r.status === "pending_review").length;
 
   return (
     <>

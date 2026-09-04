@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.dependencies import get_current_user
+from app.core.feature_gating import get_active_features_for_college
 from app.core.security import (
     create_access_token,
     create_purpose_token,
@@ -352,3 +353,18 @@ def forgot_password_reset(payload: ForgotPasswordResetRequest, db: Session = Dep
     db.commit()
 
     return OtpActionResponse(message="Password reset successfully")
+
+
+@router.get("/active-features", response_model=list[str])
+def get_user_active_features(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[str]:
+    """Return active feature codes for the current user's college.
+    
+    Used by frontend sidebar and routing to dynamically show/hide gated features.
+    SuperAdmins have no college and return an empty list (SuperAdmin uses Command Deck).
+    """
+    if current_user.user_type == UserType.SUPERADMIN or current_user.college_id is None:
+        return []
+    return get_active_features_for_college(db, current_user.college_id)

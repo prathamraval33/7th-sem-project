@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import require_student
+from app.core.feature_gating import require_feature
 from app.db.session import get_db
 from app.models.resume import Resume, ResumeSource
 from app.models.user import User
@@ -19,7 +20,11 @@ from app.schemas.resume import ResumeResponse
 from app.services import groq_client
 from app.utils.file_storage import save_upload
 
-router = APIRouter(prefix="/resume-enhancer", tags=["resume-enhancer"])
+router = APIRouter(
+    prefix="/resume-enhancer",
+    tags=["resume-enhancer"],
+    dependencies=[Depends(require_feature("resume_analyzer"))],
+)
 
 _ENHANCER_QUESTIONS = [
     {"key": "target_company", "question": "Which company/role are you targeting with this resume?"},

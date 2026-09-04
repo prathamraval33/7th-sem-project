@@ -1,7 +1,7 @@
 """Admin — platform-wide drive moderation, student/TPO oversight, activity
 feed, and global analytics.
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -10,17 +10,20 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.dependencies import require_admin
+from app.core.feature_gating import _maybe_expire
 from app.core.security import hash_password
 from app.db.session import get_db
 from app.models.application import Application, ApplicationStatus
+from app.models.college_feature import CollegeFeature, FeatureRequestStatus
 from app.models.drive import Drive, DriveStatus
+from app.models.feature import Feature, FeatureStatus
 from app.models.notification import Notification, NotificationType
 from app.models.profile import Profile
 from app.models.user import User, UserType
 from app.models.analytics import Analytics
+from app.schemas.admin import AdminFeatureResponse, AdminUserCreate, AdminUserUpdate
 from app.schemas.drive import DriveResponse, DriveUpdate
 from app.schemas.profile import ProfilePlacementOverrideUpdate, ProfileResponse
-from app.schemas.admin import AdminUserCreate, AdminUserUpdate
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -517,4 +520,148 @@ def get_admin_analytics(current_user: User = Depends(require_admin), db: Session
         total_drives=total_drives,
         total_applications=len(applications),
         total_selected=total_selected,
+    )
+
+
+@router.get("/features", response_model=list[AdminFeatureResponse])
+def list_admin_features(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> list[AdminFeatureResponse]:
+    """Return all non-deprecated features and their current status for this college."""
+    cid = current_user.college_id
+    if cid is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="No college associated with this account")
+
+    features = db.scalars(
+        select(Feature)
+        .where(Feature.status != FeatureStatus.DEPRECATED)
+        .order_by(Feature.name.asc())
+    ).all()
+
+    cf_map = {
+        cf.feature_id: cf
+        for cf in db.scalars(select(CollegeFeature).where(CollegeFeature.college_id == cid)).all()
+    }
+
+    result: list[AdminFeatureResponse] = []
+    for feat in features:
+        cf = cf_map.get(feat.id)
+        if cf:
+            _maybe_expire(cf, db)
+            st = cf.status.value
+            amount = float(cf.amount_charged) if cf.amount_charged is not None else None
+            req_at = cf.requested_at
+            dec_at = cf.decided_at
+            app_at = cf.approved_at
+            paid_at = cf.paid_at
+            exp_at = cf.expires_at
+            auto = cf.is_auto_granted
+        else:
+            st = "not_requested"
+            amount = None
+            req_at = None
+            dec_at = None
+            app_at = None
+            paid_at = None
+            exp_at = None
+            auto = False
+
+        result.append(
+            AdminFeatureResponse(
+                id=feat.id,
+                code=feat.code,
+                name=feat.name,
+                description=feat.description,
+                category=feat.category,
+                target_role=feat.target_role,
+                price=float(feat.price) if feat.price is not None else None,
+                billing_type=feat.billing_type.value if hasattr(feat.billing_type, "value") else str(feat.billing_type),
+                status=st,
+                amount_charged=amount,
+                requested_at=req_at,
+                decided_at=dec_at,
+                approved_at=app_at,
+                paid_at=paid_at,
+                expires_at=exp_at,
+                is_auto_granted=auto,
+            )
+        )
+    return result
+
+
+@router.post("/features/{feature_id}/request", response_model=AdminFeatureResponse)
+def request_feature(
+    feature_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AdminFeatureResponse:
+    """Request an optional feature for the current admin's college."""
+    cid = current_user.college_id
+    if cid is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="No college associated with this account")
+
+    feature = db.get(Feature, feature_id)
+    if feature is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Feature not found")
+
+    if feature.status == FeatureStatus.DEPRECATED:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Feature is deprecated and cannot be requested")
+
+    cf = db.scalar(
+        select(CollegeFeature).where(
+            CollegeFeature.college_id == cid,
+            CollegeFeature.feature_id == feature_id,
+        )
+    )
+
+    now = datetime.now(timezone.utc)
+    if cf is not None:
+        if cf.status in (
+            FeatureRequestStatus.PENDING_REVIEW,
+            FeatureRequestStatus.APPROVED_AWAITING_PAYMENT,
+            FeatureRequestStatus.ACTIVE,
+        ):
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                detail=f"Feature is already in '{cf.status.value}' status for your institution",
+            )
+        # Re-requesting after rejection, expiry, or payment failure
+        cf.status = FeatureRequestStatus.PENDING_REVIEW
+        cf.requested_at = now
+        cf.decided_at = None
+        cf.decided_by = None
+        cf.approved_at = None
+        cf.paid_at = None
+        cf.amount_charged = None
+        cf.expires_at = None
+    else:
+        cf = CollegeFeature(
+            college_id=cid,
+            feature_id=feature_id,
+            status=FeatureRequestStatus.PENDING_REVIEW,
+            requested_at=now,
+        )
+        db.add(cf)
+
+    db.commit()
+    db.refresh(cf)
+
+    return AdminFeatureResponse(
+        id=feature.id,
+        code=feature.code,
+        name=feature.name,
+        description=feature.description,
+        category=feature.category,
+        target_role=feature.target_role,
+        price=float(feature.price) if feature.price is not None else None,
+        billing_type=feature.billing_type.value if hasattr(feature.billing_type, "value") else str(feature.billing_type),
+        status=cf.status.value,
+        amount_charged=float(cf.amount_charged) if cf.amount_charged is not None else None,
+        requested_at=cf.requested_at,
+        decided_at=cf.decided_at,
+        approved_at=cf.approved_at,
+        paid_at=cf.paid_at,
+        expires_at=cf.expires_at,
+        is_auto_granted=cf.is_auto_granted,
     )

@@ -38,7 +38,7 @@ export default function CollegeDetailPage() {
 
   const computedFeatures = features.map((f) => {
     if (enabledIds.includes(f.id)) return { ...f, state: "approved" };
-    const req = featureRequests.find((r) => r.collegeId === id && r.featureId === f.id && r.status === "pending");
+    const req = featureRequests.find((r) => r.collegeId === id && r.featureId === f.id && (r.status === "pending" || r.status === "pending_review"));
     if (req) return { ...f, state: "pending" };
     return { ...f, state: "none" };
   });

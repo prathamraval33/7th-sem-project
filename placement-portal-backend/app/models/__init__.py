@@ -3,8 +3,9 @@ autogenerate and so mapper configuration (relationships) resolves cleanly.
 """
 from app.models.user import User, UserType
 from app.models.college import College, CollegeStatus
-from app.models.feature import Feature, FeatureStatus
+from app.models.feature import Feature, FeatureStatus, BillingType
 from app.models.college_feature import CollegeFeature, FeatureRequestStatus
+from app.models.transaction import Transaction, TransactionStatus
 from app.models.announcement import Announcement
 from app.models.audit_log import AuditLog
 from app.models.otp_verification import OtpVerification, OtpPurpose
@@ -35,8 +36,11 @@ __all__ = [
     "CollegeStatus",
     "Feature",
     "FeatureStatus",
+    "BillingType",
     "CollegeFeature",
     "FeatureRequestStatus",
+    "Transaction",
+    "TransactionStatus",
     "Announcement",
     "AuditLog",
     "OtpVerification",

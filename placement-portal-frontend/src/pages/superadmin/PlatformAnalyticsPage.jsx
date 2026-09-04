@@ -1,5 +1,6 @@
 // PlatformAnalyticsPage — Aggregate metrics + charts (§5.7).
-// 4 top-line KPIs + "Colleges Over Time" area chart + "Feature Adoption" bar chart.
+// Top-line KPIs + "Colleges Over Time" area chart + "Feature Adoption" bar chart + Revenue analytics.
+import { useQuery } from "@tanstack/react-query";
 import {
   AreaChart,
   Area,
@@ -12,6 +13,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useSuperAdminStore } from "./superAdminStore";
+import { superadminApi } from "../../api/superadmin.api";
 import KpiCard from "../../components/superadmin/KpiCard";
 
 export default function PlatformAnalyticsPage() {
@@ -20,10 +22,20 @@ export default function PlatformAnalyticsPage() {
   const features = useSuperAdminStore((s) => s.features);
   const collegeFeatures = useSuperAdminStore((s) => s.collegeFeatures);
 
+  const { data: analyticsData } = useQuery({
+    queryKey: ["superadminAnalytics"],
+    queryFn: () => superadminApi.getAnalytics().then((res) => res.data),
+    staleTime: 30 * 1000,
+  });
+
   const totalColleges = colleges.length;
   const totalStudents = colleges.reduce((sum, c) => sum + (c.students || 0), 0);
   const totalTPOs = colleges.reduce((sum, c) => sum + (c.tpos || 0), 0);
   const totalDrives = colleges.reduce((sum, c) => sum + (c.drives || 0), 0);
+
+  const totalRevenue = analyticsData?.total_revenue ?? 0;
+  const revenueByFeature = analyticsData?.revenue_by_feature ?? [];
+  const revenueByCollege = analyticsData?.revenue_by_college ?? [];
 
   const featureAdoption = features.map((f) => {
     const count = Object.values(collegeFeatures).filter((ids) => ids.includes(f.id)).length;
@@ -34,18 +46,22 @@ export default function PlatformAnalyticsPage() {
     <>
       {/* Top bar */}
       <div className="cd-topbar">
-        <h1 className="cd-topbar__title">Platform Analytics</h1>
+        <h1 className="cd-topbar__title">Platform Analytics & Revenue</h1>
       </div>
 
       {/* KPI Row */}
       <div className="cd-kpi-grid">
         <KpiCard label="Total Colleges" value={totalColleges} />
         <KpiCard label="Total Students" value={totalStudents} />
-        <KpiCard label="Total TPOs" value={totalTPOs} />
-        <KpiCard label="Total Drives" value={totalDrives} />
+        <KpiCard
+          label="Total Platform Revenue"
+          value={`₹${Number(totalRevenue).toLocaleString("en-IN")}`}
+          sublabel="Real paid transactions (excludes BVM auto-grants)"
+        />
+        <KpiCard label="Active Drives" value={totalDrives} />
       </div>
 
-      {/* Charts Row */}
+      {/* Platform Activity Charts Row */}
       <div className="cd-mt-lg">
         <div className="cd-chart-grid">
           {/* Colleges Over Time */}
@@ -98,7 +114,7 @@ export default function PlatformAnalyticsPage() {
 
           {/* Feature Adoption */}
           <div className="cd-panel">
-            <div className="cd-panel__header">Feature Adoption</div>
+            <div className="cd-panel__header">Feature Adoption by Colleges</div>
             <div style={{ padding: "20px 16px 12px 0", height: 280 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={featureAdoption} layout="vertical">
@@ -135,6 +151,85 @@ export default function PlatformAnalyticsPage() {
                   />
                 </BarChart>
               </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Revenue Analytics Row */}
+      <div className="cd-mt-lg">
+        <div className="cd-chart-grid">
+          {/* Revenue by Feature */}
+          <div className="cd-panel">
+            <div className="cd-panel__header">Revenue by Feature (₹ INR)</div>
+            <div style={{ padding: "20px 16px 12px 0", height: 260 }}>
+              {revenueByFeature.length === 0 ? (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#94A3B8", fontSize: 13 }}>
+                  No paid feature transactions yet
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={revenueByFeature}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E4ECFC" />
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fontSize: 11, fill: "#475569" }}
+                      axisLine={{ stroke: "#E4ECFC" }}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11, fill: "#475569" }}
+                      axisLine={{ stroke: "#E4ECFC" }}
+                    />
+                    <Tooltip
+                      formatter={(val) => [`₹${Number(val).toLocaleString("en-IN")}`, "Revenue"]}
+                      contentStyle={{
+                        background: "#fff",
+                        border: "1px solid #E4ECFC",
+                        borderRadius: 8,
+                        fontSize: 13,
+                      }}
+                    />
+                    <Bar dataKey="revenue" fill="#059669" radius={[4, 4, 0, 0]} name="Revenue" />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </div>
+
+          {/* Revenue by College */}
+          <div className="cd-panel">
+            <div className="cd-panel__header">Revenue by College (₹ INR)</div>
+            <div style={{ padding: "20px 16px 12px 0", height: 260 }}>
+              {revenueByCollege.length === 0 ? (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#94A3B8", fontSize: 13 }}>
+                  No paying colleges yet
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={revenueByCollege}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E4ECFC" />
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fontSize: 11, fill: "#475569" }}
+                      axisLine={{ stroke: "#E4ECFC" }}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11, fill: "#475569" }}
+                      axisLine={{ stroke: "#E4ECFC" }}
+                    />
+                    <Tooltip
+                      formatter={(val) => [`₹${Number(val).toLocaleString("en-IN")}`, "Revenue"]}
+                      contentStyle={{
+                        background: "#fff",
+                        border: "1px solid #E4ECFC",
+                        borderRadius: 8,
+                        fontSize: 13,
+                      }}
+                    />
+                    <Bar dataKey="revenue" fill="#7C3AED" radius={[4, 4, 0, 0]} name="Revenue" />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </div>
         </div>

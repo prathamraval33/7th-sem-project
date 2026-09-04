@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import require_student
+from app.core.feature_gating import require_feature
 from app.db.session import get_db
 from app.models.interview_session import InterviewSession, InterviewSessionStatus
 from app.models.question import Question
@@ -22,7 +23,11 @@ from app.schemas.interview import (
 )
 from app.services import interview_engine, scoring
 
-router = APIRouter(prefix="/mock-interview", tags=["mock-interview"])
+router = APIRouter(
+    prefix="/mock-interview",
+    tags=["mock-interview"],
+    dependencies=[Depends(require_feature("mock_interviews"))],
+)
 
 
 class StartSessionResponse(QuestionResponse):

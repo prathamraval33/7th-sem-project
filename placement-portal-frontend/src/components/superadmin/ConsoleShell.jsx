@@ -38,7 +38,7 @@ export default function ConsoleShell() {
     hydrateSuperAdmin();
   }, [hydrateSuperAdmin]);
 
-  const pendingCount = featureRequests.filter((r) => r.status === "pending").length;
+  const pendingCount = featureRequests.filter((r) => r.status === "pending" || r.status === "pending_review").length;
 
   const handleLogout = async () => {
     try {
