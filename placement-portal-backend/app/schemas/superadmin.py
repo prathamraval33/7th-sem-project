@@ -97,7 +97,7 @@ class FeatureCollegeStatus(BaseModel):
     college_id: int
     college_name: str
     request_id: Optional[int] = None
-    status: Literal["not_requested", "pending_review", "rejected", "approved_awaiting_payment", "active", "payment_failed", "expired", "revoked"]
+    status: Literal["not_requested", "pending_review", "rejected", "approved_awaiting_payment", "active", "payment_failed", "expired", "approval_expired", "revoked"]
     date: Optional[datetime] = None
 
 
@@ -172,3 +172,56 @@ class SuperadminAnalyticsResponse(BaseModel):
     total_revenue: float = 0
     revenue_by_feature: list[RevenueBreakdownItem] = []
     revenue_by_college: list[RevenueBreakdownItem] = []
+
+
+class SubscriptionTransactionResponse(BaseModel):
+    id: int
+    amount: float
+    currency: str = "INR"
+    status: str
+    razorpay_order_id: str
+    razorpay_payment_id: Optional[str] = None
+    created_at: datetime
+    paid_at: Optional[datetime] = None
+
+
+class SubscriptionItemResponse(BaseModel):
+    id: int
+    college_id: int
+    college_name: str
+    feature_id: int
+    feature_name: str
+    feature_code: str
+    billing_type: str
+    price: float
+    amount_charged: Optional[float] = None
+    status: str
+    requested_at: datetime
+    approved_at: Optional[datetime] = None
+    paid_at: Optional[datetime] = None
+    expires_at: Optional[datetime] = None
+    payment_due_at: Optional[datetime] = None
+    reminder_count: int = 0
+    last_reminder_sent_at: Optional[datetime] = None
+    days_until_expiry: Optional[int] = None
+    days_until_payment_due: Optional[int] = None
+    last_transaction: Optional[SubscriptionTransactionResponse] = None
+
+
+class SubscriptionSummaryResponse(BaseModel):
+    active_count: int = 0
+    one_time_count: int = 0
+    expired_count: int = 0
+    pending_payment_count: int = 0
+    expiring_soon: list[SubscriptionItemResponse] = []
+
+
+class SubscriptionListResponse(BaseModel):
+    subscriptions: list[SubscriptionItemResponse]
+    summary: SubscriptionSummaryResponse
+
+
+class SendReminderResponse(BaseModel):
+    message: str
+    reminder_count: int
+    last_reminder_sent_at: datetime

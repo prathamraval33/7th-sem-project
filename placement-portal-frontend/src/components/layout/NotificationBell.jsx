@@ -1,7 +1,17 @@
-// Lives in Navbar on all 3 dashboards; polls GET /notifications every 20s
+// Lives in Navbar on all 3 dashboards and SuperAdmin Console; polls GET /notifications every 20s
 // via React Query's refetchInterval for a near-live feel without WebSockets.
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Bell, CheckCircle2, AlertTriangle, Flag, Inbox } from "lucide-react";
+import {
+  Bell,
+  CheckCircle2,
+  AlertTriangle,
+  Flag,
+  Inbox,
+  Puzzle,
+  CreditCard,
+  Clock,
+  XCircle,
+} from "lucide-react";
 import { notificationsApi } from "../../api/notifications.api";
 import { useHoverPinnedDropdown } from "../../hooks/useHoverPinnedDropdown";
 
@@ -32,7 +42,71 @@ function formatRelativeTime(value) {
 }
 
 function getNotificationVisual(notification) {
+  const type = notification.type;
   const message = String(notification.message || "").toLowerCase();
+
+  // Specific notification types first
+  if (type === "feature_request_received") {
+    return {
+      Icon: Puzzle,
+      chipBg: "bg-blue-50",
+      chipText: "text-blue-600",
+      emphasis: "text-blue-600",
+      title: "Feature Request Received",
+    };
+  }
+
+  if (type === "feature_request_decided") {
+    const isApproved = message.includes("approved");
+    return {
+      Icon: isApproved ? CheckCircle2 : XCircle,
+      chipBg: isApproved ? "bg-emerald-50" : "bg-red-50",
+      chipText: isApproved ? "text-emerald-600" : "text-red-600",
+      emphasis: isApproved ? "text-emerald-600" : "text-red-600",
+      title: isApproved ? "Feature Approved" : "Feature Request Rejected",
+    };
+  }
+
+  if (type === "payment_completion_required") {
+    return {
+      Icon: CreditCard,
+      chipBg: "bg-amber-50",
+      chipText: "text-amber-600",
+      emphasis: "text-amber-600",
+      title: "Payment Action Required",
+    };
+  }
+
+  if (type === "payment_reminder") {
+    return {
+      Icon: Clock,
+      chipBg: "bg-amber-50",
+      chipText: "text-amber-600",
+      emphasis: "text-amber-600",
+      title: "Payment Reminder",
+    };
+  }
+
+  if (type === "subscription_expiring_soon") {
+    return {
+      Icon: AlertTriangle,
+      chipBg: "bg-amber-50",
+      chipText: "text-amber-600",
+      emphasis: "text-amber-600",
+      title: "Subscription Expiring Soon",
+    };
+  }
+
+  if (type === "approval_expired") {
+    return {
+      Icon: XCircle,
+      chipBg: "bg-red-50",
+      chipText: "text-red-600",
+      emphasis: "text-red-600",
+      title: "Approval Expired",
+    };
+  }
+
   const isStatusUpdate =
     message.includes("shortlisted") ||
     message.includes("selected") ||
@@ -61,9 +135,9 @@ function getNotificationVisual(notification) {
   }
 
   if (
-    notification.type === "warning" ||
-    notification.type === "test_violation" ||
-    notification.type === "test_auto_ended"
+    type === "warning" ||
+    type === "test_violation" ||
+    type === "test_auto_ended"
   ) {
     return {
       Icon: AlertTriangle,
@@ -74,7 +148,7 @@ function getNotificationVisual(notification) {
     };
   }
 
-  if (notification.type === "notice") {
+  if (type === "notice") {
     return {
       Icon: Bell,
       chipBg: "bg-blue-50",
@@ -99,7 +173,7 @@ function getNotificationVisual(notification) {
     chipBg: "bg-blue-50",
     chipText: "text-blue-600",
     emphasis: "text-blue-600",
-    title: notification.type === "system" ? "System Notice" : "Notification",
+    title: type === "system" ? "System Notice" : "Notification",
   };
 }
 
@@ -138,7 +212,8 @@ function renderMessage(message, emphasisClass) {
   });
 }
 
-export default function NotificationBell() {
+export default function NotificationBell({ variant = "default" }) {
+  const isCommandDeck = variant === "commandDeck";
   const {
     isOpen,
     wrapperRef,
@@ -174,32 +249,57 @@ export default function NotificationBell() {
   return (
     <div
       ref={wrapperRef}
-      className="relative"
+      className="relative inline-block"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
       <button
         type="button"
         onClick={handleTogglePin}
-        className="relative rounded-md p-2 text-neutral-600 hover:bg-neutral-100"
+        className={
+          isCommandDeck
+            ? "relative flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100 focus:outline-none"
+            : "relative rounded-md p-2 text-neutral-600 hover:bg-neutral-100"
+        }
         aria-label="Notifications"
+        aria-expanded={isOpen}
       >
-        <Bell size={20} />
+        <Bell size={isCommandDeck ? 18 : 20} />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-extrabold text-white ring-2 ring-white shadow-md animate-pulse">
+          <span
+            className={
+              isCommandDeck
+                ? "absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-bold text-white ring-2 ring-white shadow-sm"
+                : "absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-extrabold text-white ring-2 ring-white shadow-md animate-pulse"
+            }
+          >
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 z-20 mt-2 w-96 rounded-xl border border-gray-200 bg-white shadow-lg">
-          <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-            <p className="text-base font-semibold text-gray-900">Notifications</p>
+        <div
+          className={
+            isCommandDeck
+              ? "absolute right-0 z-50 mt-2 w-96 rounded-xl border border-slate-200 bg-white shadow-xl ring-1 ring-black/5 overflow-hidden animate-in fade-in zoom-in-95 duration-100"
+              : "absolute right-0 z-20 mt-2 w-96 rounded-xl border border-gray-200 bg-white shadow-lg"
+          }
+        >
+          <div
+            className={
+              isCommandDeck
+                ? "flex items-center justify-between border-b border-slate-100 bg-slate-50/75 px-4 py-2.5"
+                : "flex items-center justify-between border-b border-gray-100 px-4 py-3"
+            }
+          >
+            <p className={isCommandDeck ? "text-xs font-bold tracking-wider uppercase text-slate-700" : "text-base font-semibold text-gray-900"}>
+              Notifications
+            </p>
             <button
               type="button"
               onClick={handleMarkAllRead}
-              className="text-xs font-medium text-blue-600 hover:underline"
+              className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline"
               disabled={unreadCount === 0}
             >
               Mark all as read

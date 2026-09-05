@@ -2,33 +2,33 @@
 // Fixed 240px sidebar with navigation + live pending badge,
 // top bar with page title, and scrollable content area (§3).
 import { useEffect } from "react";
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Building2,
   Puzzle,
+  CreditCard,
   BarChart3,
   Megaphone,
   ScrollText,
-  LogOut,
-  Shield,
+  GraduationCap,
 } from "lucide-react";
-import { useAuth } from "../../auth/useAuth";
 import { useSuperAdminStore } from "../../pages/superadmin/superAdminStore";
+import NotificationBell from "../layout/NotificationBell";
+import ProfileDropdown from "../layout/ProfileDropdown";
 import "../../styles/commandDeck.css";
 
 const NAV_ITEMS = [
   { to: "/superadmin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/superadmin/colleges", label: "Colleges", icon: Building2 },
   { to: "/superadmin/features", label: "Feature Management", icon: Puzzle, showBadge: true },
+  { to: "/superadmin/subscriptions", label: "Subscriptions", icon: CreditCard },
   { to: "/superadmin/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/superadmin/announcements", label: "Announcements", icon: Megaphone },
   { to: "/superadmin/audit-log", label: "Audit Log", icon: ScrollText },
 ];
 
 export default function ConsoleShell() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
   const featureRequests = useSuperAdminStore((s) => s.featureRequests);
   const toast = useSuperAdminStore((s) => s.toast);
   const hydrateSuperAdmin = useSuperAdminStore((s) => s.hydrateSuperAdmin);
@@ -40,25 +40,26 @@ export default function ConsoleShell() {
 
   const pendingCount = featureRequests.filter((r) => r.status === "pending" || r.status === "pending_review").length;
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } finally {
-      navigate("/login", { replace: true });
-    }
-  };
-
   return (
     <div className="cd-shell">
       {/* ---- Sidebar ---- */}
       <aside className="cd-sidebar">
-        {/* Logo */}
-        <div className="cd-sidebar__logo">
-          <div className="cd-sidebar__logo-icon">
-            <Shield size={16} />
+        {/* Brand Home Link (matching rest of the platform) */}
+        <Link
+          to="/superadmin/dashboard"
+          className="cd-sidebar__logo"
+          title="Go to Dashboard Home"
+        >
+          <GraduationCap size={24} className="text-blue-600 flex-shrink-0" />
+          <div className="flex flex-col min-w-0">
+            <span className="font-heading text-sm font-bold text-slate-900 leading-snug truncate">
+              Placement Portal
+            </span>
+            <span className="text-[10px] font-semibold text-blue-600 uppercase tracking-wider">
+              SuperAdmin
+            </span>
           </div>
-          <span>Dashboard</span>
-        </div>
+        </Link>
 
         {/* Navigation */}
         <nav className="cd-sidebar__nav">
@@ -82,21 +83,29 @@ export default function ConsoleShell() {
             );
           })}
         </nav>
-
-        {/* Account area */}
-        <div className="cd-sidebar__account">
-          <span className="cd-sidebar__account-label" title={user?.email || "SuperAdmin"}>
-            {user?.email || "SuperAdmin"}
-          </span>
-          <button className="cd-sidebar__signout" title="Sign out" onClick={handleLogout}>
-            <LogOut size={16} />
-          </button>
-        </div>
       </aside>
 
-      {/* ---- Content area ---- */}
-      <div className="cd-content">
-        <Outlet />
+      {/* ---- Main Layout Area ---- */}
+      <div className="cd-main-area">
+        {/* Persistent Top Header Bar */}
+        <header className="cd-header-bar">
+          <div className="cd-header-bar__title">
+            <span className="cd-header-bar__brand">Command Deck</span>
+            <span className="cd-header-bar__divider">/</span>
+            <span className="cd-header-bar__role">SuperAdmin Console</span>
+          </div>
+
+          <div className="cd-header-bar__actions">
+            <NotificationBell variant="commandDeck" />
+            <div className="cd-header-bar__sep" />
+            <ProfileDropdown variant="commandDeck" />
+          </div>
+        </header>
+
+        {/* Content area */}
+        <main className="cd-content">
+          <Outlet />
+        </main>
       </div>
 
       {/* ---- Toast notification ---- */}

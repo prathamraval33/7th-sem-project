@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.dependencies import get_optional_current_user, require_admin
+from app.core.feature_gating import _maybe_expire
 from app.db.session import get_db
 from app.models.college_feature import CollegeFeature, FeatureRequestStatus
 from app.models.feature import Feature, BillingType
@@ -92,6 +93,14 @@ def create_order(
         )
         if cf is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail="No feature request found for this feature")
+
+        _maybe_expire(cf, db)
+
+        if cf.status == FeatureRequestStatus.APPROVAL_EXPIRED:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                detail="The 7-day payment deadline has expired for this approved feature. Please submit a new request.",
+            )
 
         # Only allow payment in these states
         if cf.status not in (
@@ -228,6 +237,7 @@ def verify_payment(
     if cf is not None:
         cf.status = FeatureRequestStatus.ACTIVE
         cf.paid_at = now
+        cf.payment_due_at = None
         cf.amount_charged = txn.amount
         feature = db.get(Feature, txn.feature_id)
         if feature:
@@ -307,6 +317,7 @@ async def razorpay_webhook(request: Request, db: Session = Depends(get_db)) -> d
         if cf is not None:
             cf.status = FeatureRequestStatus.ACTIVE
             cf.paid_at = now
+            cf.payment_due_at = None
             cf.amount_charged = txn.amount
             feature = db.get(Feature, txn.feature_id)
             if feature:

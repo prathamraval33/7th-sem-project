@@ -76,6 +76,15 @@ export const useSuperAdminStore = create((set, get) => ({
   collegesOverTime: [],
   dashboard: null,
   toast: null,
+  subscriptions: [],
+  subscriptionSummary: {
+    active_count: 0,
+    one_time_count: 0,
+    expired_count: 0,
+    pending_payment_count: 0,
+    expiring_soon: [],
+  },
+  subscriptionsLoading: false,
 
   hydrateSuperAdmin: async () => {
     try {
@@ -362,6 +371,106 @@ export const useSuperAdminStore = create((set, get) => ({
     } catch (error) {
       set({ toast: error?.response?.data?.detail || "Unable to send announcement." });
       setTimeout(() => set({ toast: null }), 4000);
+    }
+  },
+
+  fetchSubscriptions: async () => {
+    set({ subscriptionsLoading: true });
+    try {
+      const response = await superadminApi.getSubscriptions();
+      const data = response.data || {};
+      set({
+        subscriptions: data.subscriptions || [],
+        subscriptionSummary: data.summary || {
+          active_count: 0,
+          one_time_count: 0,
+          expired_count: 0,
+          pending_payment_count: 0,
+          expiring_soon: [],
+        },
+        subscriptionsLoading: false,
+      });
+      return data;
+    } catch (error) {
+      set({
+        toast: error?.response?.data?.detail || "Unable to load subscriptions.",
+        subscriptionsLoading: false,
+      });
+      setTimeout(() => set({ toast: null }), 4000);
+      return null;
+    }
+  },
+
+  sendPaymentReminder: async (subscriptionId) => {
+    try {
+      const response = await superadminApi.sendPaymentReminder(subscriptionId);
+      const data = response.data;
+      set((state) => ({
+        subscriptions: state.subscriptions.map((sub) =>
+          sub.id === subscriptionId
+            ? {
+                ...sub,
+                reminder_count: data.reminder_count,
+                last_reminder_sent_at: data.last_reminder_sent_at,
+              }
+            : sub
+        ),
+        toast: data.message || "Payment reminder sent to college admin.",
+      }));
+      setTimeout(() => set({ toast: null }), 4000);
+      return data;
+    } catch (error) {
+      set({ toast: error?.response?.data?.detail || "Unable to send payment reminder." });
+      setTimeout(() => set({ toast: null }), 4000);
+      throw error;
+    }
+  },
+
+  sendRenewalReminder: async (subscriptionId) => {
+    try {
+      const response = await superadminApi.sendRenewalReminder(subscriptionId);
+      const data = response.data;
+      set((state) => ({
+        subscriptions: state.subscriptions.map((sub) =>
+          sub.id === subscriptionId
+            ? {
+                ...sub,
+                reminder_count: data.reminder_count,
+                last_reminder_sent_at: data.last_reminder_sent_at,
+              }
+            : sub
+        ),
+        subscriptionSummary: {
+          ...state.subscriptionSummary,
+          expiring_soon: state.subscriptionSummary.expiring_soon.map((sub) =>
+            sub.id === subscriptionId
+              ? {
+                  ...sub,
+                  reminder_count: data.reminder_count,
+                  last_reminder_sent_at: data.last_reminder_sent_at,
+                }
+              : sub
+          ),
+        },
+        toast: data.message || "Renewal reminder sent to college admin.",
+      }));
+      setTimeout(() => set({ toast: null }), 4000);
+      return data;
+    } catch (error) {
+      set({ toast: error?.response?.data?.detail || "Unable to send renewal reminder." });
+      setTimeout(() => set({ toast: null }), 4000);
+      throw error;
+    }
+  },
+
+  fetchSubscriptionTransactions: async (subscriptionId) => {
+    try {
+      const response = await superadminApi.getSubscriptionTransactions(subscriptionId);
+      return response.data || [];
+    } catch (error) {
+      set({ toast: error?.response?.data?.detail || "Unable to load transactions for this subscription." });
+      setTimeout(() => set({ toast: null }), 4000);
+      return [];
     }
   },
 

@@ -16,6 +16,7 @@ class FeatureRequestStatus(str, enum.Enum):
     ACTIVE = "active"
     PAYMENT_FAILED = "payment_failed"
     EXPIRED = "expired"
+    APPROVAL_EXPIRED = "approval_expired"
     REVOKED = "revoked"
 
 
@@ -42,6 +43,11 @@ class CollegeFeature(Base):
     paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     # Only populated for monthly/annual billing — when this date passes, status flips to EXPIRED.
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Payment deadline for approved_awaiting_payment (7 days after approval) — flips to APPROVAL_EXPIRED if passed.
+    payment_due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Tracking for reminder nudges sent by SuperAdmin
+    reminder_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    last_reminder_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     decided_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     # True for BVM auto-granted features — excluded from revenue analytics.
     is_auto_granted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

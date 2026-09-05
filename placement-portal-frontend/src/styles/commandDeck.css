@@ -33,12 +33,12 @@
   --cd-radius-pill: 999px;
   --cd-sidebar-width: 240px;
   --cd-header-height: 64px;
-  --cd-content-padding: 28px;
-  --cd-card-padding: 20px;
-  --cd-table-row-height: 52px;
+  --cd-content-padding: 32px;
+  --cd-card-padding: 22px;
+  --cd-table-row-height: auto;
   --cd-gap-sm: 8px;
   --cd-gap-md: 16px;
-  --cd-gap-lg: 24px;
+  --cd-gap-lg: 28px;
 }
 
 /* --- 2. Global Shell --- */
@@ -81,6 +81,11 @@
   color: var(--cd-text-primary) !important;
   border-bottom: 1px solid var(--cd-border) !important;
   box-sizing: border-box !important;
+  text-decoration: none !important;
+}
+
+.cd-sidebar__logo:hover {
+  text-decoration: none !important;
 }
 
 .cd-sidebar__logo-icon {
@@ -190,13 +195,73 @@
   color: var(--cd-danger) !important;
 }
 
-/* --- 2b. Content Area --- */
+/* --- 2b. Main Area & Persistent Header --- */
+.cd-main-area {
+  flex: 1 !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 100vh !important;
+  background: var(--cd-bg) !important;
+}
+
+.cd-header-bar {
+  height: var(--cd-header-height) !important;
+  min-height: var(--cd-header-height) !important;
+  background: var(--cd-surface) !important;
+  border-bottom: 1px solid var(--cd-border) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 0 var(--cd-content-padding) !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 35 !important;
+  box-sizing: border-box !important;
+}
+
+.cd-header-bar__title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-family: var(--cd-font-body) !important;
+  font-size: 13px !important;
+}
+
+.cd-header-bar__brand {
+  font-weight: 700 !important;
+  color: var(--cd-text-primary) !important;
+  letter-spacing: -0.01em !important;
+}
+
+.cd-header-bar__divider {
+  color: var(--cd-text-muted) !important;
+  font-size: 14px !important;
+}
+
+.cd-header-bar__role {
+  font-weight: 500 !important;
+  color: var(--cd-text-secondary) !important;
+}
+
+.cd-header-bar__actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+.cd-header-bar__sep {
+  width: 1px !important;
+  height: 20px !important;
+  background: var(--cd-border) !important;
+}
+
+/* --- 2c. Content Area --- */
 .cd-content {
   flex: 1 !important;
   min-width: 0 !important;
   padding: var(--cd-content-padding) !important;
   background: var(--cd-bg) !important;
-  min-height: 100vh !important;
   box-sizing: border-box !important;
 }
 
@@ -440,6 +505,7 @@
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)) !important;
   gap: var(--cd-gap-lg) !important;
   width: 100% !important;
+  margin-bottom: var(--cd-gap-lg) !important;
 }
 
 .cd-kpi-card {
@@ -577,8 +643,7 @@
 }
 
 .cd-table thead th {
-  height: 44px !important;
-  padding: 0 20px !important;
+  padding: 12px 20px !important;
   font-family: var(--cd-font-body) !important;
   font-weight: 600 !important;
   font-size: 12px !important;
@@ -591,7 +656,8 @@
 }
 
 .cd-table tbody tr {
-  height: var(--cd-table-row-height) !important;
+  height: auto !important;
+  min-height: 60px !important;
   border-bottom: 1px solid var(--cd-border) !important;
   transition: background 0.1s ease !important;
 }
@@ -613,12 +679,13 @@
 }
 
 .cd-table tbody td {
-  padding: 0 20px !important;
+  padding: 14px 20px !important;
   font-family: var(--cd-font-body) !important;
   font-weight: 400 !important;
   font-size: 14px !important;
   color: var(--cd-text-primary) !important;
   vertical-align: middle !important;
+  line-height: 1.5 !important;
 }
 
 .cd-table tbody td.cd-table__cell--secondary {
@@ -1144,4 +1211,124 @@
 
 .cd-text-link:hover {
   color: var(--cd-primary-hover) !important;
+}
+
+/* --- 20. Subscriptions & Expiring Soon Panel --- */
+.cd-expiring-panel {
+  background: var(--cd-warning-bg) !important;
+  border: 1px solid rgba(245, 158, 11, 0.3) !important;
+  border-radius: var(--cd-radius-card) !important;
+  padding: 16px 20px !important;
+  margin-bottom: var(--cd-gap-lg) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+}
+
+.cd-expiring-panel__header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+}
+
+.cd-expiring-panel__title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-family: var(--cd-font-body) !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  color: var(--cd-warning-text) !important;
+}
+
+.cd-expiring-panel__count {
+  background: var(--cd-warning) !important;
+  color: #fff !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  padding: 1px 8px !important;
+  border-radius: var(--cd-radius-pill) !important;
+}
+
+.cd-expiring-panel__grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)) !important;
+  gap: 12px !important;
+}
+
+.cd-expiring-card {
+  background: var(--cd-surface) !important;
+  border: 1px solid rgba(245, 158, 11, 0.25) !important;
+  border-radius: var(--cd-radius-control) !important;
+  padding: 12px 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+}
+
+.cd-expiring-card__info {
+  min-width: 0 !important;
+  flex: 1 !important;
+}
+
+.cd-expiring-card__name {
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  color: var(--cd-text-primary) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.cd-expiring-card__sub {
+  font-size: 12px !important;
+  color: var(--cd-text-secondary) !important;
+  margin-top: 2px !important;
+}
+
+.cd-expiring-card__days {
+  color: var(--cd-danger) !important;
+  font-weight: 700 !important;
+}
+
+.cd-reminder-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  padding: 2px 7px !important;
+  border-radius: var(--cd-radius-pill) !important;
+  background: var(--cd-surface-sunken) !important;
+  color: var(--cd-text-secondary) !important;
+  border: 1px solid var(--cd-border) !important;
+}
+
+.cd-reminder-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  padding: 4px 10px !important;
+  border-radius: var(--cd-radius-control) !important;
+  background: var(--cd-primary-bg) !important;
+  color: var(--cd-primary) !important;
+  border: 1px solid rgba(37, 99, 235, 0.2) !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  white-space: nowrap !important;
+}
+
+.cd-reminder-btn:hover:not(:disabled) {
+  background: var(--cd-primary) !important;
+  color: #fff !important;
+}
+
+.cd-reminder-btn:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
 }

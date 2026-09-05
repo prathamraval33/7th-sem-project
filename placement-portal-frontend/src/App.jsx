@@ -65,6 +65,7 @@ import SuperAdminDashboard from "./pages/superadmin/SuperAdminDashboard";
 import CollegesListPage from "./pages/superadmin/CollegesListPage";
 import CollegeDetailPage from "./pages/superadmin/CollegeDetailPage";
 import FeatureManagementPage from "./pages/superadmin/FeatureManagementPage";
+import SubscriptionsPage from "./pages/superadmin/SubscriptionsPage";
 import PlatformAnalyticsPage from "./pages/superadmin/PlatformAnalyticsPage";
 import AnnouncementsPage from "./pages/superadmin/AnnouncementsPage";
 import AuditLogPage from "./pages/superadmin/AuditLogPage";
@@ -173,6 +174,7 @@ export default function App() {
                 <Route path="colleges" element={<CollegesListPage />} />
                 <Route path="colleges/:id" element={<CollegeDetailPage />} />
                 <Route path="features" element={<FeatureManagementPage />} />
+                <Route path="subscriptions" element={<SubscriptionsPage />} />
                 <Route path="analytics" element={<PlatformAnalyticsPage />} />
                 <Route path="announcements" element={<AnnouncementsPage />} />
                 <Route path="audit-log" element={<AuditLogPage />} />

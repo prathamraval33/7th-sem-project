@@ -14,6 +14,7 @@ from app.core.feature_gating import _maybe_expire
 from app.core.security import hash_password
 from app.db.session import get_db
 from app.models.application import Application, ApplicationStatus
+from app.models.college import College
 from app.models.college_feature import CollegeFeature, FeatureRequestStatus
 from app.models.drive import Drive, DriveStatus
 from app.models.feature import Feature, FeatureStatus
@@ -626,7 +627,7 @@ def request_feature(
                 status.HTTP_409_CONFLICT,
                 detail=f"Feature is already in '{cf.status.value}' status for your institution",
             )
-        # Re-requesting after rejection, expiry, or payment failure
+        # Re-requesting after rejection, expiry, approval_expired, or payment failure
         cf.status = FeatureRequestStatus.PENDING_REVIEW
         cf.requested_at = now
         cf.decided_at = None
@@ -635,14 +636,34 @@ def request_feature(
         cf.paid_at = None
         cf.amount_charged = None
         cf.expires_at = None
+        cf.payment_due_at = None
+        cf.reminder_count = 0
+        cf.last_reminder_sent_at = None
     else:
         cf = CollegeFeature(
             college_id=cid,
             feature_id=feature_id,
             status=FeatureRequestStatus.PENDING_REVIEW,
             requested_at=now,
+            reminder_count=0,
         )
         db.add(cf)
+
+    # Notify all active SuperAdmins about incoming feature request
+    college = db.get(College, cid)
+    college_name = college.name if college else f"College #{cid}"
+    superadmins = db.scalars(
+        select(User).where(User.user_type == UserType.SUPERADMIN, User.is_active == True)
+    ).all()
+    for sa in superadmins:
+        db.add(
+            Notification(
+                recipient_id=sa.id,
+                sender_id=current_user.id,
+                type=NotificationType.FEATURE_REQUEST_RECEIVED,
+                message=f"{college_name} requested feature '{feature.name}'.",
+            )
+        )
 
     db.commit()
     db.refresh(cf)

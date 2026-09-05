@@ -29,4 +29,12 @@ export const superadminApi = {
   getAuditLog: () => axiosClient.get("/superadmin/audit-log"),
 
   getAnalytics: () => axiosClient.get("/superadmin/analytics"),
+
+  getSubscriptions: () => axiosClient.get("/superadmin/subscriptions"),
+  getSubscriptionTransactions: (subscriptionId) =>
+    axiosClient.get(`/superadmin/subscriptions/${subscriptionId}/transactions`),
+  sendPaymentReminder: (subscriptionId) =>
+    axiosClient.post(`/superadmin/subscriptions/${subscriptionId}/remind`),
+  sendRenewalReminder: (subscriptionId) =>
+    axiosClient.post(`/superadmin/subscriptions/${subscriptionId}/remind-renewal`),
 };

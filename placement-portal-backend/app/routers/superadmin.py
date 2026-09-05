@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import func, select
@@ -10,6 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.dependencies import require_superadmin
+from app.core.feature_gating import _as_utc, check_all_expiries
 from app.core.security import hash_password
 from app.db.session import get_db
 from app.models.announcement import Announcement
@@ -19,6 +20,7 @@ from app.models.college import College, CollegeStatus
 from app.models.college_feature import CollegeFeature, FeatureRequestStatus
 from app.models.drive import Drive
 from app.models.feature import Feature, FeatureStatus, BillingType
+from app.models.notification import Notification, NotificationType
 from app.models.profile import Profile
 from app.models.transaction import Transaction, TransactionStatus
 from app.models.user import User, UserType
@@ -36,7 +38,12 @@ from app.schemas.superadmin import (
     FeatureRequestResponse,
     FeatureResponse,
     FeatureUpdate,
+    SendReminderResponse,
     StatusUpdateResponse,
+    SubscriptionItemResponse,
+    SubscriptionListResponse,
+    SubscriptionSummaryResponse,
+    SubscriptionTransactionResponse,
     SuperadminAnalyticsResponse,
 )
 from app.services import email_service, otp_service
@@ -517,18 +524,56 @@ def approve_feature_request(
     feature = db.get(Feature, request_row.feature_id)
     price = float(feature.price) if feature and feature.price else 0
 
+    admin_users = db.scalars(
+        select(User).where(
+            User.college_id == request_row.college_id,
+            User.user_type == UserType.ADMIN,
+            User.is_active == True,
+        )
+    ).all()
+
     if price <= 0:
         # Free feature — skip payment, go straight to ACTIVE
         request_row.status = FeatureRequestStatus.ACTIVE
         request_row.approved_at = now
+        request_row.payment_due_at = None
         result_status = "active"
         msg = "Feature request approved (free — activated immediately)"
+        for adm in admin_users:
+            db.add(
+                Notification(
+                    recipient_id=adm.id,
+                    sender_id=current_user.id,
+                    type=NotificationType.FEATURE_REQUEST_DECIDED,
+                    message=f"Your request for feature '{request_row.feature.name}' has been approved and activated.",
+                )
+            )
     else:
-        # Paid feature — wait for payment
+        # Paid feature — wait for payment with explicit 7-day deadline
+        payment_due_at = now + timedelta(days=7)
         request_row.status = FeatureRequestStatus.APPROVED_AWAITING_PAYMENT
         request_row.approved_at = now
+        request_row.payment_due_at = payment_due_at
         result_status = "approved_awaiting_payment"
         msg = "Feature request approved — awaiting payment"
+        due_str = payment_due_at.strftime("%b %d, %Y")
+        for adm in admin_users:
+            db.add(
+                Notification(
+                    recipient_id=adm.id,
+                    sender_id=current_user.id,
+                    type=NotificationType.FEATURE_REQUEST_DECIDED,
+                    message=f"Your request for feature '{request_row.feature.name}' has been approved.",
+                )
+            )
+            db.add(
+                Notification(
+                    recipient_id=adm.id,
+                    sender_id=current_user.id,
+                    type=NotificationType.PAYMENT_COMPLETION_REQUIRED,
+                    message=f"Payment of ₹{price:,.2f} is required for '{request_row.feature.name}'. Please complete payment by {due_str} (7 days).",
+                )
+            )
 
     request_row.decided_at = now
     request_row.decided_by = current_user.id
@@ -552,6 +597,25 @@ def reject_feature_request(
     request_row.status = FeatureRequestStatus.REJECTED
     request_row.decided_at = datetime.now(timezone.utc)
     request_row.decided_by = current_user.id
+    db.commit()
+
+    # Notify college admin of rejection
+    admin_users = db.scalars(
+        select(User).where(
+            User.college_id == request_row.college_id,
+            User.user_type == UserType.ADMIN,
+            User.is_active == True,
+        )
+    ).all()
+    for adm in admin_users:
+        db.add(
+            Notification(
+                recipient_id=adm.id,
+                sender_id=current_user.id,
+                type=NotificationType.FEATURE_REQUEST_DECIDED,
+                message=f"Your request for feature '{request_row.feature.name}' was not approved at this time.",
+            )
+        )
     db.commit()
 
     log = AuditLog(action="feature_rejected", details=f"{request_row.college.name} -> {request_row.feature.name}", performed_by=current_user.id)
@@ -658,3 +722,266 @@ def list_analytics(
         "revenue_by_feature": revenue_by_feature,
         "revenue_by_college": revenue_by_college,
     }
+
+
+@router.get("/subscriptions", response_model=SubscriptionListResponse)
+def list_subscriptions(
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db),
+) -> SubscriptionListResponse:
+    # 1. Update any expired subscriptions or past-due payment windows
+    check_all_expiries(db)
+
+    now = datetime.now(timezone.utc)
+
+    # 2. Fetch all CollegeFeature entries with relationships
+    rows = db.scalars(
+        select(CollegeFeature)
+        .options(joinedload(CollegeFeature.college), joinedload(CollegeFeature.feature))
+        .order_by(CollegeFeature.requested_at.desc())
+    ).all()
+
+    # 3. Preload all transactions mapped by (college_id, feature_id)
+    txns = db.scalars(
+        select(Transaction).order_by(Transaction.created_at.desc())
+    ).all()
+    latest_tx_map: dict[tuple[int, int], Transaction] = {}
+    for tx in txns:
+        if tx.college_id is not None and tx.feature_id is not None:
+            key = (tx.college_id, tx.feature_id)
+            if key not in latest_tx_map:
+                latest_tx_map[key] = tx
+
+    items: list[SubscriptionItemResponse] = []
+    active_count = 0
+    one_time_count = 0
+    expired_count = 0
+    pending_payment_count = 0
+    expiring_soon_items: list[SubscriptionItemResponse] = []
+
+    for cf in rows:
+        feat = cf.feature
+        coll = cf.college
+        if not feat or not coll:
+            continue
+
+        b_type = feat.billing_type.value if hasattr(feat.billing_type, "value") else str(feat.billing_type)
+        st = cf.status.value if hasattr(cf.status, "value") else str(cf.status)
+        price_val = float(feat.price) if feat.price is not None else 0.0
+        amount_charged_val = float(cf.amount_charged) if cf.amount_charged is not None else None
+
+        # Calculate days until expiry if active and has expiry
+        days_until_exp = None
+        exp_utc = _as_utc(cf.expires_at)
+        due_utc = _as_utc(cf.payment_due_at)
+
+        if cf.status == FeatureRequestStatus.ACTIVE and exp_utc:
+            delta = exp_utc - now
+            days_until_exp = delta.days
+
+        # Calculate days until payment due if awaiting payment
+        days_until_due = None
+        if cf.status == FeatureRequestStatus.APPROVED_AWAITING_PAYMENT and due_utc:
+            delta = due_utc - now
+            days_until_due = delta.days
+
+        # Last transaction
+        last_tx = latest_tx_map.get((cf.college_id, cf.feature_id))
+        last_tx_resp = None
+        if last_tx:
+            last_tx_resp = SubscriptionTransactionResponse(
+                id=last_tx.id,
+                amount=float(last_tx.amount),
+                currency=last_tx.currency,
+                status=last_tx.status.value if hasattr(last_tx.status, "value") else str(last_tx.status),
+                razorpay_order_id=last_tx.razorpay_order_id,
+                razorpay_payment_id=last_tx.razorpay_payment_id,
+                created_at=last_tx.created_at,
+                paid_at=last_tx.paid_at,
+            )
+
+        item = SubscriptionItemResponse(
+            id=cf.id,
+            college_id=cf.college_id,
+            college_name=coll.name,
+            feature_id=cf.feature_id,
+            feature_name=feat.name,
+            feature_code=feat.code,
+            billing_type=b_type,
+            price=price_val,
+            amount_charged=amount_charged_val,
+            status=st,
+            requested_at=cf.requested_at,
+            approved_at=cf.approved_at,
+            paid_at=cf.paid_at,
+            expires_at=cf.expires_at,
+            payment_due_at=cf.payment_due_at,
+            reminder_count=cf.reminder_count or 0,
+            last_reminder_sent_at=cf.last_reminder_sent_at,
+            days_until_expiry=days_until_exp,
+            days_until_payment_due=days_until_due,
+            last_transaction=last_tx_resp,
+        )
+        items.append(item)
+
+        # KPI aggregations
+        if cf.status == FeatureRequestStatus.ACTIVE:
+            if b_type in ("monthly", "annual"):
+                active_count += 1
+            elif b_type == "one_time":
+                one_time_count += 1
+        elif cf.status in (FeatureRequestStatus.EXPIRED, FeatureRequestStatus.APPROVAL_EXPIRED):
+            expired_count += 1
+        elif cf.status in (FeatureRequestStatus.APPROVED_AWAITING_PAYMENT, FeatureRequestStatus.PAYMENT_FAILED):
+            pending_payment_count += 1
+
+        # Expiring soon panel: active subs expiring within 7 days
+        if (
+            cf.status == FeatureRequestStatus.ACTIVE
+            and exp_utc is not None
+            and now < exp_utc <= now + timedelta(days=7)
+        ):
+            expiring_soon_items.append(item)
+
+    # Sort expiring soon by soonest first
+    expiring_soon_items.sort(key=lambda x: _as_utc(x.expires_at) or now)
+
+    summary = SubscriptionSummaryResponse(
+        active_count=active_count,
+        one_time_count=one_time_count,
+        expired_count=expired_count,
+        pending_payment_count=pending_payment_count,
+        expiring_soon=expiring_soon_items,
+    )
+
+    return SubscriptionListResponse(subscriptions=items, summary=summary)
+
+
+@router.get("/subscriptions/{id}/transactions", response_model=list[SubscriptionTransactionResponse])
+def get_subscription_transactions(
+    id: int,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db),
+) -> list[SubscriptionTransactionResponse]:
+    cf = db.get(CollegeFeature, id)
+    if cf is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Subscription not found")
+
+    txns = db.scalars(
+        select(Transaction)
+        .where(Transaction.college_id == cf.college_id, Transaction.feature_id == cf.feature_id)
+        .order_by(Transaction.created_at.desc())
+    ).all()
+
+    return [
+        SubscriptionTransactionResponse(
+            id=tx.id,
+            amount=float(tx.amount),
+            currency=tx.currency,
+            status=tx.status.value if hasattr(tx.status, "value") else str(tx.status),
+            razorpay_order_id=tx.razorpay_order_id,
+            razorpay_payment_id=tx.razorpay_payment_id,
+            created_at=tx.created_at,
+            paid_at=tx.paid_at,
+        )
+        for tx in txns
+    ]
+
+
+@router.post("/subscriptions/{id}/remind", response_model=SendReminderResponse)
+def send_payment_reminder(
+    id: int,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db),
+) -> SendReminderResponse:
+    cf = db.get(CollegeFeature, id)
+    if cf is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Subscription not found")
+
+    if cf.status not in (FeatureRequestStatus.APPROVED_AWAITING_PAYMENT, FeatureRequestStatus.PAYMENT_FAILED):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot send payment reminder for subscription in '{cf.status.value}' status",
+        )
+
+    admin_users = db.scalars(
+        select(User).where(
+            User.college_id == cf.college_id,
+            User.user_type == UserType.ADMIN,
+            User.is_active == True,
+        )
+    ).all()
+
+    price = float(cf.feature.price) if cf.feature and cf.feature.price else 0.0
+    due_str = cf.payment_due_at.strftime("%b %d, %Y") if cf.payment_due_at else "soon"
+    msg = f"Payment Reminder: Pending payment of ₹{price:,.2f} for '{cf.feature.name}' is due by {due_str}. Please complete payment to activate feature."
+
+    for adm in admin_users:
+        db.add(
+            Notification(
+                recipient_id=adm.id,
+                sender_id=current_user.id,
+                type=NotificationType.PAYMENT_REMINDER,
+                message=msg,
+            )
+        )
+
+    now = datetime.now(timezone.utc)
+    cf.reminder_count = (cf.reminder_count or 0) + 1
+    cf.last_reminder_sent_at = now
+    db.commit()
+
+    return SendReminderResponse(
+        message="Payment reminder sent successfully",
+        reminder_count=cf.reminder_count,
+        last_reminder_sent_at=now,
+    )
+
+
+@router.post("/subscriptions/{id}/remind-renewal", response_model=SendReminderResponse)
+def send_renewal_reminder(
+    id: int,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db),
+) -> SendReminderResponse:
+    cf = db.get(CollegeFeature, id)
+    if cf is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Subscription not found")
+
+    if cf.status != FeatureRequestStatus.ACTIVE or not cf.expires_at:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail="Can only send renewal reminders for active subscriptions with an expiration date",
+        )
+
+    admin_users = db.scalars(
+        select(User).where(
+            User.college_id == cf.college_id,
+            User.user_type == UserType.ADMIN,
+            User.is_active == True,
+        )
+    ).all()
+
+    exp_str = cf.expires_at.strftime("%b %d, %Y")
+    msg = f"Renewal Notice: Your subscription for '{cf.feature.name}' will expire on {exp_str}. Please renew soon to ensure uninterrupted access."
+
+    for adm in admin_users:
+        db.add(
+            Notification(
+                recipient_id=adm.id,
+                sender_id=current_user.id,
+                type=NotificationType.SUBSCRIPTION_EXPIRING_SOON,
+                message=msg,
+            )
+        )
+
+    now = datetime.now(timezone.utc)
+    cf.reminder_count = (cf.reminder_count or 0) + 1
+    cf.last_reminder_sent_at = now
+    db.commit()
+
+    return SendReminderResponse(
+        message="Renewal reminder sent successfully",
+        reminder_count=cf.reminder_count,
+        last_reminder_sent_at=now,
+    )

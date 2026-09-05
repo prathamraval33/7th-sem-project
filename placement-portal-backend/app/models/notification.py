@@ -16,6 +16,12 @@ class NotificationType(str, enum.Enum):
     SYSTEM = "system"
     TEST_VIOLATION = "test_violation"
     TEST_AUTO_ENDED = "test_auto_ended"
+    FEATURE_REQUEST_RECEIVED = "feature_request_received"
+    FEATURE_REQUEST_DECIDED = "feature_request_decided"
+    PAYMENT_COMPLETION_REQUIRED = "payment_completion_required"
+    PAYMENT_REMINDER = "payment_reminder"
+    SUBSCRIPTION_EXPIRING_SOON = "subscription_expiring_soon"
+    APPROVAL_EXPIRED = "approval_expired"
 
 
 class Notification(Base):

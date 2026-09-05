@@ -26,17 +26,32 @@ from app.models.college_feature import CollegeFeature, FeatureRequestStatus
 from app.models.feature import Feature
 from app.models.user import User, UserType
 
+from app.models.notification import Notification, NotificationType
+
 logger = logging.getLogger(__name__)
 
 
+def _as_utc(dt: datetime | None) -> datetime | None:
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
 def _maybe_expire(cf: CollegeFeature, db: Session) -> None:
-    """Opportunistic expiry: if expires_at has passed and the row is still
-    ACTIVE, flip it to EXPIRED right now.  This avoids needing a background
-    scheduler while ensuring expiry is caught on the very next access."""
+    """Opportunistic expiry:
+    1. If ACTIVE and expires_at has passed -> flip to EXPIRED.
+    2. If APPROVED_AWAITING_PAYMENT and payment_due_at has passed -> flip to APPROVAL_EXPIRED and notify college admin.
+    """
+    now = datetime.now(timezone.utc)
+    expires_at_utc = _as_utc(cf.expires_at)
+    payment_due_utc = _as_utc(cf.payment_due_at)
+
     if (
         cf.status == FeatureRequestStatus.ACTIVE
-        and cf.expires_at is not None
-        and cf.expires_at < datetime.now(timezone.utc)
+        and expires_at_utc is not None
+        and expires_at_utc < now
     ):
         cf.status = FeatureRequestStatus.EXPIRED
         db.commit()
@@ -44,6 +59,50 @@ def _maybe_expire(cf: CollegeFeature, db: Session) -> None:
             "Feature %s expired for college %s (expires_at=%s)",
             cf.feature_id, cf.college_id, cf.expires_at,
         )
+    elif (
+        cf.status == FeatureRequestStatus.APPROVED_AWAITING_PAYMENT
+        and payment_due_utc is not None
+        and payment_due_utc < now
+    ):
+        cf.status = FeatureRequestStatus.APPROVAL_EXPIRED
+        db.commit()
+        feature = db.get(Feature, cf.feature_id)
+        feat_name = feature.name if feature else f"Feature #{cf.feature_id}"
+        logger.info(
+            "Feature request %s approval expired for college %s (payment_due_at=%s)",
+            cf.id, cf.college_id, cf.payment_due_at,
+        )
+        # Notify college admin
+        admin_users = db.scalars(
+            select(User).where(
+                User.college_id == cf.college_id,
+                User.user_type == UserType.ADMIN,
+                User.is_active == True,
+            )
+        ).all()
+        for adm in admin_users:
+            db.add(
+                Notification(
+                    recipient_id=adm.id,
+                    type=NotificationType.APPROVAL_EXPIRED,
+                    message=f"The 7-day payment window for feature '{feat_name}' has expired. You may submit a new request if still interested.",
+                )
+            )
+        db.commit()
+
+
+def check_all_expiries(db: Session) -> None:
+    """Scan and expire any past-due subscriptions or approval windows."""
+    candidates = db.scalars(
+        select(CollegeFeature).where(
+            CollegeFeature.status.in_([
+                FeatureRequestStatus.ACTIVE,
+                FeatureRequestStatus.APPROVED_AWAITING_PAYMENT,
+            ])
+        )
+    ).all()
+    for cf in candidates:
+        _maybe_expire(cf, db)
 
 
 def check_feature_active(db: Session, college_id: int, feature_code: str) -> bool:
