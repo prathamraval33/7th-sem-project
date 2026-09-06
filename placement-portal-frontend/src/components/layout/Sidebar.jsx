@@ -15,6 +15,7 @@ import {
   Activity,
   ShieldCheck,
   Puzzle,
+  GraduationCap,
 } from "lucide-react";
 import { useActiveFeatures } from "../../hooks/useActiveFeatures";
 
@@ -26,6 +27,7 @@ const NAV_ITEMS = {
     { label: "Drives", to: "/student/drives", icon: Briefcase },
     { label: "Tests", to: "/student/tests", icon: ListChecks, featureCode: "instant_tests" },
     { label: "Resources", to: "/student/resources", icon: BookOpen, featureCode: "study_resources" },
+    { label: "GATE & CAT Prep", to: "/student/gate-cat-prep", icon: GraduationCap, featureCode: "gate_cat_prep" },
     { label: "Mock Interview", to: "/student/mock-interview", icon: MessagesSquare, featureCode: "mock_interviews" },
     { label: "Resume", to: "/student/resume", icon: FileText },
     { label: "Resume Enhancer", to: "/student/resume-enhancer", icon: Wand2, featureCode: "resume_analyzer" },

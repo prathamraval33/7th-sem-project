@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { resourcesApi } from "../../api/resources.api";
 import { BookOpen, Video, FileText, Search } from "lucide-react";
+import { useActiveFeatures } from "../../hooks/useActiveFeatures";
 
 export default function ResourcesLibraryPage() {
+  const { isFeatureActive } = useActiveFeatures();
   const [resources, setResources] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filterCategory, setFilterCategory] = useState("all");
@@ -32,7 +34,8 @@ export default function ResourcesLibraryPage() {
     { value: "cn", label: "Computer Networks" },
     { value: "java", label: "Java" },
     { value: "python", label: "Python" },
-    { value: "interview_qna", label: "Interview Q&A" }
+    { value: "interview_qna", label: "Interview Q&A" },
+    ...(isFeatureActive("gate_cat_prep") ? [{ value: "gate_cat_prep", label: "GATE & CAT Prep" }] : [])
   ];
 
   const filteredResources = resources.filter(res => {

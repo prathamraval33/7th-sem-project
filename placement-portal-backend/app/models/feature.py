@@ -9,6 +9,7 @@ from app.db.base import Base
 
 
 class FeatureStatus(str, enum.Enum):
+    DRAFT = "draft"
     ACTIVE = "active"
     DEPRECATED = "deprecated"
 
@@ -40,7 +41,7 @@ class Feature(Base):
     # while endpoints reporting a college's already-enabled features must keep showing them.
     status: Mapped[FeatureStatus] = mapped_column(
         SAEnum(FeatureStatus, name="feature_status_enum", values_callable=lambda obj: [e.value for e in obj]),
-        default=FeatureStatus.ACTIVE,
+        default=FeatureStatus.DRAFT,
         nullable=False,
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

@@ -4,7 +4,7 @@
 // unchanged).
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { Puzzle, Pencil, Trash2, CheckCircle, ArrowLeft } from "lucide-react";
+import { Puzzle, Pencil, Trash2, CheckCircle, ArrowLeft, Rocket } from "lucide-react";
 import { format } from "date-fns";
 import { useSuperAdminStore } from "./superAdminStore";
 import StatusPill from "../../components/superadmin/StatusPill";
@@ -25,7 +25,7 @@ function FeatureFormModal({ feature, onClose }) {
   const [name, setName] = useState(feature?.name || "");
   const [description, setDescription] = useState(feature?.description || "");
   const [category, setCategory] = useState(feature?.category || "");
-  const [featureStatus, setFeatureStatus] = useState(feature?.status || "active");
+  const [featureStatus, setFeatureStatus] = useState(feature?.status || "draft");
   const [price, setPrice] = useState(feature?.price != null ? String(feature.price) : "");
   const [billingType, setBillingType] = useState(feature?.billingType || "one_time");
   const initialRoles = feature?.targetRole
@@ -155,6 +155,10 @@ function FeatureFormModal({ feature, onClose }) {
           <label className="cd-label">Feature Status</label>
           <div className="cd-radio-group" style={{ flexDirection: "row", gap: "16px" }}>
             <label className="cd-radio-option">
+              <input type="radio" name="featureStatus" checked={featureStatus === "draft"} onChange={() => setFeatureStatus("draft")} />
+              Draft (BVM only)
+            </label>
+            <label className="cd-radio-option">
               <input type="radio" name="featureStatus" checked={featureStatus === "active"} onChange={() => setFeatureStatus("active")} />
               Active
             </label>
@@ -164,7 +168,7 @@ function FeatureFormModal({ feature, onClose }) {
             </label>
           </div>
           <div className="cd-helper-text">
-            Deprecated features stay visible to colleges that already have them enabled, but stop appearing as requestable to colleges that don't.
+            Draft features are only visible to BVM (internal testing). Active features are requestable by all colleges. Deprecated features stay working for existing colleges but can't be newly requested.
           </div>
         </div>
         <div className="cd-modal__footer">
@@ -186,6 +190,8 @@ function CatalogGrid({ onSelectFeature, onEditFeature, onAddFeature }) {
   const colleges = useSuperAdminStore((s) => s.colleges);
   const collegeFeatures = useSuperAdminStore((s) => s.collegeFeatures);
   const deleteFeature = useSuperAdminStore((s) => s.deleteFeature);
+  const publishFeature = useSuperAdminStore((s) => s.publishFeature);
+  const [publishConfirmId, setPublishConfirmId] = useState(null);
 
   const totalColleges = colleges.length;
 
@@ -210,58 +216,97 @@ function CatalogGrid({ onSelectFeature, onEditFeature, onAddFeature }) {
   }
 
   return (
-    <div className="cd-feature-grid">
-      {features.map((f) => {
-        const enabledCount = adoptionFor(f.id);
-        const pct = totalColleges > 0 ? Math.round((enabledCount / totalColleges) * 100) : 0;
-        return (
-          <div
-            key={f.id}
-            className="cd-feature-card cd-feature-card--clickable"
-            onClick={() => onSelectFeature(f.id)}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelectFeature(f.id); } }}
-          >
-            <div className="cd-feature-card__actions">
+    <>
+      {/* Publish confirmation dialog */}
+      {publishConfirmId && (
+        <div className="cd-modal-backdrop" onClick={(e) => e.target === e.currentTarget && setPublishConfirmId(null)}>
+          <div className="cd-modal" role="dialog" aria-label="Publish Feature">
+            <div className="cd-modal__title">Publish to All Colleges?</div>
+            <p style={{ color: "var(--cd-text-secondary)", fontSize: 14, lineHeight: 1.6, marginBottom: 16 }}>
+              This will make <strong>{features.find(f => f.id === publishConfirmId)?.name}</strong> visible and requestable by every college on the platform. This action is significant and should only be done when the feature is ready for production use.
+            </p>
+            <div className="cd-modal__footer">
+              <button className="cd-btn cd-btn--secondary" onClick={() => setPublishConfirmId(null)}>Cancel</button>
               <button
-                className="cd-feature-card__action-btn"
-                title="Edit"
-                aria-label={`Edit ${f.name}`}
-                onClick={(e) => { e.stopPropagation(); onEditFeature(f); }}
+                className="cd-btn cd-btn--primary"
+                onClick={() => {
+                  publishFeature(publishConfirmId);
+                  setPublishConfirmId(null);
+                }}
               >
-                <Pencil size={16} />
+                <Rocket size={16} />
+                Publish to All Colleges
               </button>
-              <button
-                className="cd-feature-card__action-btn"
-                title="Delete"
-                aria-label={`Delete ${f.name}`}
-                onClick={(e) => { e.stopPropagation(); deleteFeature(f.id); }}
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
-            <div className="cd-feature-card__name">{f.name}</div>
-            <div style={{ display: "flex", gap: "6px", alignItems: "center", marginTop: 8, flexWrap: "wrap" }}>
-              {f.category && <StatusPill status="neutral" label={f.category} />}
-              <StatusPill status="info" label={f.targetRole ? `For: ${f.targetRole}` : "For: Student"} />
-              <StatusPill
-                status="role"
-                label={f.price ? `₹${f.price} (${f.billingType?.replace("_", " ")})` : "Free"}
-              />
-              {f.status === "deprecated" && <StatusPill status="rejected" label="Deprecated" />}
-            </div>
-            <div className="cd-feature-card__desc">{f.description}</div>
-            <div className="cd-feature-card__stat">
-              Enabled at {enabledCount} of {totalColleges} colleges
-            </div>
-            <div className="cd-progress-track">
-              <div className="cd-progress-track__fill" style={{ width: `${pct}%` }} />
             </div>
           </div>
-        );
-      })}
-    </div>
+        </div>
+      )}
+
+      <div className="cd-feature-grid">
+        {features.map((f) => {
+          const enabledCount = adoptionFor(f.id);
+          const pct = totalColleges > 0 ? Math.round((enabledCount / totalColleges) * 100) : 0;
+          return (
+            <div
+              key={f.id}
+              className="cd-feature-card cd-feature-card--clickable"
+              onClick={() => onSelectFeature(f.id)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelectFeature(f.id); } }}
+            >
+              <div className="cd-feature-card__actions">
+                <button
+                  className="cd-feature-card__action-btn"
+                  title="Edit"
+                  aria-label={`Edit ${f.name}`}
+                  onClick={(e) => { e.stopPropagation(); onEditFeature(f); }}
+                >
+                  <Pencil size={16} />
+                </button>
+                <button
+                  className="cd-feature-card__action-btn"
+                  title="Delete"
+                  aria-label={`Delete ${f.name}`}
+                  onClick={(e) => { e.stopPropagation(); deleteFeature(f.id); }}
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+              <div className="cd-feature-card__name">{f.name}</div>
+              <div style={{ display: "flex", gap: "6px", alignItems: "center", marginTop: 8, flexWrap: "wrap" }}>
+                {f.category && <StatusPill status="neutral" label={f.category} />}
+                <StatusPill status="info" label={f.targetRole ? `For: ${f.targetRole}` : "For: Student"} />
+                <StatusPill
+                  status="role"
+                  label={f.price ? `₹${f.price} (${f.billingType?.replace("_", " ")})` : "Free"}
+                />
+                {f.status === "draft" && <StatusPill status="draft" />}
+                {f.status === "active" && <StatusPill status="active" label="Published" />}
+                {f.status === "deprecated" && <StatusPill status="rejected" label="Deprecated" />}
+              </div>
+              <div className="cd-feature-card__desc">{f.description}</div>
+              <div className="cd-feature-card__stat">
+                Enabled at {enabledCount} of {totalColleges} colleges
+              </div>
+              <div className="cd-progress-track">
+                <div className="cd-progress-track__fill" style={{ width: `${pct}%` }} />
+              </div>
+              {f.status === "draft" && (
+                <button
+                  className="cd-btn cd-btn--primary"
+                  style={{ marginTop: 12, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+                  onClick={(e) => { e.stopPropagation(); setPublishConfirmId(f.id); }}
+                >
+                  <Rocket size={14} />
+                  Publish to All Colleges
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </>
   );
 }
 
@@ -399,6 +444,7 @@ function FeatureDetailView({ featureId, onBack, onEditFeature, onGoToRequests })
           </button>
           {feature.name}
           {feature.category && <StatusPill status="neutral" label={feature.category} />}
+          {feature.status === "draft" && <StatusPill status="draft" />}
           {feature.status === "deprecated" && <StatusPill status="rejected" label="Deprecated" />}
         </h1>
         <div className="cd-topbar__actions">

@@ -18,7 +18,7 @@ import KpiCard from "../../components/superadmin/KpiCard";
 
 export default function PlatformAnalyticsPage() {
   const colleges = useSuperAdminStore((s) => s.colleges);
-  const collegesOverTime = useSuperAdminStore((s) => s.collegesOverTime);
+  const storeCollegesOverTime = useSuperAdminStore((s) => s.collegesOverTime);
   const features = useSuperAdminStore((s) => s.features);
   const collegeFeatures = useSuperAdminStore((s) => s.collegeFeatures);
 
@@ -27,6 +27,8 @@ export default function PlatformAnalyticsPage() {
     queryFn: () => superadminApi.getAnalytics().then((res) => res.data),
     staleTime: 30 * 1000,
   });
+
+  const collegesOverTime = analyticsData?.colleges_over_time?.length ? analyticsData.colleges_over_time : storeCollegesOverTime;
 
   const totalColleges = colleges.length;
   const totalStudents = colleges.reduce((sum, c) => sum + (c.students || 0), 0);

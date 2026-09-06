@@ -42,6 +42,7 @@ import MockInterviewResultPage from "./pages/student/MockInterviewResultPage";
 import ResumeAnalyzerPage from "./pages/student/ResumeAnalyzerPage";
 import ResumeEnhancerPage from "./pages/student/ResumeEnhancerPage";
 import WeakAreasPage from "./pages/student/WeakAreasPage";
+import GateCatPrepPage from "./pages/student/GateCatPrepPage";
 
 // TPO Pages
 import TpoDashboard from "./pages/tpo/TpoDashboard";
@@ -59,7 +60,7 @@ import AdminStudentsPage from "./pages/admin/AdminStudentsPage";
 import AdminDrivesPage from "./pages/admin/AdminDrivesPage";
 import AdminFeaturesPage from "./pages/admin/AdminFeaturesPage";
 
-// SuperAdmin Pages (Phase 1 — design preview, no real backend)
+// SuperAdmin Pages (Command Deck Console)
 import ConsoleShell from "./components/superadmin/ConsoleShell";
 import SuperAdminDashboard from "./pages/superadmin/SuperAdminDashboard";
 import CollegesListPage from "./pages/superadmin/CollegesListPage";
@@ -127,6 +128,7 @@ export default function App() {
                 <Route path="/student/resume-enhancer" element={<ResumeEnhancerPage />} />
                 <Route path="/student/resume/enhance" element={<ResumeEnhancerPage />} />
                 <Route path="/student/weak-areas" element={<WeakAreasPage />} />
+                <Route path="/student/gate-cat-prep" element={<GateCatPrepPage />} />
                 
                 {/* Fallback for unbuilt student features (Phase 7) */}
                 <Route path="/student/*" element={<FoundationNotice label="Student Feature" />} />

@@ -8,6 +8,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_user, require_admin
+from app.core.feature_gating import check_feature_active
 from app.db.session import get_db
 from app.models.resource import Resource, ResourceCategory, ResourceContentType
 from app.models.user import User
@@ -23,9 +24,19 @@ def list_resources(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[Resource]:
+    # Gate GATE/CAT prep content behind the feature check
+    has_gate_cat = (
+        current_user.user_type.value == "superadmin"
+        or (current_user.college_id is not None and check_feature_active(db, current_user.college_id, "gate_cat_prep"))
+    )
+    if category == ResourceCategory.GATE_CAT_PREP and not has_gate_cat:
+        return []
+
     query = select(Resource)
     if current_user.college_id is not None and current_user.user_type.value != "superadmin":
         query = query.where(or_(Resource.college_id.is_(None), Resource.college_id == current_user.college_id))
+    if not has_gate_cat:
+        query = query.where(Resource.category != ResourceCategory.GATE_CAT_PREP)
     if category is not None:
         query = query.where(Resource.category == category)
     if content_type is not None:
@@ -50,6 +61,17 @@ def get_resource(
         and resource.college_id != current_user.college_id
     ):
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail="You do not have access to this resource")
+    # Gate GATE/CAT prep content behind the feature check
+    if resource.category == ResourceCategory.GATE_CAT_PREP:
+        college_id = current_user.college_id
+        if (
+            current_user.user_type.value != "superadmin"
+            and (college_id is None or not check_feature_active(db, college_id, "gate_cat_prep"))
+        ):
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                detail="The feature 'gate_cat_prep' is not currently active for your institution.",
+            )
     return resource
 
 

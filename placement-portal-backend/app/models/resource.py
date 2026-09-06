@@ -16,6 +16,7 @@ class ResourceCategory(str, enum.Enum):
     INTERVIEW_QNA = "interview_qna"
     JAVA = "java"
     PYTHON = "python"
+    GATE_CAT_PREP = "gate_cat_prep"
 
 
 class ResourceContentType(str, enum.Enum):

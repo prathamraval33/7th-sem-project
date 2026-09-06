@@ -613,6 +613,11 @@
   border: 1px solid #BBF7D0 !important;
 }
 
+.cd-pill--draft {
+  background: #E0E7FF !important;
+  color: #3730A3 !important;
+}
+
 .cd-pill__dot {
   width: 6px !important;
   height: 6px !important;

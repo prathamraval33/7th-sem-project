@@ -64,7 +64,7 @@ class FeatureCreate(BaseModel):
     target_role: str = Field(default="Student", max_length=100)
     price: Optional[float] = None
     billing_type: Optional[BillingType] = BillingType.ONE_TIME
-    status: FeatureStatus = FeatureStatus.ACTIVE
+    status: FeatureStatus = FeatureStatus.DRAFT
 
 
 class FeatureUpdate(BaseModel):

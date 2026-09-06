@@ -249,7 +249,7 @@ export const useSuperAdminStore = create((set, get) => ({
         target_role: targetRole || "Student",
         price: price ? Number(price) : null,
         billing_type: billingType || "one_time",
-        status: status || "active",
+        status: status || "draft",
       });
       const created = normalizeFeature(response.data);
       set((state) => ({
@@ -272,7 +272,7 @@ export const useSuperAdminStore = create((set, get) => ({
         target_role: targetRole || "Student",
         price: price ? Number(price) : null,
         billing_type: billingType || "one_time",
-        status: status || "active",
+        status: status || "draft",
       });
       const updated = normalizeFeature(response.data);
       set((state) => ({
@@ -296,6 +296,21 @@ export const useSuperAdminStore = create((set, get) => ({
       setTimeout(() => set({ toast: null }), 4000);
     } catch (error) {
       set({ toast: error?.response?.data?.detail || "Unable to delete feature." });
+      setTimeout(() => set({ toast: null }), 4000);
+    }
+  },
+
+  publishFeature: async (featureId) => {
+    try {
+      const response = await superadminApi.updateFeature(featureId, { status: "active" });
+      const updated = normalizeFeature(response.data);
+      set((state) => ({
+        features: state.features.map((feature) => (feature.id === featureId ? updated : feature)),
+        toast: `"${updated.name}" is now published and visible to all colleges.`,
+      }));
+      setTimeout(() => set({ toast: null }), 4000);
+    } catch (error) {
+      set({ toast: error?.response?.data?.detail || "Unable to publish feature." });
       setTimeout(() => set({ toast: null }), 4000);
     }
   },

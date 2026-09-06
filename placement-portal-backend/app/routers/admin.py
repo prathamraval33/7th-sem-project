@@ -536,7 +536,7 @@ def list_admin_features(
 
     features = db.scalars(
         select(Feature)
-        .where(Feature.status != FeatureStatus.DEPRECATED)
+        .where(Feature.status == FeatureStatus.ACTIVE)
         .order_by(Feature.name.asc())
     ).all()
 
@@ -608,6 +608,9 @@ def request_feature(
 
     if feature.status == FeatureStatus.DEPRECATED:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Feature is deprecated and cannot be requested")
+
+    if feature.status == FeatureStatus.DRAFT:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Feature is not yet available for request")
 
     cf = db.scalar(
         select(CollegeFeature).where(
