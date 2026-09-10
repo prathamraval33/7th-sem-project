@@ -16,6 +16,7 @@ import {
   ShieldCheck,
   Puzzle,
   GraduationCap,
+  Building2,
 } from "lucide-react";
 import { useActiveFeatures } from "../../hooks/useActiveFeatures";
 
@@ -38,19 +39,22 @@ const NAV_ITEMS = {
     { label: "Manage Drives", to: "/tpo/drives", icon: Briefcase },
     { label: "All Students", to: "/tpo/students", icon: Users },
     { label: "Tests", to: "/tpo/tests", icon: ListChecks, featureCode: "instant_tests" },
+    { label: "Curriculum Resources", to: "/tpo/curriculum", icon: BookOpen, featureCode: "study_resources" },
     { label: "Accreditation Reports", to: "/tpo/reports", icon: ShieldCheck },
     { label: "Analytics", to: "/tpo/analytics", icon: BarChart3 },
     { label: "Contact Messages", to: "/tpo/contact-messages", icon: Mail },
   ],
   admin: [
     { label: "Dashboard", to: "/admin/dashboard", icon: LayoutDashboard },
+    { label: "Curriculum Setup", to: "/admin/curriculum", icon: GraduationCap, featureCode: "study_resources" },
+    { label: "Study Materials", to: "/admin/resources", icon: BookOpen, featureCode: "study_resources" },
     { label: "All Drives", to: "/admin/drives", icon: Briefcase },
     { label: "All Students", to: "/admin/students", icon: Users },
     { label: "Activity Feed", to: "/admin/activity", icon: Activity },
-    { label: "Manage Resources", to: "/admin/resources", icon: BookOpen, featureCode: "study_resources" },
     { label: "Available Features", to: "/admin/features", icon: Puzzle },
     { label: "Contact Messages", to: "/admin/contact-messages", icon: Mail },
     { label: "Analytics", to: "/admin/analytics", icon: BarChart3 },
+    { label: "Institution Settings", to: "/admin/settings", icon: Building2 },
   ],
 };
 

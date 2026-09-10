@@ -65,9 +65,13 @@ def create_otp(db: Session, email: str, purpose: OtpPurpose) -> str:
     return plaintext_otp
 
 
+MAX_OTP_ATTEMPTS = 5
+
+
 def verify_otp(db: Session, email: str, otp: str, purpose: OtpPurpose) -> OtpVerification:
     """Validates against the most recent unused OTP for this email+purpose.
     Marks it used on success so it can never be replayed.
+    Tracks failed attempts and burns the OTP after 5 failed attempts to prevent brute-force attacks.
     """
     record = db.scalar(
         select(OtpVerification)
@@ -79,8 +83,23 @@ def verify_otp(db: Session, email: str, otp: str, purpose: OtpPurpose) -> OtpVer
         .order_by(OtpVerification.created_at.desc())
     )
 
-    if record is None or not verify_password(otp, record.otp_hash):
+    if record is None:
         raise OtpInvalidError()
+
+    if getattr(record, "failed_attempts", 0) >= MAX_OTP_ATTEMPTS:
+        record.is_used = True
+        db.commit()
+        raise OtpRateLimitError("Too many failed attempts. This OTP has been invalidated.")
+
+    if not verify_password(otp, record.otp_hash):
+        record.failed_attempts = getattr(record, "failed_attempts", 0) + 1
+        if record.failed_attempts >= MAX_OTP_ATTEMPTS:
+            record.is_used = True
+            db.commit()
+            raise OtpRateLimitError("Too many failed attempts. This OTP has been invalidated.")
+        db.commit()
+        remaining = MAX_OTP_ATTEMPTS - record.failed_attempts
+        raise OtpInvalidError(f"Invalid OTP code. {remaining} attempt(s) remaining.")
 
     expires_at = record.expires_at
     if expires_at.tzinfo is None:

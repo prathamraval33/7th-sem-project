@@ -12,7 +12,12 @@ from app.models.user import User
 from app.schemas.fee_receipt import FeeReceiptResponse, FeeVerificationStatusResponse
 from app.services import fee_receipt_service
 from app.utils.exceptions import FileValidationError
-from app.utils.file_storage import FEE_RECEIPT_EXTENSIONS, save_upload, validate_file
+from app.utils.file_storage import (
+    FEE_RECEIPT_EXTENSIONS,
+    read_upload_file_limited,
+    save_upload,
+    validate_file,
+)
 
 router = APIRouter(prefix="/fee-verification", tags=["fee-verification"])
 
@@ -23,9 +28,9 @@ async def upload_fee_receipt(
     current_user: User = Depends(require_student),
     db: Session = Depends(get_db),
 ) -> FeeReceipt:
-    file_bytes = await file.read()
     try:
-        validate_file(file.filename, len(file_bytes), FEE_RECEIPT_EXTENSIONS)
+        file_bytes = await read_upload_file_limited(file)
+        validate_file(file.filename or "", len(file_bytes), FEE_RECEIPT_EXTENSIONS, content_bytes=file_bytes)
     except FileValidationError as error:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=error.message) from error
 

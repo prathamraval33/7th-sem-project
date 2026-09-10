@@ -21,8 +21,13 @@ from app.models.feature import Feature, FeatureStatus
 from app.models.notification import Notification, NotificationType
 from app.models.profile import Profile
 from app.models.user import User, UserType
-from app.models.analytics import Analytics
-from app.schemas.admin import AdminFeatureResponse, AdminUserCreate, AdminUserUpdate
+from app.schemas.admin import (
+    AdminFeatureResponse,
+    AdminUserCreate,
+    AdminUserUpdate,
+    CollegeDomainUpdate,
+    CollegeInfoResponse,
+)
 from app.schemas.drive import DriveResponse, DriveUpdate
 from app.schemas.profile import ProfilePlacementOverrideUpdate, ProfileResponse
 
@@ -689,3 +694,82 @@ def request_feature(
         expires_at=cf.expires_at,
         is_auto_granted=cf.is_auto_granted,
     )
+
+
+@router.get("/college", response_model=CollegeInfoResponse)
+def get_college_info(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> CollegeInfoResponse:
+    """Fetch current college details and platform stats for this College Admin."""
+    cid = current_user.college_id
+    if cid is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="No college associated with this admin account")
+
+    college = db.get(College, cid)
+    if college is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="College not found")
+
+    student_count = db.scalar(
+        select(func.count(User.id)).where(User.college_id == cid, User.user_type == UserType.STUDENT)
+    ) or 0
+    tpo_count = db.scalar(
+        select(func.count(User.id)).where(User.college_id == cid, User.user_type == UserType.TPO)
+    ) or 0
+    drive_count = db.scalar(
+        select(func.count(Drive.id)).where(Drive.college_id == cid)
+    ) or 0
+    app_count = db.scalar(
+        select(func.count(Application.id)).join(Drive, Application.drive_id == Drive.id).where(Drive.college_id == cid)
+    ) or 0
+
+    return CollegeInfoResponse(
+        id=college.id,
+        name=college.name,
+        domain=college.domain,
+        status=college.status.value if hasattr(college.status, "value") else str(college.status),
+        created_at=college.created_at,
+        students=student_count,
+        tpos=tpo_count,
+        drives=drive_count,
+        applications=app_count,
+    )
+
+
+@router.patch("/college/domain", response_model=CollegeInfoResponse)
+def update_college_domain(
+    payload: CollegeDomainUpdate,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> CollegeInfoResponse:
+    """Update the institution's allowed email domain for student signups."""
+    cid = current_user.college_id
+    if cid is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="No college associated with this admin account")
+
+    college = db.get(College, cid)
+    if college is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="College not found")
+
+    new_domain = payload.domain.lower().strip()
+    if "@" in new_domain:
+        new_domain = new_domain.split("@")[-1].strip()
+
+    if "." not in new_domain or len(new_domain) < 4:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Invalid domain format. Example: college.edu or college.ac.in")
+
+    # Check for domain collisions across platform
+    existing = db.scalar(
+        select(College).where(func.lower(College.domain) == new_domain, College.id != cid)
+    )
+    if existing is not None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            detail=f"The domain '{new_domain}' is already assigned to another institution ('{existing.name}').",
+        )
+
+    college.domain = new_domain
+    db.commit()
+    db.refresh(college)
+
+    return get_college_info(current_user=current_user, db=db)

@@ -77,7 +77,7 @@ class LogoutRequest(BaseModel):
 
 
 class SignupCompleteRequest(BaseModel):
-    email: BvmEmail
+    email: EmailStr
     signup_token: str
     password: StrongPassword
 

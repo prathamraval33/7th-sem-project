@@ -34,3 +34,6 @@ class College(Base):
     drives: Mapped[list["Drive"]] = relationship(back_populates="college", cascade="all, delete-orphan")
     resources: Mapped[list["Resource"]] = relationship(back_populates="college", cascade="all, delete-orphan")
     feature_requests: Mapped[list["CollegeFeature"]] = relationship(back_populates="college", cascade="all, delete-orphan")
+    curriculum_uploads: Mapped[list["CurriculumUpload"]] = relationship(back_populates="college", cascade="all, delete-orphan")
+    curriculum_subjects: Mapped[list["CurriculumSubject"]] = relationship(back_populates="college", cascade="all, delete-orphan")
+    curated_resources: Mapped[list["CuratedSubjectResource"]] = relationship(back_populates="college", cascade="all, delete-orphan")

@@ -27,4 +27,5 @@ class OtpVerification(Base):
     purpose: Mapped[OtpPurpose] = mapped_column(SAEnum(OtpPurpose, name="otp_purpose_enum", values_callable=lambda obj: [e.value for e in obj]), nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     is_used: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    failed_attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

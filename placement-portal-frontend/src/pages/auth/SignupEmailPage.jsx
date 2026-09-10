@@ -54,7 +54,7 @@ export default function SignupEmailPage() {
             )}
             
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 mb-6">
-              Only valid <strong>@bvmengineering.ac.in</strong> emails are allowed.
+              Enter your official college email. Your institution is automatically detected from your email domain.
             </div>
 
             <Input

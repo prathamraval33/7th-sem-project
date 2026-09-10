@@ -2,7 +2,8 @@
 application tracker, and withdraw.
 """
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import require_student
@@ -51,20 +52,30 @@ def apply_to_drive(
         select(Application).where(
             Application.user_id == current_user.id,
             Application.drive_id == payload.drive_id,
-            Application.status != ApplicationStatus.WITHDRAWN,
         )
     )
     if existing is not None:
-        raise HTTPException(status.HTTP_409_CONFLICT, detail="You have already applied to this drive")
+        if existing.status != ApplicationStatus.WITHDRAWN:
+            raise HTTPException(status.HTTP_409_CONFLICT, detail="You have already applied to this drive")
+        existing.status = ApplicationStatus.ELIGIBLE if is_eligible else ApplicationStatus.NOT_ELIGIBLE
+        existing.applied_on = func.now()
+        db.commit()
+        db.refresh(existing)
+        scoring.update_analytics(db, current_user.id)
+        return existing
 
-    application = Application(
-        user_id=current_user.id,
-        drive_id=payload.drive_id,
-        status=ApplicationStatus.ELIGIBLE if is_eligible else ApplicationStatus.NOT_ELIGIBLE,
-    )
-    db.add(application)
-    db.commit()
-    db.refresh(application)
+    try:
+        application = Application(
+            user_id=current_user.id,
+            drive_id=payload.drive_id,
+            status=ApplicationStatus.ELIGIBLE if is_eligible else ApplicationStatus.NOT_ELIGIBLE,
+        )
+        db.add(application)
+        db.commit()
+        db.refresh(application)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status.HTTP_409_CONFLICT, detail="You have already applied to this drive")
 
     scoring.update_analytics(db, current_user.id)
 

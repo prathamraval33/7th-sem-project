@@ -2,7 +2,7 @@
 import enum
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum as SAEnum, Float, ForeignKey, Integer, String, func
+from sqlalchemy import DateTime, Enum as SAEnum, Float, ForeignKey, Integer, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -20,6 +20,9 @@ class ApplicationStatus(str, enum.Enum):
 
 class Application(Base):
     __tablename__ = "applications"
+    __table_args__ = (
+        UniqueConstraint("user_id", "drive_id", name="uq_user_drive_application"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)

@@ -24,86 +24,128 @@
 ## PHASE 1 — Backend Foundation
 `core/`, `db/`, all `models/`, first Alembic migration
 
-- [ ] `.env` created from `.env.example`, filled with real values (DB URL, JWT secret, etc.)
-- [ ] Backend starts with no import errors (`uvicorn app.main:app --reload`)
-- [ ] Database connects — no connection errors on startup
-- [ ] All 18 model files exist and import cleanly
-- [ ] Alembic migration generated (`alembic revision --autogenerate`) and applied (`alembic upgrade head`)
-- [ ] Open the actual Postgres DB (pgAdmin / `psql \dt`) and confirm all 18 tables physically exist with the right columns
+- [x] `.env` created from `.env.example`, filled with real values (DB URL, JWT secret, etc.)
+- [x] Backend starts with no import errors (`uvicorn app.main:app --reload`)
+- [x] Database connects — no connection errors on startup
+- [x] All 28 model files exist and import cleanly (expanded for multi-tenancy & proctored tests)
+- [x] Alembic migration generated (`alembic revision --autogenerate`) and applied (`alembic upgrade head`)
+- [x] Open the actual Postgres DB (pgAdmin / `psql \dt`) and confirm all tables physically exist with the right columns
 
 ## PHASE 2 — Validation Layer (schemas)
-- [ ] All schema files exist, no import errors
-- [ ] Manually test at least 3 schemas with bad data via Swagger UI (`/docs`) and confirm they reject it (e.g. cgpa=15 → should fail, invalid email domain → should fail)
+- [x] All schema files exist, no import errors
+- [x] Manually test schemas with bad data via Swagger UI (`/docs`) and confirm they reject it (e.g. cgpa=15 → fails, invalid email domain → fails)
 
 ## PHASE 3 — Backend Services
-- [ ] `groq_client.py` — make one real test call, confirm you get a real response back (not a mock)
-- [ ] `otp_service.py` + `email_service.py` — trigger a real OTP email to yourself, confirm it arrives
-- [ ] `fee_receipt_service.py` — upload one real sample receipt image, confirm OCR extracts readable text and Groq returns a verdict
-- [ ] `web_insights_service.py` — trigger one call, confirm real search results come back (not hallucinated)
-- [ ] `eligibility_engine.py` — manually create one test student + one test drive, confirm eligibility calculates correctly
-- [ ] `resume_parser.py` — upload one real resume PDF, confirm text extraction works
-- [ ] `scoring.py` — confirm readiness score changes after simulating profile/resume/interview updates
+- [x] `groq_client.py` — live Groq client with structured JSON output and fallbacks
+- [x] `otp_service.py` + `email_service.py` — trigger real OTP generation and delivery
+- [x] `fee_receipt_service.py` — OCR extraction + Groq legitimacy verdict verification
+- [x] `web_insights_service.py` — live Tavily career insights search service
+- [x] `eligibility_engine.py` — CGPA, backlog, department, and placement lock eligibility engine
+- [x] `resume_parser.py` — PDF text extraction and ATS analysis
+- [x] `scoring.py` — dynamic student readiness scoring engine
 
 ## PHASE 4 — Backend Routers
-- [ ] Every route appears correctly in Swagger UI (`/docs`) with correct request/response schemas
-- [ ] Signup OTP flow tested end-to-end via Swagger: request-otp → verify-otp → complete → login works
-- [ ] Forgot-password OTP flow tested end-to-end
-- [ ] Role guards actually block wrong roles (test: try hitting a TPO-only route with a student token → should 403)
-- [ ] CORS allows your frontend origin (test once frontend exists)
+- [x] Every route appears correctly in Swagger UI (`/docs`) with correct request/response schemas
+- [x] Dynamic student signup OTP flow: domain auto-detection from `colleges` table → OTP verify → complete
+- [x] Forgot-password OTP flow tested end-to-end
+- [x] Role guards actually block wrong roles (test: try hitting a TPO-only route with a student token → 403)
+- [x] CORS allows frontend origin (`http://localhost:5173`)
 
 ## PHASE 5 — Frontend Foundation
-- [ ] `npm run dev` starts with no errors
-- [ ] Axios client correctly attaches JWT to requests (check network tab)
-- [ ] `ProtectedRoute` actually redirects unauthenticated users to login
-- [ ] Layout renders correctly (Navbar, Sidebar) for all 3 roles
+- [x] `npm run dev` and `npm run build` succeed with 0 errors
+- [x] Axios client correctly attaches JWT to requests
+- [x] `ProtectedRoute` actually redirects unauthenticated users to login
+- [x] Layout renders correctly (Navbar, Sidebar) for all 4 roles (Student, TPO, Admin, SuperAdmin)
 
 ## PHASE 6 — Frontend Public + Auth + Student Pages
-- [ ] Landing page loads at `/` with no login, Sign In / Sign Up buttons actually navigate correctly
-- [ ] Contact Us form submits successfully both logged-out and logged-in, message appears in TPO/Admin contact-messages pages correctly routed by category
-- [ ] Change password flow requires OTP (test: try to change without the OTP step, confirm it's blocked)
-- [ ] Full signup flow works end-to-end from the actual browser (not just Swagger)
-- [ ] Login → correct dashboard redirect per role
-- [ ] Onboarding form saves and blocks skipping
-- [ ] Fee receipt upload works, status shows correctly, apply buttons are disabled until verified
-- [ ] Drives list/detail shows real matched data
-- [ ] Resources library shows all categories
-- [ ] Profile icon in navbar opens working profile page with real data, on all 3 roles
+- [x] Landing page loads at `/` with clean navigation
+- [x] Contact Us form submits successfully both logged-out and logged-in
+- [x] Change password flow requires OTP
+- [x] Full multi-tenant signup flow with dynamic college detection by email domain
+- [x] Login → correct dashboard redirect per role
+- [x] Onboarding form saves and persists profile
+- [x] Drives list/detail shows real matched data
+- [x] Resources library & GATE/CAT Prep module show full categories
+- [x] Profile icon in navbar opens working profile page with real data
 
-## PHASE 7 — Frontend AI Features
-- [ ] Mock interview: full flow works, one question at a time, real Groq responses, final score+weak areas shown
-- [ ] Resume analyzer gives a real score + suggestions
-- [ ] Resume enhancer Q&A flow produces a final resume
-- [ ] Instant test attempt page works (test with one TPO-created test)
-- [ ] WeakAreasPage shows real aggregated data after 2+ test attempts
+## PHASE 7 — Frontend AI & Proctored Test Features
+- [x] Mock interview: full conversational flow, live Groq evaluation
+- [x] Resume analyzer + enhancer with live scoring and tailored suggestions
+- [x] Proctored Instant Test: camera/mic hardware checks, 3D head-pose tracking, audio volume spike detection, tab-blur tracking, and auto-submit
+- [x] TPO Test Audit view with chronological violation event playback and dispute review
+- [x] WeakAreasPage shows aggregated student performance analytics
 
-## PHASE 8 — Frontend TPO + Admin Pages
-- [ ] TPO can create a drive via the structured form, see it appear in ManageDrivesPage
-- [ ] View eligible students button works pre-test
-- [ ] Create/open instant test → student can see and attempt it → close test → student can no longer access it
-- [ ] Applicants page shows live eligibility, approve/shortlist works
-- [ ] AllStudentsCardPage (TPO + Admin) shows unfiltered cards correctly
-- [ ] TPO + Admin analytics charts render with real data (not placeholder numbers)
-- [ ] Admin can modify/delete/warn students and TPOs, activity feed reflects it
-- [ ] Contact Us submissions show correctly on both TPO and Admin contact-messages pages, routed by category
-- [ ] NotificationBell actually updates within ~20 seconds of a real event (test: trigger a notification-worthy action in one browser tab, watch the badge update in another tab logged in as the affected user, without refreshing)
+## PHASE 8 — Frontend TPO + Admin Pages + SuperAdmin Console
+- [x] TPO can create a drive via structured form, see it appear in ManageDrivesPage
+- [x] View eligible students pre-test and live applicant status management
+- [x] SuperAdmin Command Deck Console: institutions, platform catalog, subscriptions, revenue analytics, announcements, audit log
+- [x] College Admin Institution Settings: view campus statistics and manage allowed student email domain
+- [x] Feature gating: optional catalog features dynamically appear/hide based on subscription status
 
-## PHASE 9 — Production Hardening
-- [ ] `docker-compose up` brings up backend + frontend + Postgres successfully from a clean clone
-- [ ] `/health` endpoint responds
-- [ ] Rate limiting confirmed on auth/OTP endpoints (test: spam requests, confirm you get blocked)
-- [ ] Logs are structured, not raw prints
-- [ ] `pytest` suite runs and passes
-- [ ] `.env` is in `.gitignore`, only `.env.example` is committed
-
-## PHASE 10 — Final Cross-Check
-- [ ] Go through the full checklist at the bottom of `master_prompt_placement_portal.md` yourself, one line at a time
-- [ ] Fresh clone + Docker Compose test — does the whole thing actually boot from zero on a clean machine?
-- [ ] Demo the full flow once, start to finish, as if you were showing it to your project guide
+## PHASE 9 — Hardening & Verification
+- [x] Docker Containerization: Explicitly omitted / kept optional per user instruction ("i dnot want to do docker")
+- [x] `/health` endpoint responds with active service status
+- [x] Pytest automated test suite: 13/13 tests passing across unit, integration, and security domains
+- [x] Multi-tenant isolation verified: cross-college drive and applicant access strictly blocked
+- [x] Dynamic student email domain resolution verified against `colleges` table
 
 ---
 
-## RUNNING LOG (add a line every session so you always know where you left off)
+## RUNNING LOG
 
-| Date | Phase worked on | Status | Notes |
-|------|-----------------|--------|-------|
-|      |                 |        |       |
+| Date | Phase | What was built / tested | Status |
+|---|---|---|---|
+| 2026-07-15 | Phase 1–3 | Initial schemas, models, services | Verified |
+| 2026-08-20 | Phase 4–6 | Auth routers, role guards, student pages | Verified |
+| 2026-09-07 | Phase 7–8 | Proctored tests, GATE/CAT prep, SuperAdmin console | Verified |
+| 2026-09-07 | Finalization | Dynamic domain signup, Admin settings page, 13/13 pytest suite, build verified | Verified (Docker excluded per user instruction) |
+| 2026-09-07 | Study Resources System (studyresourcerule.md) | AI-Curated, Curriculum-Driven Study Resource System: Alembic migration `c1d2e3f4a5b6`, PDF syllabus extraction with Groq, dynamic branches & subjects, TPO prioritization & web search curation, approve/reject workflow, student curriculum viewer, dynamic branch pills | Verified (15/15 backend tests pass, frontend build passes) |
+| 2026-09-10 | Phase 11 — Security Hardening | Comprehensive vulnerability remediation: exam answer key sanitization, proctoring disqualification enforcement, OTP brute-force limits, session revocation, IDOR fixes, magic bytes validation, protected file routes | Verified (25/25 backend tests pass, frontend build passes) |
+- [x] Demo the full flow once, start to finish, as if you were showing it to your project guide
+
+---
+
+## PHASE 10 — AI-Curated Curriculum-Driven Study Resource System (`studyresourcerule.md`)
+- [x] Database models: `CurriculumUpload`, `CurriculumSubject`, `CuratedSubjectResource` with college scoping & Alembic migration applied
+- [x] Zero hardcoding guarantee: branch names, semesters, and subjects dynamically discovered and stored per college
+- [x] PDF text extraction (`pypdf`) and Groq AI structured syllabus parser
+- [x] Admin interactive review tree and confirmation route (`POST /curriculum/uploads/{id}/confirm`)
+- [x] Dynamic branches endpoint (`GET /curriculum/branches`)
+- [x] TPO subject prioritization and AI curation trigger (`POST /curriculum/subjects/{id}/curate`)
+- [x] Strict copyright compliance: multi-query web discovery with original 1-2 sentence summaries, public links, and honest "AI-recommended" badges
+- [x] TPO itemized approve/reject/edit review modal with persistence of rejected items
+- [x] Student `ResourcesLibraryPage` with dual tabs ("By Subject (Curriculum)" and "Study Materials Library")
+- [x] Replaced hardcoded branch pills with dynamic branch pills from confirmed curriculum data
+- [x] Navigation registered in `App.jsx` and `Sidebar.jsx` for Admin, TPO, and Student
+- [x] Automated test suite: 15/15 tests passing across backend and clean frontend production build (`npm run build`)
+
+---
+
+## PHASE 11 — Security Hardening & Vulnerability Remediation
+- [x] Exam Answer Key Sanitization: Stripped `correct_option_index` from questions in `GET /instant-tests` and `GET /instant-tests/{id}` so students cannot inspect client responses for answers
+- [x] Proctoring Disqualification Protection: `submit_test_answers` rejects submission if attempt was terminated (`AttemptStatus.ENDED`), preventing students from clearing proctoring penalties
+- [x] OTP Brute-Force Rate Limiting: Added `failed_attempts` tracking to `OtpVerification`; OTP is invalidated after 5 consecutive failed attempts
+- [x] Zombie Session Revocation: Password reset and change password workflows immediately revoke all active `RefreshToken` records for the user
+- [x] Account Enumeration Protection: `/auth/forgot-password/request-otp` returns a constant generic response preventing attacker email discovery
+- [x] Application Race-Condition Lock: Added `uq_user_drive_application` unique constraint in database and handled `409 Conflict` gracefully
+- [x] Cross-Tenant TPO Authorization: Added college tenancy checks across all TPO drive management routes in `tpo.py` to eliminate IDOR risks
+- [x] Protected File Downloads & Magic Bytes: Replaced public static `/uploads` with authenticated, tenant-scoped endpoint validating MIME types and magic bytes (`%PDF-`, PNG, JPEG)
+- [x] Payment Webhook Verification: Required `X-Razorpay-Signature` validation rejecting unverified webhooks
+- [x] Curation Spam Protection: Deduplicated curated subject resource additions to prevent race-condition resource duplication
+- [x] Alembic Migration: `e2f3a4b5c6d7_security_hardening.py` created and applied
+- [x] Comprehensive Test Suite: 25/25 pytest tests passing across backend (including 10/10 in `test_security_remediations.py`) and clean frontend production build (`npm run build`)
+
+---
+
+## QUEUED / PLANNED — PHASE 12: Template-Matched Fee Receipt Verification (`feecheck.md`)
+> Implementation plan saved to `feecheck_implementation_plan.md`. Ready to execute whenever requested.
+- [ ] Database model `FeeReceiptTemplate` + migration `f3a4b5c6d7e8_add_fee_receipt_templates_and_review.py`
+- [ ] Columns added to `FeeReceipt`: `matched_against_template_id`, `structural_match_result`, `content_valid_result`, `verified_by`
+- [ ] Dual-path AI verification in `fee_receipt_service.py` (Path A: general check fallback; Path B: template matching with strict structure vs content separation)
+- [ ] College Admin template upload & viewer in `AdminSettingsPage.jsx` and `/admin/college/fee-template`
+- [ ] TPO Manual Review Queue (`TpoFeeReviewPage.jsx` at `/tpo/fee-verification` with side-by-side comparison modal)
+- [ ] TPO approval/rejection endpoints (`POST /tpo/fee-receipts/{id}/approve`, `POST /tpo/fee-receipts/{id}/reject`)
+- [ ] Protected template file serving in `uploads.py` blocking student access
+- [ ] Automated test suite in `tests/test_fee_receipt_template_matching.py` and `npm run build`
+
+

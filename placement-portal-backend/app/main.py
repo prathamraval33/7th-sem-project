@@ -7,7 +7,6 @@ import os
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.db.base import Base
@@ -20,6 +19,7 @@ from app.routers import (
     auth,
     branches,
     contact,
+    curriculum,
     drives,
     fee_verification,
     insights,
@@ -35,6 +35,7 @@ from app.routers import (
     superadmin,
     tpo,
     tpo_reports,
+    uploads,
 )
 from app.utils.exceptions import AppError
 
@@ -46,7 +47,6 @@ app = FastAPI(title="Placement Portal API", version="1.0.0")
 
 uploads_dir = os.path.join(os.getcwd(), "uploads")
 os.makedirs(uploads_dir, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
 FRONTEND_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
@@ -105,6 +105,7 @@ app.include_router(resume_analyzer.router)
 app.include_router(resume_enhancer.router)
 app.include_router(instant_test.router)
 app.include_router(resources.router)
+app.include_router(curriculum.router)
 app.include_router(notifications.router)
 app.include_router(insights.router)
 app.include_router(contact.router)
@@ -115,3 +116,4 @@ app.include_router(superadmin.router)
 app.include_router(analytics.router)
 app.include_router(payments.router)
 app.include_router(payments.api_router)
+app.include_router(uploads.router)

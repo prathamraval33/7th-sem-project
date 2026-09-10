@@ -53,12 +53,16 @@ import PastTestsPage from "./pages/tpo/PastTestsPage";
 import TpoReportsPage from "./pages/tpo/TpoReportsPage";
 import ContactMessagesPage from "./pages/tpo/ContactMessagesPage";
 import AnalyticsPage from "./pages/tpo/AnalyticsPage";
+import TpoCurriculumPage from "./pages/tpo/TpoCurriculumPage";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminCurriculumPage from "./pages/admin/AdminCurriculumPage";
+import AdminResourcesPage from "./pages/admin/AdminResourcesPage";
 import AdminStudentsPage from "./pages/admin/AdminStudentsPage";
 import AdminDrivesPage from "./pages/admin/AdminDrivesPage";
 import AdminFeaturesPage from "./pages/admin/AdminFeaturesPage";
+import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
 
 // SuperAdmin Pages (Command Deck Console)
 import ConsoleShell from "./components/superadmin/ConsoleShell";
@@ -149,6 +153,7 @@ export default function App() {
                 <Route path="/tpo/instant-tests/history" element={<PastTestsPage />} />
                 <Route path="/tpo/contact-messages" element={<ContactMessagesPage />} />
                 <Route path="/tpo/analytics" element={<AnalyticsPage />} />
+                <Route path="/tpo/curriculum" element={<TpoCurriculumPage />} />
                 <Route path="/tpo/profile" element={<ProfilePage />} />
                 <Route path="/tpo/change-password" element={<ChangePasswordPage />} />
                 <Route path="/tpo/*" element={<FoundationNotice label="TPO Feature" />} />
@@ -159,9 +164,12 @@ export default function App() {
             <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]} />}>
               <Route element={<DashboardLayout />}>
                 <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                <Route path="/admin/curriculum" element={<AdminCurriculumPage />} />
+                <Route path="/admin/resources" element={<AdminResourcesPage />} />
                 <Route path="/admin/students" element={<AdminStudentsPage />} />
                 <Route path="/admin/drives" element={<AdminDrivesPage />} />
                 <Route path="/admin/features" element={<AdminFeaturesPage />} />
+                <Route path="/admin/settings" element={<AdminSettingsPage />} />
                 <Route path="/admin/profile" element={<ProfilePage />} />
                 <Route path="/admin/change-password" element={<ChangePasswordPage />} />
                 <Route path="/admin/*" element={<FoundationNotice label="Admin Dashboard" />} />

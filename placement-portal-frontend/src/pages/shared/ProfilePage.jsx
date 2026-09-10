@@ -8,6 +8,7 @@ import Button from "../../components/common/Button";
 import Input from "../../components/common/Input";
 import { User, Mail, Shield, BadgeCheck, FileText, Upload } from "lucide-react";
 import { ROLES } from "../../utils/constants";
+import { getAccessToken } from "../../utils/tokenStorage";
 import ChangePasswordPage from "../auth/ChangePasswordPage";
 import { showToast, showError } from "../../utils/swal";
 
@@ -293,7 +294,7 @@ export default function ProfilePage() {
                             
                             <div className="flex items-center space-x-2">
                               <a
-                                href={`http://localhost:8000/uploads/${activeResume.file_path.replace("uploads/", "").replace("uploads\\", "").replace("\\", "/")}`}
+                                href={`http://localhost:8000/uploads/${activeResume.file_path.replace("uploads/", "").replace("uploads\\", "").replace("\\", "/")}?token=${getAccessToken() || ""}`}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-bold text-blue-700 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors shadow-sm"

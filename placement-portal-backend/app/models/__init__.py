@@ -23,6 +23,13 @@ from app.models.instant_test import InstantTest, InstantTestStatus
 from app.models.test_attempt import TestAttempt, AttemptStatus, AttemptEndedReason
 from app.models.test_violation import TestViolation, ViolationType
 from app.models.resource import Resource, ResourceCategory, ResourceContentType
+from app.models.curriculum_upload import CurriculumUpload, CurriculumExtractionStatus
+from app.models.curriculum_subject import CurriculumSubject
+from app.models.curated_subject_resource import (
+    CuratedSubjectResource,
+    SubjectResourceType,
+    CurationApprovalStatus,
+)
 from app.models.refresh_token import RefreshToken
 from app.models.notification import Notification, NotificationType
 from app.models.analytics import Analytics
@@ -38,6 +45,12 @@ __all__ = [
     "FeatureStatus",
     "BillingType",
     "CollegeFeature",
+    "CurriculumUpload",
+    "CurriculumExtractionStatus",
+    "CurriculumSubject",
+    "CuratedSubjectResource",
+    "SubjectResourceType",
+    "CurationApprovalStatus",
     "FeatureRequestStatus",
     "Transaction",
     "TransactionStatus",

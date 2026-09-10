@@ -12,7 +12,13 @@ from app.models.user import User
 from app.schemas.resume import ResumeResponse
 from app.services import resume_parser, scoring
 from app.utils.exceptions import FileValidationError
-from app.utils.file_storage import RESUME_EXTENSIONS, delete_file, save_upload, validate_file
+from app.utils.file_storage import (
+    RESUME_EXTENSIONS,
+    delete_file,
+    read_upload_file_limited,
+    save_upload,
+    validate_file,
+)
 
 router = APIRouter(prefix="/student", tags=["resume"])
 
@@ -23,9 +29,9 @@ async def upload_resume(
     current_user: User = Depends(require_student),
     db: Session = Depends(get_db),
 ) -> Resume:
-    file_bytes = await file.read()
     try:
-        validate_file(file.filename, len(file_bytes), RESUME_EXTENSIONS)
+        file_bytes = await read_upload_file_limited(file)
+        validate_file(file.filename or "", len(file_bytes), RESUME_EXTENSIONS, content_bytes=file_bytes)
     except FileValidationError as error:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=error.message) from error
 

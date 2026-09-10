@@ -46,3 +46,19 @@ class AdminFeatureResponse(BaseModel):
     expires_at: Optional[datetime] = None
     is_auto_granted: bool = False
 
+
+class CollegeInfoResponse(BaseModel):
+    id: int
+    name: str
+    domain: str
+    status: str
+    created_at: datetime
+    students: int = 0
+    tpos: int = 0
+    drives: int = 0
+    applications: int = 0
+
+
+class CollegeDomainUpdate(BaseModel):
+    domain: str = Field(min_length=3, max_length=255)
+

@@ -20,11 +20,23 @@ from app.db.session import SessionLocal, engine, get_db
 from app.main import app
 
 
+from app.models.college import College, CollegeStatus
+
+
 @pytest.fixture()
 def db_session() -> Generator:
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     session = SessionLocal()
+    # Seed default active college for test flows
+    default_college = College(
+        id=1,
+        name="Birla Vishvakarma Mahavidyalaya (BVM)",
+        domain="bvmengineering.ac.in",
+        status=CollegeStatus.ACTIVE,
+    )
+    session.add(default_college)
+    session.commit()
     try:
         yield session
     finally:

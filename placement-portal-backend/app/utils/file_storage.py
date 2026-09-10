@@ -14,12 +14,31 @@ MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024  # 5MB, per the master prompt's security r
 RESUME_EXTENSIONS = {".pdf"}
 FEE_RECEIPT_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png"}
 
+MAGIC_BYTES: dict[str, list[bytes]] = {
+    ".pdf": [b"%PDF-"],
+    ".png": [b"\x89PNG\r\n\x1a\n"],
+    ".jpg": [b"\xff\xd8\xff"],
+    ".jpeg": [b"\xff\xd8\xff"],
+}
+
 
 def _safe_extension(filename: str) -> str:
     return Path(filename).suffix.lower()
 
 
-def validate_file(filename: str, size_bytes: int, allowed_extensions: set[str]) -> None:
+def validate_magic_bytes(extension: str, content: bytes) -> bool:
+    signatures = MAGIC_BYTES.get(extension.lower())
+    if not signatures:
+        return True
+    return any(content.startswith(sig) for sig in signatures)
+
+
+def validate_file(
+    filename: str,
+    size_bytes: int,
+    allowed_extensions: set[str],
+    content_bytes: bytes | None = None,
+) -> None:
     extension = _safe_extension(filename)
     if extension not in allowed_extensions:
         raise FileValidationError(
@@ -27,6 +46,24 @@ def validate_file(filename: str, size_bytes: int, allowed_extensions: set[str]) 
         )
     if size_bytes > MAX_FILE_SIZE_BYTES:
         raise FileValidationError(f"File exceeds the {MAX_FILE_SIZE_BYTES // (1024 * 1024)}MB limit")
+
+    if content_bytes is not None and len(content_bytes) > 0:
+        if not validate_magic_bytes(extension, content_bytes):
+            raise FileValidationError(f"File content does not match the expected format for '{extension}'")
+
+
+async def read_upload_file_limited(file, max_bytes: int = MAX_FILE_SIZE_BYTES) -> bytes:
+    """Reads an UploadFile in 64KB chunks to prevent unbounded memory allocation/DoS."""
+    chunk_size = 64 * 1024
+    total_bytes = bytearray()
+    while True:
+        chunk = await file.read(chunk_size)
+        if not chunk:
+            break
+        total_bytes.extend(chunk)
+        if len(total_bytes) > max_bytes:
+            raise FileValidationError(f"File exceeds the {max_bytes // (1024 * 1024)}MB limit")
+    return bytes(total_bytes)
 
 
 def save_upload(file_bytes: bytes, original_filename: str, subfolder: str) -> str:

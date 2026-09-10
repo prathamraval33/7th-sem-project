@@ -160,6 +160,28 @@ def create_drive(
     return drive
 
 
+def _verify_drive_access(drive: Drive, current_user: User) -> None:
+    if (
+        current_user.college_id is not None
+        and drive.college_id is not None
+        and drive.college_id != current_user.college_id
+    ):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="You do not have access to this drive")
+
+
+def _verify_test_access(test: InstantTest, current_user: User, db: Session) -> None:
+    if current_user.college_id is None:
+        return
+    if test.drive_id is not None:
+        drive = db.get(Drive, test.drive_id)
+        if drive is not None:
+            _verify_drive_access(drive, current_user)
+            return
+    creator = db.get(User, test.created_by)
+    if creator is not None and creator.college_id is not None and creator.college_id != current_user.college_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="You do not have access to this test")
+
+
 @router.patch("/drives/{drive_id}", response_model=DriveResponse)
 def update_drive(
     drive_id: int, payload: DriveUpdate, current_user: User = Depends(require_tpo), db: Session = Depends(get_db)
@@ -167,6 +189,7 @@ def update_drive(
     drive = db.scalar(select(Drive).options(joinedload(Drive.company)).where(Drive.id == drive_id))
     if drive is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Drive not found")
+    _verify_drive_access(drive, current_user)
 
     if payload.deadline is not None:
         now_utc = datetime.now(timezone.utc)
@@ -279,6 +302,7 @@ def get_drive_applicants(
     drive = db.get(Drive, drive_id)
     if drive is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Drive not found")
+    _verify_drive_access(drive, current_user)
 
     applications = db.scalars(
         select(Application)
@@ -330,6 +354,10 @@ def update_application_status(
     if application is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Application not found")
 
+    drive = db.get(Drive, application.drive_id)
+    if drive is not None:
+        _verify_drive_access(drive, current_user)
+
     for field_name, value in payload.model_dump(exclude_unset=True).items():
         setattr(application, field_name, value)
 
@@ -359,6 +387,7 @@ def close_drive(drive_id: int, current_user: User = Depends(require_tpo), db: Se
     drive = db.get(Drive, drive_id)
     if drive is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Drive not found")
+    _verify_drive_access(drive, current_user)
 
     drive.status = DriveStatus.CLOSED
 
@@ -379,6 +408,11 @@ def close_drive(drive_id: int, current_user: User = Depends(require_tpo), db: Se
 def remove_student_from_drive(
     drive_id: int, user_id: int, current_user: User = Depends(require_tpo), db: Session = Depends(get_db)
 ) -> None:
+    drive = db.get(Drive, drive_id)
+    if drive is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Drive not found")
+    _verify_drive_access(drive, current_user)
+
     application = db.scalar(
         select(Application).where(Application.drive_id == drive_id, Application.user_id == user_id)
     )
@@ -432,6 +466,7 @@ async def create_instant_test(
     drive = db.get(Drive, drive_id)
     if drive is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Drive not found")
+    _verify_drive_access(drive, current_user)
 
     questions = payload.questions
     if not questions and payload.prompt_config:
@@ -472,6 +507,14 @@ def get_attempt_violations(
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Attempt not found")
 
     student_user = db.get(User, attempt.user_id)
+    if (
+        student_user is not None
+        and current_user.college_id is not None
+        and student_user.college_id is not None
+        and student_user.college_id != current_user.college_id
+    ):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="You do not have access to this student's violations")
+
     student_profile = db.scalar(select(Profile).where(Profile.user_id == attempt.user_id))
 
     violations = db.scalars(
@@ -515,6 +558,7 @@ def get_instant_test_results(
     test = db.get(InstantTest, test_id)
     if test is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Test not found")
+    _verify_test_access(test, current_user, db)
 
     attempts = db.scalars(
         select(TestAttempt).where(TestAttempt.test_id == test_id).order_by(TestAttempt.score.desc())
@@ -557,6 +601,7 @@ def get_drive_analytics(drive_id: int, current_user: User = Depends(require_tpo)
     drive = db.get(Drive, drive_id)
     if drive is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Drive not found")
+    _verify_drive_access(drive, current_user)
 
     apps = db.scalars(select(Application).where(Application.drive_id == drive_id)).all()
     total_applicants = len(apps)
@@ -588,6 +633,7 @@ def get_instant_test_analytics(
     test = db.get(InstantTest, test_id)
     if test is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Test not found")
+    _verify_test_access(test, current_user, db)
 
     attempts = db.scalars(select(TestAttempt).where(TestAttempt.test_id == test_id)).all()
     total_attempts = len(attempts)
@@ -624,6 +670,7 @@ def close_instant_test(
     test = db.get(InstantTest, test_id)
     if test is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Test not found")
+    _verify_test_access(test, current_user, db)
 
     test.status = InstantTestStatus.CLOSED
     if test.drive_id is not None:

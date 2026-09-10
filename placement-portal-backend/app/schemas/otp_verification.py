@@ -11,9 +11,9 @@ from app.schemas.common import BvmEmail, OtpCode
 
 
 class SignupRequestOtp(BaseModel):
-    """Only the signup flow is domain-restricted to BVM students."""
+    """Student signup OTP request — validated dynamically against registered college domains."""
 
-    email: BvmEmail
+    email: EmailStr
 
 
 class OtpEmailRequest(BaseModel):

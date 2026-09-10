@@ -7,8 +7,10 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from jose import JWTError
-from sqlalchemy import select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
+
+from app.models.college import College, CollegeStatus
 
 from app.core.config import settings
 from app.core.dependencies import get_current_user
@@ -77,8 +79,33 @@ def _issue_tokens(db: Session, user: User) -> TokenResponse:
     return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
 
+def _resolve_college_for_email(db: Session, email: str) -> College:
+    parts = email.split("@")
+    if len(parts) != 2 or not parts[1]:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail="Invalid email format.",
+        )
+    domain = parts[1].lower().strip()
+    college = db.scalar(
+        select(College).where(
+            func.lower(College.domain) == domain,
+            College.status == CollegeStatus.ACTIVE,
+        )
+    )
+    if college is None:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail=f"The email domain '{domain}' is not registered with any active institution on this platform.",
+        )
+    return college
+
+
 @router.post("/signup/request-otp", response_model=OtpActionResponse)
 async def signup_request_otp(payload: SignupRequestOtp, db: Session = Depends(get_db)) -> OtpActionResponse:
+    # Validate that the student's email domain matches an active onboarded college
+    _resolve_college_for_email(db, payload.email)
+
     existing = db.scalar(select(User).where(User.email == payload.email))
     if existing is not None:
         raise HTTPException(status.HTTP_409_CONFLICT, detail="An account with this email already exists")
@@ -113,6 +140,8 @@ def signup_complete(payload: SignupCompleteRequest, db: Session = Depends(get_db
     if verified_email.lower() != payload.email.lower():
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Signup token does not match this email")
 
+    college = _resolve_college_for_email(db, payload.email)
+
     existing = db.scalar(select(User).where(User.email == payload.email))
     if existing is not None:
         raise HTTPException(status.HTTP_409_CONFLICT, detail="An account with this email already exists")
@@ -122,6 +151,7 @@ def signup_complete(payload: SignupCompleteRequest, db: Session = Depends(get_db
         hashed_password=hash_password(payload.password),
         user_type=UserType.STUDENT,
         is_email_verified=True,
+        college_id=college.id,
     )
     db.add(user)
     db.commit()
@@ -302,6 +332,11 @@ def change_password_complete(
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Current password is incorrect")
 
     current_user.hashed_password = hash_password(payload.new_password)
+    db.execute(
+        update(RefreshToken)
+        .where(RefreshToken.user_id == current_user.id)
+        .values(is_revoked=True)
+    )
     db.commit()
 
     return OtpActionResponse(message="Password changed successfully")
@@ -311,7 +346,7 @@ def change_password_complete(
 async def forgot_password_request_otp(payload: OtpEmailRequest, db: Session = Depends(get_db)) -> OtpActionResponse:
     user = db.scalar(select(User).where(User.email == payload.email))
     if user is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="No account found with this email")
+        return OtpActionResponse(message="If an account exists with this email, an OTP has been sent.")
 
     try:
         otp = otp_service.create_otp(db, payload.email, OtpPurpose.FORGOT_PASSWORD)
@@ -350,6 +385,11 @@ def forgot_password_reset(payload: ForgotPasswordResetRequest, db: Session = Dep
     user.hashed_password = hash_password(payload.new_password)
     user.failed_login_attempts = 0
     user.locked_until = None
+    db.execute(
+        update(RefreshToken)
+        .where(RefreshToken.user_id == user.id)
+        .values(is_revoked=True)
+    )
     db.commit()
 
     return OtpActionResponse(message="Password reset successfully")

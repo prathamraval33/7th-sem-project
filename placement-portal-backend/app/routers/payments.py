@@ -262,18 +262,28 @@ async def razorpay_webhook(request: Request, db: Session = Depends(get_db)) -> d
     """
     body = await request.body()
 
-    # Verify webhook signature if a secret is configured
+    # Verify webhook signature unconditionally
     webhook_secret = settings.RAZORPAY_WEBHOOK_SECRET
-    if webhook_secret:
-        signature = request.headers.get("X-Razorpay-Signature", "")
-        expected = hmac.new(
-            webhook_secret.encode(),
-            body,
-            hashlib.sha256,
-        ).hexdigest()
-        if not hmac.compare_digest(expected, signature):
-            logger.warning("Webhook signature verification failed")
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Invalid webhook signature")
+    if not webhook_secret:
+        logger.error("Razorpay webhook received but RAZORPAY_WEBHOOK_SECRET is not configured")
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Webhook verification is not configured on this server",
+        )
+
+    signature = request.headers.get("X-Razorpay-Signature", "")
+    if not signature:
+        logger.warning("Webhook rejected: missing X-Razorpay-Signature header")
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Missing X-Razorpay-Signature header")
+
+    expected = hmac.new(
+        webhook_secret.encode(),
+        body,
+        hashlib.sha256,
+    ).hexdigest()
+    if not hmac.compare_digest(expected, signature):
+        logger.warning("Webhook signature verification failed")
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Invalid webhook signature")
 
     try:
         payload = json.loads(body)

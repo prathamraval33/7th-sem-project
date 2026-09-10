@@ -11,6 +11,10 @@ export const bvmEmailSchema = z
   .email("Invalid email address")
   .regex(/@bvmengineering\.ac\.in$/i, "Email must be a valid @bvmengineering.ac.in address");
 
+export const studentEmailSchema = z
+  .string()
+  .email("Invalid email address");
+
 export const otpSchema = z
   .string()
   .length(6, "OTP must be exactly 6 digits")
@@ -23,16 +27,16 @@ export const loginSchema = z.object({
 });
 
 export const signupEmailSchema = z.object({
-  email: bvmEmailSchema,
+  email: studentEmailSchema,
 });
 
 export const signupOtpSchema = z.object({
-  email: bvmEmailSchema,
+  email: studentEmailSchema,
   otp: otpSchema,
 });
 
 export const signupPasswordSchema = z.object({
-  email: bvmEmailSchema,
+  email: studentEmailSchema,
   password: passwordSchema,
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {

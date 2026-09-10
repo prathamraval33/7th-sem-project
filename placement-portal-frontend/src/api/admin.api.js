@@ -29,4 +29,8 @@ export const adminApi = {
   requestFeature: (featureId) => axiosClient.post(`/admin/features/${featureId}/request`),
   createPaymentOrder: (payload) => axiosClient.post("/payments/create-order", payload),
   verifyPayment: (payload) => axiosClient.post("/payments/verify", payload),
+
+  // Institution Settings & Allowed Domains
+  getCollegeInfo: () => axiosClient.get("/admin/college"),
+  updateCollegeDomain: (domain) => axiosClient.patch("/admin/college/domain", { domain }),
 };

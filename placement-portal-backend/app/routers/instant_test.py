@@ -45,6 +45,30 @@ def _ensure_attemptable(test: InstantTest, db: Session, current_user: User | Non
                 raise HTTPException(status.HTTP_403_FORBIDDEN, detail="You do not have access to this test")
 
 
+def _sanitize_test_for_student(test: InstantTest) -> dict[str, Any]:
+    """Strips correct answers from test questions for preview/listing before an attempt starts."""
+    sanitized_questions = []
+    for q in (test.questions or []):
+        q_copy = dict(q)
+        q_copy.pop("correct_option_index", None)
+        sanitized_questions.append(q_copy)
+
+    return {
+        "id": test.id,
+        "title": test.title,
+        "duration_minutes": test.duration_minutes,
+        "is_practice": test.is_practice,
+        "drive_id": test.drive_id,
+        "created_by": test.created_by,
+        "prompt_config": test.prompt_config or {},
+        "questions": sanitized_questions,
+        "min_passing_marks": test.min_passing_marks,
+        "use_top_n": test.use_top_n,
+        "top_n_count": test.top_n_count,
+        "status": test.status,
+    }
+
+
 @router.get("", response_model=dict[str, list[InstantTestResponse]])
 def list_student_tests(
     current_user: User = Depends(require_student),
@@ -63,8 +87,8 @@ def list_student_tests(
                 continue
         filtered_tests.append(t)
 
-    practice_tests = [t for t in filtered_tests if t.is_practice]
-    official_tests = [t for t in filtered_tests if not t.is_practice]
+    practice_tests = [_sanitize_test_for_student(t) for t in filtered_tests if t.is_practice]
+    official_tests = [_sanitize_test_for_student(t) for t in filtered_tests if not t.is_practice]
 
     return {
         "practice_tests": practice_tests,
@@ -77,12 +101,12 @@ def get_instant_test(
     test_id: int,
     current_user: User = Depends(require_student),
     db: Session = Depends(get_db),
-) -> InstantTest:
+) -> dict[str, Any]:
     test = db.get(InstantTest, test_id)
     if test is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Test not found")
     _ensure_attemptable(test, db, current_user)
-    return test
+    return _sanitize_test_for_student(test)
 
 
 @router.post("/{test_id}/start", response_model=TestAttemptStartResponse)
@@ -356,6 +380,16 @@ def submit_test_attempt(
 
     if attempt.status == AttemptStatus.COMPLETED:
         return {"status": "already_completed", "score": attempt.score}
+
+    if attempt.status == AttemptStatus.ENDED:
+        reason = attempt.ended_reason.value if attempt.ended_reason else "terminated"
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail=f"This test session was terminated ({reason}) and cannot be submitted.",
+        )
+
+    if attempt.status != AttemptStatus.IN_PROGRESS:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Test session is not active")
 
     # Grade objective answers
     questions = test.questions
