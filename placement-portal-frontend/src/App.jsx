@@ -54,6 +54,7 @@ import TpoReportsPage from "./pages/tpo/TpoReportsPage";
 import ContactMessagesPage from "./pages/tpo/ContactMessagesPage";
 import AnalyticsPage from "./pages/tpo/AnalyticsPage";
 import TpoCurriculumPage from "./pages/tpo/TpoCurriculumPage";
+import TpoFeeReviewPage from "./pages/tpo/TpoFeeReviewPage";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -154,6 +155,7 @@ export default function App() {
                 <Route path="/tpo/contact-messages" element={<ContactMessagesPage />} />
                 <Route path="/tpo/analytics" element={<AnalyticsPage />} />
                 <Route path="/tpo/curriculum" element={<TpoCurriculumPage />} />
+                <Route path="/tpo/fee-verification" element={<TpoFeeReviewPage />} />
                 <Route path="/tpo/profile" element={<ProfilePage />} />
                 <Route path="/tpo/change-password" element={<ChangePasswordPage />} />
                 <Route path="/tpo/*" element={<FoundationNotice label="TPO Feature" />} />

@@ -10,6 +10,7 @@ from app.models.announcement import Announcement
 from app.models.audit_log import AuditLog
 from app.models.otp_verification import OtpVerification, OtpPurpose
 from app.models.fee_receipt import FeeReceipt, FeeVerdict
+from app.models.fee_receipt_template import FeeReceiptTemplate
 from app.models.profile import Profile
 from app.models.branch import Branch
 from app.models.resume import Resume, ResumeSource
@@ -60,6 +61,7 @@ __all__ = [
     "OtpPurpose",
     "FeeReceipt",
     "FeeVerdict",
+    "FeeReceiptTemplate",
     "Profile",
     "Branch",
     "Resume",

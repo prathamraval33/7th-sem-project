@@ -17,6 +17,7 @@ import {
   Puzzle,
   GraduationCap,
   Building2,
+  FileCheck,
 } from "lucide-react";
 import { useActiveFeatures } from "../../hooks/useActiveFeatures";
 
@@ -39,6 +40,7 @@ const NAV_ITEMS = {
     { label: "Manage Drives", to: "/tpo/drives", icon: Briefcase },
     { label: "All Students", to: "/tpo/students", icon: Users },
     { label: "Tests", to: "/tpo/tests", icon: ListChecks, featureCode: "instant_tests" },
+    { label: "Fee Verification", to: "/tpo/fee-verification", icon: FileCheck },
     { label: "Curriculum Resources", to: "/tpo/curriculum", icon: BookOpen, featureCode: "study_resources" },
     { label: "Accreditation Reports", to: "/tpo/reports", icon: ShieldCheck },
     { label: "Analytics", to: "/tpo/analytics", icon: BarChart3 },

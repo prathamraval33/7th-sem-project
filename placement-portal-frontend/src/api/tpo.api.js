@@ -47,4 +47,9 @@ export const tpoApi = {
       responseType: "blob",
       headers: { Accept: "text/html" },
     }),
+
+  // Fee Receipt Verification Review Queue
+  getPendingFeeReceipts: () => axiosClient.get("/tpo/fee-receipts/pending"),
+  approveFeeReceipt: (receiptId) => axiosClient.post(`/tpo/fee-receipts/${receiptId}/approve`),
+  rejectFeeReceipt: (receiptId, payload) => axiosClient.post(`/tpo/fee-receipts/${receiptId}/reject`, payload),
 };

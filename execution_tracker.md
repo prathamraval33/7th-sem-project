@@ -101,6 +101,7 @@
 | 2026-09-07 | Finalization | Dynamic domain signup, Admin settings page, 13/13 pytest suite, build verified | Verified (Docker excluded per user instruction) |
 | 2026-09-07 | Study Resources System (studyresourcerule.md) | AI-Curated, Curriculum-Driven Study Resource System: Alembic migration `c1d2e3f4a5b6`, PDF syllabus extraction with Groq, dynamic branches & subjects, TPO prioritization & web search curation, approve/reject workflow, student curriculum viewer, dynamic branch pills | Verified (15/15 backend tests pass, frontend build passes) |
 | 2026-09-10 | Phase 11 — Security Hardening | Comprehensive vulnerability remediation: exam answer key sanitization, proctoring disqualification enforcement, OTP brute-force limits, session revocation, IDOR fixes, magic bytes validation, protected file routes | Verified (25/25 backend tests pass, frontend build passes) |
+| 2026-09-11 | Phase 12 — Template-Matched Fee Verification (`feecheck.md`) | `FeeReceiptTemplate` + migrations `f3a4b5c6d7e8` & `g4b5c6d7e8f9`, dual-path AI verification (Path A general fallback, Path B multi-template matching with strict structure vs content separation), multi-template management with names/toggles & OCR preview, fixed callout banner CSS contrast, TPO review queue with side-by-side comparison modal, student review status, tenant isolation & protected uploads | Verified (32/32 backend tests pass, frontend build passes) |
 - [x] Demo the full flow once, start to finish, as if you were showing it to your project guide
 
 ---
@@ -137,15 +138,14 @@
 
 ---
 
-## QUEUED / PLANNED — PHASE 12: Template-Matched Fee Receipt Verification (`feecheck.md`)
-> Implementation plan saved to `feecheck_implementation_plan.md`. Ready to execute whenever requested.
-- [ ] Database model `FeeReceiptTemplate` + migration `f3a4b5c6d7e8_add_fee_receipt_templates_and_review.py`
-- [ ] Columns added to `FeeReceipt`: `matched_against_template_id`, `structural_match_result`, `content_valid_result`, `verified_by`
-- [ ] Dual-path AI verification in `fee_receipt_service.py` (Path A: general check fallback; Path B: template matching with strict structure vs content separation)
-- [ ] College Admin template upload & viewer in `AdminSettingsPage.jsx` and `/admin/college/fee-template`
-- [ ] TPO Manual Review Queue (`TpoFeeReviewPage.jsx` at `/tpo/fee-verification` with side-by-side comparison modal)
-- [ ] TPO approval/rejection endpoints (`POST /tpo/fee-receipts/{id}/approve`, `POST /tpo/fee-receipts/{id}/reject`)
-- [ ] Protected template file serving in `uploads.py` blocking student access
-- [ ] Automated test suite in `tests/test_fee_receipt_template_matching.py` and `npm run build`
-
-
+## PHASE 12 — Template-Matched Fee Receipt Verification (`feecheck.md`)
+- [x] Database model `FeeReceiptTemplate` + migrations `f3a4b5c6d7e8_add_fee_receipt_templates_and_review.py` & `g4b5c6d7e8f9_add_template_name_to_fee_receipt_templates.py`
+- [x] Columns added to `FeeReceipt`: `matched_against_template_id`, `structural_match_result`, `content_valid_result`, `verified_by`
+- [x] Dual-path AI verification in `fee_receipt_service.py` (Path A: general check fallback; Path B: multi-template matching with strict structure vs content separation)
+- [x] Multi-template support: Colleges can configure, label (e.g. Tuition, Hostel, Exam), toggle active/inactive, and delete multiple reference receipt templates
+- [x] High-contrast, theme-adaptive CSS on Admin template guidance callout banner
+- [x] College Admin template management & OCR preview in `AdminSettingsPage.jsx` and `/admin/college/fee-templates`
+- [x] TPO Manual Review Queue (`TpoFeeReviewPage.jsx` at `/tpo/fee-verification` with side-by-side comparison modal displaying matched template name)
+- [x] TPO approval/rejection endpoints (`POST /tpo/fee-receipts/{id}/approve`, `POST /tpo/fee-receipts/{id}/reject`)
+- [x] Protected template file serving in `uploads.py` blocking student access
+- [x] Automated test suite in `tests/test_fee_receipt_template_matching.py` (32/32 tests passing) and `npm run build` clean build

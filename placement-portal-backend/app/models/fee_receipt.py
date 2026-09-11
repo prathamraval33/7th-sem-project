@@ -2,7 +2,7 @@
 import enum
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum as SAEnum, Float, ForeignKey, Integer, String, Text, func
+from sqlalchemy import DateTime, Enum as SAEnum, Float, ForeignKey, Integer, JSON, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -26,4 +26,15 @@ class FeeReceipt(Base):
     verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
-    user: Mapped["User"] = relationship(back_populates="fee_receipts")
+    # Template-matched verification & TPO manual review extensions
+    matched_against_template_id: Mapped[int | None] = mapped_column(
+        ForeignKey("fee_receipt_templates.id", ondelete="SET NULL"), nullable=True
+    )
+    structural_match_result: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    content_valid_result: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    verified_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+
+    user: Mapped["User"] = relationship(back_populates="fee_receipts", foreign_keys=[user_id])
+    matched_template: Mapped["FeeReceiptTemplate | None"] = relationship(foreign_keys=[matched_against_template_id])
+    verifier: Mapped["User | None"] = relationship(foreign_keys=[verified_by])
+

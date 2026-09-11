@@ -4,7 +4,7 @@ import { studentApi } from "../../api/student.api";
 import { useAuth } from "../../auth/useAuth";
 import Button from "../../components/common/Button";
 import FileUploadInput from "../../components/forms/FileUploadInput";
-import { FileCheck2, AlertCircle, ShieldAlert, FileText, CheckCircle2 } from "lucide-react";
+import { FileCheck2, AlertCircle, ShieldAlert, FileText, CheckCircle2, Clock } from "lucide-react";
 
 export default function FeeReceiptUploadPage() {
   const { user, refreshUser } = useAuth();
@@ -60,6 +60,9 @@ export default function FeeReceiptUploadPage() {
   }
 
   const isVerified = user?.fee_verified;
+  const latestReceipt = status?.latest_receipt;
+  const isPendingReview = !isVerified && latestReceipt && !latestReceipt.verified_at && !latestReceipt.ai_reason?.startsWith("Manual TPO rejection");
+  const isRejected = !isVerified && latestReceipt && (latestReceipt.ai_verdict === "invalid" || latestReceipt.ai_reason?.startsWith("Manual TPO rejection"));
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 font-sans">
@@ -85,7 +88,7 @@ export default function FeeReceiptUploadPage() {
             <div>
               <h3 className="font-semibold text-amber-900">Verification Required</h3>
               <p className="text-sm text-amber-800 mt-1">
-                You cannot apply to any drives until your placement fee is verified. Our AI system will scan your receipt for legitimacy.
+                You cannot apply to any drives until your placement fee is verified. Our system will evaluate your receipt against your college&apos;s standard format.
               </p>
             </div>
           </div>
@@ -96,13 +99,35 @@ export default function FeeReceiptUploadPage() {
               Upload Receipt
             </h3>
             
-            {status && status.ai_verdict === false && (
-              <div className="mb-6 bg-red-50 border border-red-200 p-4 rounded-lg">
+            {/* Pending TPO Review State */}
+            {isPendingReview && (
+              <div className="mb-6 bg-amber-50/80 border border-amber-200 p-4 rounded-xl flex items-start gap-3">
+                <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <h4 className="font-semibold text-amber-900 text-sm">Receipt Under Review by Placement Officer</h4>
+                  <p className="text-sm text-amber-800">
+                    Your previous receipt submission was flagged for manual review by your college TPO.
+                  </p>
+                  {latestReceipt.ai_reason && (
+                    <p className="text-xs text-amber-700 italic pt-0.5">Note: {latestReceipt.ai_reason}</p>
+                  )}
+                  <p className="text-xs text-amber-600 pt-1">
+                    You will receive an in-portal notification once verified. You may also upload a new, clearer receipt below to replace it.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Rejection Feedback State */}
+            {!isPendingReview && isRejected && (
+              <div className="mb-6 bg-red-50 border border-red-200 p-4 rounded-xl">
                 <h4 className="font-semibold text-red-800 flex items-center text-sm">
                   <AlertCircle className="w-4 h-4 mr-1.5" /> Previous Upload Rejected
                 </h4>
-                <p className="text-sm text-red-700 mt-1">Reason: {status.ai_reason}</p>
-                <p className="text-xs text-red-600 mt-2">Please upload a clearer, valid receipt.</p>
+                <p className="text-sm text-red-700 mt-1">
+                  Reason: {latestReceipt.ai_reason || "The receipt format or details could not be validated."}
+                </p>
+                <p className="text-xs text-red-600 mt-2">Please upload a clearer, valid fee receipt below.</p>
               </div>
             )}
 

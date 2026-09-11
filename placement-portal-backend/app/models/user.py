@@ -44,7 +44,9 @@ class User(Base):
     )
 
     # One-to-many
-    fee_receipts: Mapped[list["FeeReceipt"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    fee_receipts: Mapped[list["FeeReceipt"]] = relationship(
+        back_populates="user", foreign_keys="[FeeReceipt.user_id]", cascade="all, delete-orphan"
+    )
     resumes: Mapped[list["Resume"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     applications: Mapped[list["Application"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     interview_sessions: Mapped[list["InterviewSession"]] = relationship(

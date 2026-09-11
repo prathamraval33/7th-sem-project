@@ -16,12 +16,15 @@ from app.db.session import get_db
 from app.models.application import Application, ApplicationStatus
 from app.models.company import Company
 from app.models.drive import Drive, DriveStatus, DriveTestStatus
+from app.models.fee_receipt import FeeReceipt
+from app.models.fee_receipt_template import FeeReceiptTemplate
 from app.models.instant_test import InstantTest, InstantTestStatus
 from app.models.notification import Notification, NotificationType
 from app.models.profile import Profile
 from app.models.test_attempt import TestAttempt
 from app.models.user import User, UserType
 from app.models.analytics import Analytics
+from app.schemas.fee_receipt import TpoFeeRejectRequest, TpoFeeReviewItemResponse
 from app.schemas.application import ApplicationResponse, ApplicationUpdate
 from app.schemas.company import CompanyCreate, CompanyResponse
 from app.schemas.drive import DriveCreate, DriveResponse, DriveUpdate
@@ -821,3 +824,143 @@ def toggle_placement_override(
     db.commit()
     db.refresh(profile)
     return profile
+
+
+# --------------------------------------------------------------------------
+# Fee Receipt Verification Review Queue & Manual Override
+# --------------------------------------------------------------------------
+@router.get("/fee-receipts/pending", response_model=list[TpoFeeReviewItemResponse])
+def get_pending_fee_receipts(
+    current_user: User = Depends(require_tpo),
+    db: Session = Depends(get_db),
+) -> list[TpoFeeReviewItemResponse]:
+    """List fee receipts submitted by students in the TPO's college that are
+    unverified and awaiting manual review.
+    """
+    if current_user.college_id is None:
+        return []
+
+    stmt = (
+        select(FeeReceipt, User, Profile, FeeReceiptTemplate)
+        .join(User, FeeReceipt.user_id == User.id)
+        .outerjoin(Profile, Profile.user_id == User.id)
+        .outerjoin(FeeReceiptTemplate, FeeReceipt.matched_against_template_id == FeeReceiptTemplate.id)
+        .where(
+            User.college_id == current_user.college_id,
+            User.fee_verified == False,
+            FeeReceipt.verified_at.is_(None),
+        )
+        .order_by(FeeReceipt.created_at.desc())
+    )
+
+    rows = db.execute(stmt).all()
+    results = []
+    for receipt, student, profile, template in rows:
+        student_name = profile.full_name if profile and profile.full_name else student.email
+        results.append(
+            TpoFeeReviewItemResponse(
+                id=receipt.id,
+                user_id=student.id,
+                student_name=student_name,
+                student_email=student.email,
+                roll_number=profile.student_id if profile else None,
+                branch=profile.branch if profile else None,
+                file_path=receipt.file_path,
+                extracted_text=receipt.extracted_text,
+                ai_verdict=receipt.ai_verdict,
+                ai_confidence=receipt.ai_confidence,
+                ai_reason=receipt.ai_reason,
+                structural_match_result=receipt.structural_match_result,
+                content_valid_result=receipt.content_valid_result,
+                matched_against_template_id=receipt.matched_against_template_id,
+                template_name=(template.template_name or template.original_filename) if template else None,
+                template_file_path=template.file_path if template else None,
+                created_at=receipt.created_at,
+            )
+        )
+    return results
+
+
+@router.post("/fee-receipts/{receipt_id}/approve")
+def approve_fee_receipt(
+    receipt_id: int,
+    current_user: User = Depends(require_tpo),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Manually approve a student's fee receipt, setting user.fee_verified = True
+    and recording the TPO as the verifier.
+    """
+    receipt = db.get(FeeReceipt, receipt_id)
+    if receipt is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Fee receipt not found")
+
+    student = db.get(User, receipt.user_id)
+    if student is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Student not found")
+
+    if (
+        current_user.college_id is not None
+        and student.college_id is not None
+        and student.college_id != current_user.college_id
+    ):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Access denied to student from another college")
+
+    receipt.verified_at = datetime.now(timezone.utc)
+    receipt.verified_by = current_user.id
+    student.fee_verified = True
+
+    db.add(
+        Notification(
+            recipient_id=student.id,
+            sender_id=current_user.id,
+            type=NotificationType.NOTICE,
+            message="Your placement fee receipt has been manually reviewed and approved by the Placement Office. You can now apply to drives.",
+        )
+    )
+    db.commit()
+
+    return {"message": "Receipt approved successfully", "receipt_id": receipt.id}
+
+
+@router.post("/fee-receipts/{receipt_id}/reject")
+def reject_fee_receipt(
+    receipt_id: int,
+    payload: TpoFeeRejectRequest = TpoFeeRejectRequest(),
+    current_user: User = Depends(require_tpo),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Manually reject a student's fee receipt, recording the TPO's rejection feedback
+    and notifying the student.
+    """
+    receipt = db.get(FeeReceipt, receipt_id)
+    if receipt is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Fee receipt not found")
+
+    student = db.get(User, receipt.user_id)
+    if student is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Student not found")
+
+    if (
+        current_user.college_id is not None
+        and student.college_id is not None
+        and student.college_id != current_user.college_id
+    ):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Access denied to student from another college")
+
+    student.fee_verified = False
+    receipt.verified_by = current_user.id
+    rejection_reason = payload.reason or "The uploaded receipt could not be verified by the Placement Office."
+    receipt.ai_reason = f"Manual TPO rejection: {rejection_reason}"
+
+    db.add(
+        Notification(
+            recipient_id=student.id,
+            sender_id=current_user.id,
+            type=NotificationType.NOTICE,
+            message=f"Your placement fee receipt was rejected: {rejection_reason}",
+        )
+    )
+    db.commit()
+
+    return {"message": "Receipt rejected", "receipt_id": receipt.id}
+

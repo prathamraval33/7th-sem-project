@@ -33,4 +33,17 @@ export const adminApi = {
   // Institution Settings & Allowed Domains
   getCollegeInfo: () => axiosClient.get("/admin/college"),
   updateCollegeDomain: (domain) => axiosClient.patch("/admin/college/domain", { domain }),
+
+  // Reference Sample Fee Templates (Multi-template support)
+  getFeeTemplates: () => axiosClient.get("/admin/college/fee-templates"),
+  getFeeTemplate: () => axiosClient.get("/admin/college/fee-template"),
+  uploadFeeTemplate: (formData) =>
+    axiosClient.post("/admin/college/fee-template", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
+  toggleFeeTemplateActive: (templateId) =>
+    axiosClient.patch(`/admin/college/fee-templates/${templateId}/toggle-active`),
+  deleteFeeTemplateById: (templateId) =>
+    axiosClient.delete(`/admin/college/fee-templates/${templateId}`),
+  deleteFeeTemplate: () => axiosClient.delete("/admin/college/fee-template"),
 };

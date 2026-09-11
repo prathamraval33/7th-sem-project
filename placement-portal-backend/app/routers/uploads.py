@@ -11,13 +11,14 @@ from app.core.security import decode_token
 from app.db.session import get_db
 from app.models.curriculum_upload import CurriculumUpload
 from app.models.fee_receipt import FeeReceipt
+from app.models.fee_receipt_template import FeeReceiptTemplate
 from app.models.resume import Resume
 from app.models.user import User, UserType
 from app.utils.file_storage import UPLOAD_ROOT
 
 router = APIRouter(prefix="/uploads", tags=["uploads"])
 
-ALLOWED_SUBFOLDERS = {"resumes", "fee_receipts", "curriculum"}
+ALLOWED_SUBFOLDERS = {"resumes", "fee_receipts", "curriculum", "fee_receipt_templates"}
 
 
 def _authenticate_request(request: Request, token_query: str | None, db: Session) -> User:
@@ -123,5 +124,21 @@ def serve_protected_file(
         if upload is not None and user.user_type != UserType.SUPERADMIN:
             if upload.college_id != user.college_id:
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+
+    elif subfolder == "fee_receipt_templates":
+        if user.user_type == UserType.STUDENT:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to reference template")
+
+        template = db.scalar(
+            select(FeeReceiptTemplate).where(
+                (FeeReceiptTemplate.file_path == rel_key) | FeeReceiptTemplate.file_path.endswith(file_name)
+            )
+        )
+        if template is not None and user.user_type != UserType.SUPERADMIN:
+            if template.college_id != user.college_id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access denied to reference template from another college",
+                )
 
     return FileResponse(path=str(target_path))

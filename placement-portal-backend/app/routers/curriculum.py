@@ -58,6 +58,7 @@ async def upload_curriculum_document(
     if cid is None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Admin account is not associated with an institution.")
 
+    filename = file.filename or "curriculum.pdf"
     try:
         file_bytes = await read_upload_file_limited(file, max_bytes=MAX_CURRICULUM_BYTES)
         validate_file(filename, len(file_bytes), {".pdf"}, content_bytes=file_bytes)

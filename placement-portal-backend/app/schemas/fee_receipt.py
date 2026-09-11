@@ -29,6 +29,10 @@ class FeeReceiptResponse(BaseModel):
     ai_reason: Optional[str] = None
     verified_at: Optional[datetime] = None
     created_at: datetime
+    matched_against_template_id: Optional[int] = None
+    structural_match_result: Optional[dict] = None
+    content_valid_result: Optional[dict] = None
+    verified_by: Optional[int] = None
 
 
 class FeeVerificationStatusResponse(BaseModel):
@@ -38,3 +42,42 @@ class FeeVerificationStatusResponse(BaseModel):
 
     fee_verified: bool
     latest_receipt: Optional[FeeReceiptResponse] = None
+
+
+class FeeReceiptTemplateResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    college_id: int
+    template_name: Optional[str] = None
+    file_path: str
+    original_filename: Optional[str] = None
+    extracted_text: Optional[str] = None
+    uploaded_by: int
+    is_active: bool
+    created_at: datetime
+
+
+class TpoFeeReviewItemResponse(BaseModel):
+    id: int
+    user_id: int
+    student_name: str
+    student_email: str
+    roll_number: Optional[str] = None
+    branch: Optional[str] = None
+    file_path: str
+    extracted_text: Optional[str] = None
+    ai_verdict: Optional[FeeVerdict] = None
+    ai_confidence: Optional[float] = None
+    ai_reason: Optional[str] = None
+    structural_match_result: Optional[dict] = None
+    content_valid_result: Optional[dict] = None
+    matched_against_template_id: Optional[int] = None
+    template_name: Optional[str] = None
+    template_file_path: Optional[str] = None
+    created_at: datetime
+
+
+class TpoFeeRejectRequest(BaseModel):
+    reason: Optional[str] = "The uploaded receipt could not be verified. Please provide a clear, valid institution receipt."
+

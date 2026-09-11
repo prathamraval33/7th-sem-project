@@ -4,15 +4,27 @@ feed, and global analytics.
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session, joinedload
+
+from app.models.fee_receipt_template import FeeReceiptTemplate
+from app.schemas.fee_receipt import FeeReceiptTemplateResponse
+from app.services import fee_receipt_service
+from app.utils.exceptions import FileValidationError
+from app.utils.file_storage import (
+    FEE_RECEIPT_EXTENSIONS,
+    read_upload_file_limited,
+    save_upload,
+    validate_file,
+)
 
 from app.core.dependencies import require_admin
 from app.core.feature_gating import _maybe_expire
 from app.core.security import hash_password
 from app.db.session import get_db
+from app.models.analytics import Analytics
 from app.models.application import Application, ApplicationStatus
 from app.models.college import College
 from app.models.college_feature import CollegeFeature, FeatureRequestStatus
@@ -773,3 +785,154 @@ def update_college_domain(
     db.refresh(college)
 
     return get_college_info(current_user=current_user, db=db)
+
+
+# --------------------------------------------------------------------------
+# College Fee Receipt Templates (Reference samples for template matching)
+# --------------------------------------------------------------------------
+@router.post("/college/fee-template", response_model=FeeReceiptTemplateResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/college/fee-templates", response_model=FeeReceiptTemplateResponse, status_code=status.HTTP_201_CREATED)
+async def upload_college_fee_template(
+    file: UploadFile = File(...),
+    template_name: Optional[str] = Form(None),
+    deactivate_others: bool = Form(False),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> FeeReceiptTemplate:
+    """Upload an official reference fee receipt sample for the admin's college.
+    Runs OCR and stores extracted text for student template-matching.
+    Supports multiple active templates per institution.
+    """
+    if current_user.college_id is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="No college associated with this admin account")
+
+    try:
+        file_bytes = await read_upload_file_limited(file)
+        validate_file(file.filename or "", len(file_bytes), FEE_RECEIPT_EXTENSIONS, content_bytes=file_bytes)
+    except FileValidationError as error:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=error.message) from error
+
+    relative_path = save_upload(file_bytes, file.filename, subfolder="fee_receipt_templates")
+    extracted_text = fee_receipt_service.extract_receipt_text(relative_path)
+
+    # If admin explicitly asked to deactivate others (replace all mode)
+    if deactivate_others:
+        previous_templates = db.scalars(
+            select(FeeReceiptTemplate).where(
+                FeeReceiptTemplate.college_id == current_user.college_id,
+                FeeReceiptTemplate.is_active == True,
+            )
+        ).all()
+        for t in previous_templates:
+            t.is_active = False
+
+    cleaned_name = (template_name.strip() if template_name and template_name.strip() else None) or (
+        file.filename.rsplit(".", 1)[0].replace("_", " ").title() if file.filename else "Official Fee Receipt"
+    )
+
+    template = FeeReceiptTemplate(
+        college_id=current_user.college_id,
+        template_name=cleaned_name,
+        file_path=relative_path,
+        original_filename=file.filename,
+        extracted_text=extracted_text,
+        uploaded_by=current_user.id,
+        is_active=True,
+    )
+    db.add(template)
+    db.commit()
+    db.refresh(template)
+
+    return template
+
+
+@router.get("/college/fee-templates", response_model=list[FeeReceiptTemplateResponse])
+def list_college_fee_templates(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> list[FeeReceiptTemplate]:
+    """Retrieve all reference sample templates for the admin's college, newest first."""
+    if current_user.college_id is None:
+        return []
+
+    templates = db.scalars(
+        select(FeeReceiptTemplate)
+        .where(FeeReceiptTemplate.college_id == current_user.college_id)
+        .order_by(FeeReceiptTemplate.created_at.desc())
+    ).all()
+    return list(templates)
+
+
+@router.get("/college/fee-template", response_model=Optional[FeeReceiptTemplateResponse])
+def get_college_fee_template(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> Optional[FeeReceiptTemplate]:
+    """Retrieve the primary/latest active reference sample template for the admin's college."""
+    if current_user.college_id is None:
+        return None
+
+    template = db.scalar(
+        select(FeeReceiptTemplate)
+        .where(
+            FeeReceiptTemplate.college_id == current_user.college_id,
+            FeeReceiptTemplate.is_active == True,
+        )
+        .order_by(FeeReceiptTemplate.created_at.desc())
+    )
+    return template
+
+
+@router.patch("/college/fee-templates/{template_id}/toggle-active", response_model=FeeReceiptTemplateResponse)
+def toggle_college_fee_template_active(
+    template_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> FeeReceiptTemplate:
+    """Toggles active/inactive status for a specific template."""
+    template = db.get(FeeReceiptTemplate, template_id)
+    if not template or template.college_id != current_user.college_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Template not found")
+
+    template.is_active = not template.is_active
+    db.commit()
+    db.refresh(template)
+    return template
+
+
+@router.delete("/college/fee-templates/{template_id}", status_code=status.HTTP_200_OK)
+def delete_college_fee_template_by_id(
+    template_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Deletes a specific reference template for this college."""
+    template = db.get(FeeReceiptTemplate, template_id)
+    if not template or template.college_id != current_user.college_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Template not found")
+
+    db.delete(template)
+    db.commit()
+    return {"message": "Template removed successfully", "template_id": template_id}
+
+
+@router.delete("/college/fee-template", status_code=status.HTTP_200_OK)
+def deactivate_college_fee_template(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Deactivates all active reference sample templates for this college."""
+    if current_user.college_id is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="No college associated with this admin account")
+
+    templates = db.scalars(
+        select(FeeReceiptTemplate).where(
+            FeeReceiptTemplate.college_id == current_user.college_id,
+            FeeReceiptTemplate.is_active == True,
+        )
+    ).all()
+    for t in templates:
+        t.is_active = False
+    db.commit()
+    return {"message": "All reference samples deactivated"}
+
