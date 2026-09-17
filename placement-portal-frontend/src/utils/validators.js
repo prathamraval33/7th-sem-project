@@ -90,3 +90,39 @@ export const contactUsSchema = z.object({
   category: z.enum(["general", "placement"]),
   message: z.string().min(10, "Message must be at least 10 characters long"),
 });
+
+// --- College Self-Service Onboarding Schemas ---
+const BLOCKED_DOMAINS = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "icloud.com", "proton.me", "protonmail.com"];
+
+export const collegeRegistrationRequestSchema = z.object({
+  college_name: z.string().min(3, "College name must be at least 3 characters"),
+  admin_name: z.string().min(2, "Administrator name must be at least 2 characters"),
+  email: z
+    .string()
+    .email("Invalid email address")
+    .refine((val) => {
+      const parts = val.toLowerCase().split("@");
+      if (parts.length !== 2) return true;
+      return !BLOCKED_DOMAINS.includes(parts[1].trim());
+    }, {
+      message: "Public/free email domains (gmail, yahoo, etc.) are not accepted. Please use your official institution email.",
+    }),
+  mobile: z
+    .string()
+    .regex(/^[0-9]{10}$/, "Mobile number must be exactly 10 digits")
+    .optional()
+    .or(z.literal("")),
+});
+
+export const collegeRegistrationOtpSchema = z.object({
+  otp: otpSchema,
+});
+
+export const collegeRegistrationPasswordSchema = z.object({
+  password: passwordSchema,
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
+});
+

@@ -8,6 +8,34 @@ export const authApi = {
   signupComplete: (email, signupToken, password) =>
     axiosClient.post("/auth/signup/complete", { email, signup_token: signupToken, password }),
 
+  // College Self-Service Registration
+  collegeRegistrationRequestOtp: (data) =>
+    axiosClient.post("/auth/college-registration/request-otp", data),
+  collegeRegistrationVerifyOtp: (emailOrPayload, maybeOtp) => {
+    const payload =
+      typeof emailOrPayload === "object"
+        ? emailOrPayload
+        : { email: emailOrPayload, otp: maybeOtp };
+    return axiosClient.post("/auth/college-registration/verify-otp", payload);
+  },
+  collegeRegistrationComplete: (emailOrPayload, maybeToken, maybePassword) => {
+    const payload =
+      typeof emailOrPayload === "object"
+        ? {
+            email: emailOrPayload.email,
+            registration_token: emailOrPayload.registration_token || emailOrPayload.verification_token,
+            verification_token: emailOrPayload.verification_token || emailOrPayload.registration_token,
+            password: emailOrPayload.password,
+          }
+        : {
+            email: emailOrPayload,
+            registration_token: maybeToken,
+            verification_token: maybeToken,
+            password: maybePassword,
+          };
+    return axiosClient.post("/auth/college-registration/complete", payload);
+  },
+
   login: (email, password) => axiosClient.post("/auth/login", { email, password }),
   refresh: (refreshToken) => axiosClient.post("/auth/refresh", { refresh_token: refreshToken }),
   logout: (refreshToken) => axiosClient.post("/auth/logout", { refresh_token: refreshToken }),

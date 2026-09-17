@@ -44,6 +44,29 @@ class Settings(BaseSettings):
     RAZORPAY_KEY_SECRET: str = ""
     RAZORPAY_WEBHOOK_SECRET: str = ""
 
+    # College Onboarding configuration
+    BLOCKED_EMAIL_DOMAINS: list[str] = [
+        "gmail.com",
+        "googlemail.com",
+        "yahoo.com",
+        "yahoo.co.in",
+        "outlook.com",
+        "hotmail.com",
+        "live.com",
+        "msn.com",
+        "protonmail.com",
+        "proton.me",
+        "icloud.com",
+        "me.com",
+        "mac.com",
+        "aol.com",
+        "zoho.com",
+        "mail.com",
+        "gmx.com",
+        "yandex.com",
+    ]
+    COLLEGE_REGISTRATION_EXPIRY_HOURS: int = 48
+
     # Logging
     LOG_LEVEL: str = "INFO"
 

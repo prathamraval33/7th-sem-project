@@ -18,12 +18,22 @@ from app.models.application import Application
 from app.models.audit_log import AuditLog
 from app.models.college import College, CollegeStatus
 from app.models.college_feature import CollegeFeature, FeatureRequestStatus
+from app.models.custom_feature_request import CustomFeatureRequest, CustomFeatureStatus
 from app.models.drive import Drive
 from app.models.feature import Feature, FeatureStatus, BillingType
 from app.models.notification import Notification, NotificationType
 from app.models.profile import Profile
 from app.models.transaction import Transaction, TransactionStatus
 from app.models.user import User, UserType
+from app.schemas.college_onboarding import (
+    CollegeApprovalResponse,
+    CollegeRejectionRequest,
+)
+from app.services.college_onboarding_service import compute_setup_checklist
+from app.schemas.custom_feature_request import (
+    CustomFeatureRequestResponse,
+    CustomFeatureRequestUpdate,
+)
 from app.schemas.superadmin import (
     AnnouncementCreate,
     AnnouncementResponse,
@@ -110,6 +120,13 @@ def list_colleges(current_user: User = Depends(require_superadmin), db: Session 
             .where(Drive.college_id == college.id)
         ) or 0
 
+        setup_progress = 100
+        blocking_complete = True
+        if college.status in (CollegeStatus.PENDING_SETUP, CollegeStatus.READY_FOR_REVIEW):
+            chk = compute_setup_checklist(db, college)
+            setup_progress = chk.total_percentage
+            blocking_complete = chk.all_blocking_complete
+
         results.append(
             CollegeSummary(
                 id=college.id,
@@ -121,8 +138,20 @@ def list_colleges(current_user: User = Depends(require_superadmin), db: Session 
                 tpos=tpos,
                 drives=drives,
                 applications=applications,
-                admin_name=admin.profile.full_name if admin and admin.profile else None,
+                admin_name=admin.profile.full_name if admin and admin.profile else (college.contact_name or None),
                 admin_email=admin.email if admin else None,
+                setup_progress_percentage=setup_progress,
+                blocking_items_complete=blocking_complete,
+                contact_name=college.contact_name,
+                contact_mobile=college.contact_mobile,
+                contact_mobile_verified=college.contact_mobile_verified,
+                registered_at=college.registered_at,
+                activated_at=college.activated_at,
+                subscription_status=getattr(college, "subscription_status", "active"),
+                subscription_plan=getattr(college, "subscription_plan", "campus_standard"),
+                subscription_amount=float(getattr(college, "subscription_amount", 10000.00) or 10000.00),
+                subscription_started_at=college.subscription_started_at,
+                subscription_expires_at=college.subscription_expires_at,
             )
         )
 
@@ -192,6 +221,11 @@ async def create_college(payload: CollegeCreate, current_user: User = Depends(re
         applications=0,
         admin_name=payload.admin_name,
         admin_email=payload.admin_email,
+        subscription_status=getattr(college, "subscription_status", "active"),
+        subscription_plan=getattr(college, "subscription_plan", "campus_standard"),
+        subscription_amount=float(getattr(college, "subscription_amount", 10000.00) or 10000.00),
+        subscription_started_at=college.subscription_started_at,
+        subscription_expires_at=college.subscription_expires_at,
     )
 
 
@@ -223,6 +257,13 @@ def get_college(college_id: int, current_user: User = Depends(require_superadmin
         .where(CollegeFeature.college_id == college.id, CollegeFeature.status == FeatureRequestStatus.PENDING_REVIEW)
     ).all()
 
+    setup_progress = 100
+    blocking_complete = True
+    if college.status in (CollegeStatus.PENDING_SETUP, CollegeStatus.READY_FOR_REVIEW):
+        chk = compute_setup_checklist(db, college)
+        setup_progress = chk.total_percentage
+        blocking_complete = chk.all_blocking_complete
+
     return CollegeDetail(
         id=college.id,
         name=college.name,
@@ -230,7 +271,7 @@ def get_college(college_id: int, current_user: User = Depends(require_superadmin
         status=college.status,
         created_at=college.created_at,
         updated_at=college.updated_at,
-        admin_name=admin.profile.full_name if admin and admin.profile else None,
+        admin_name=admin.profile.full_name if admin and admin.profile else (college.contact_name or None),
         admin_email=admin.email if admin else None,
         students=students,
         tpos=tpos,
@@ -238,6 +279,130 @@ def get_college(college_id: int, current_user: User = Depends(require_superadmin
         applications=applications,
         enabled_features=list(enabled_features),
         pending_features=list(pending_features),
+        setup_progress_percentage=setup_progress,
+        blocking_items_complete=blocking_complete,
+        contact_name=college.contact_name,
+        contact_mobile=college.contact_mobile,
+        contact_mobile_verified=college.contact_mobile_verified,
+        registered_at=college.registered_at,
+        activated_at=college.activated_at,
+        rejection_reason=college.rejection_reason,
+        subscription_status=getattr(college, "subscription_status", "active"),
+        subscription_plan=getattr(college, "subscription_plan", "campus_standard"),
+        subscription_amount=float(getattr(college, "subscription_amount", 10000.00) or 10000.00),
+        subscription_started_at=college.subscription_started_at,
+        subscription_expires_at=college.subscription_expires_at,
+    )
+
+
+@router.patch("/colleges/{college_id}/approve", response_model=CollegeApprovalResponse)
+def approve_college(
+    college_id: int,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db),
+) -> CollegeApprovalResponse:
+    """SuperAdmin approves an institution to go fully active (Spec 3.2)."""
+    college = db.get(College, college_id)
+    if college is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="College not found")
+
+    college.status = CollegeStatus.ACTIVE
+    now = datetime.now(timezone.utc)
+    college.activated_at = now
+    college.rejection_reason = None
+    db.add(college)
+
+    # Notify College Admin(s)
+    admins = list(
+        db.scalars(
+            select(User).where(
+                User.college_id == college.id,
+                User.user_type == UserType.ADMIN,
+                User.is_active.is_(True),
+            )
+        ).all()
+    )
+    for adm in admins:
+        db.add(
+            Notification(
+                recipient_id=adm.id,
+                sender_id=current_user.id,
+                type=NotificationType.COLLEGE_APPROVED,
+                message=(
+                    f"Congratulations! Your institution '{college.name}' has been reviewed and approved by the platform operator. "
+                    f"Your portal is now LIVE, and students with @{college.domain} can now sign up!"
+                ),
+            )
+        )
+
+    db.add(
+        AuditLog(
+            action="College Approved",
+            details=f"SuperAdmin approved college '{college.name}' (ID {college.id}) to ACTIVE",
+            performed_by=current_user.id,
+        )
+    )
+    db.commit()
+
+    return CollegeApprovalResponse(
+        message=f"College '{college.name}' approved successfully and is now active.",
+        college_id=college.id,
+        status=college.status.value,
+    )
+
+
+@router.patch("/colleges/{college_id}/reject", response_model=CollegeApprovalResponse)
+def reject_college(
+    college_id: int,
+    payload: CollegeRejectionRequest,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db),
+) -> CollegeApprovalResponse:
+    """SuperAdmin rejects a college registration with a reason (Spec 3.2)."""
+    college = db.get(College, college_id)
+    if college is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="College not found")
+
+    college.status = CollegeStatus.REJECTED
+    college.rejection_reason = payload.rejection_reason.strip()
+    db.add(college)
+
+    # Notify College Admin(s)
+    admins = list(
+        db.scalars(
+            select(User).where(
+                User.college_id == college.id,
+                User.user_type == UserType.ADMIN,
+                User.is_active.is_(True),
+            )
+        ).all()
+    )
+    for adm in admins:
+        db.add(
+            Notification(
+                recipient_id=adm.id,
+                sender_id=current_user.id,
+                type=NotificationType.COLLEGE_REJECTED,
+                message=(
+                    f"Your registration for '{college.name}' was declined. "
+                    f"Reason: {payload.rejection_reason}. Please contact platform support or your representative if you have questions."
+                ),
+            )
+        )
+
+    db.add(
+        AuditLog(
+            action="College Rejected",
+            details=f"SuperAdmin rejected college '{college.name}' (ID {college.id}). Reason: {payload.rejection_reason}",
+            performed_by=current_user.id,
+        )
+    )
+    db.commit()
+
+    return CollegeApprovalResponse(
+        message=f"College '{college.name}' registration rejected.",
+        college_id=college.id,
+        status=college.status.value,
     )
 
 
@@ -985,3 +1150,69 @@ def send_renewal_reminder(
         reminder_count=cf.reminder_count,
         last_reminder_sent_at=now,
     )
+
+
+@router.get("/custom-features", response_model=list[CustomFeatureRequestResponse])
+def list_all_custom_feature_requests(
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db),
+) -> list[CustomFeatureRequest]:
+    """List all custom feature proposals across all colleges for SuperAdmin."""
+    requests = list(
+        db.scalars(
+            select(CustomFeatureRequest)
+            .options(joinedload(CustomFeatureRequest.college), joinedload(CustomFeatureRequest.admin))
+            .order_by(CustomFeatureRequest.created_at.desc())
+        ).all()
+    )
+    return requests
+
+
+@router.patch("/custom-features/{request_id}", response_model=CustomFeatureRequestResponse)
+def update_custom_feature_request(
+    request_id: int,
+    payload: CustomFeatureRequestUpdate,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db),
+) -> CustomFeatureRequest:
+    """SuperAdmin updates proposal status and/or leaves feedback dialogue for College Admin."""
+    req = db.scalar(
+        select(CustomFeatureRequest)
+        .options(joinedload(CustomFeatureRequest.college), joinedload(CustomFeatureRequest.admin))
+        .where(CustomFeatureRequest.id == request_id)
+    )
+    if not req:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Custom feature proposal not found")
+
+    if payload.status is not None:
+        req.status = payload.status
+    if payload.superadmin_feedback is not None:
+        req.superadmin_feedback = payload.superadmin_feedback
+
+    # Dispatch notification to the submitting Admin
+    msg = f"Your custom feature proposal '{req.title}' status has been updated to '{req.status}'."
+    if payload.superadmin_feedback:
+        msg += f" Feedback: {payload.superadmin_feedback}"
+
+    db.add(
+        Notification(
+            recipient_id=req.admin_id,
+            sender_id=current_user.id,
+            type=NotificationType.FEATURE_REQUEST_DECIDED,
+            message=msg,
+        )
+    )
+
+    # Record platform audit log
+    db.add(
+        AuditLog(
+            performed_by=current_user.id,
+            action="Custom Feature Proposal Updated",
+            details=f"Updated proposal #{req.id} ('{req.title}') status to '{req.status}'.",
+        )
+    )
+
+    db.commit()
+    db.refresh(req)
+    return req
+

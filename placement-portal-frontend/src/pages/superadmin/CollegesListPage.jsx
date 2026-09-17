@@ -12,6 +12,8 @@ import AddCollegeModal from "../../components/superadmin/AddCollegeModal";
 export default function CollegesListPage() {
   const colleges = useSuperAdminStore((s) => s.colleges);
   const toggleCollegeStatus = useSuperAdminStore((s) => s.toggleCollegeStatus);
+  const approveCollege = useSuperAdminStore((s) => s.approveCollege);
+  const rejectCollege = useSuperAdminStore((s) => s.rejectCollege);
   const deleteCollege = useSuperAdminStore((s) => s.deleteCollege);
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState("");
@@ -55,7 +57,16 @@ export default function CollegesListPage() {
     {
       key: "status",
       header: "Status",
-      render: (row) => <StatusPill status={row.status} />,
+      render: (row) => (
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <StatusPill status={row.status} />
+          {row.status === "pending_setup" && (
+            <span style={{ fontSize: "10px", color: "var(--cd-text-muted)" }}>
+              {row.setupProgressPercentage || 0}% setup
+            </span>
+          )}
+        </div>
+      ),
     },
     {
       key: "joinedAt",
@@ -94,17 +105,51 @@ export default function CollegesListPage() {
             </div>
           );
         }
+
+        // Ready for review: Quick Approve / Reject actions
+        if (row.status === "ready_for_review") {
+          return (
+            <div style={{ display: "flex", gap: 6, justifyContent: "flex-end", alignItems: "center" }}>
+              <button
+                className="cd-btn cd-btn--compact cd-btn--success"
+                title="Approve College and unlock student signups"
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  await approveCollege(row.id);
+                }}
+              >
+                Approve
+              </button>
+              <button
+                className="cd-btn cd-btn--compact cd-btn--danger"
+                title="Reject Onboarding"
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  const reason = prompt("Enter rejection reason (optional):");
+                  if (reason !== null) {
+                    await rejectCollege(row.id, reason.trim() || "Application does not meet onboarding criteria.");
+                  }
+                }}
+              >
+                Reject
+              </button>
+            </div>
+          );
+        }
+
         return (
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", alignItems: "center" }}>
-            <button
-              className={`cd-btn cd-btn--compact ${row.status === "active" ? "cd-btn--danger" : "cd-btn--success"}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleCollegeStatus(row.id);
-              }}
-            >
-              {row.status === "active" ? "Suspend" : "Reactivate"}
-            </button>
+            {row.status === "active" || row.status === "suspended" ? (
+              <button
+                className={`cd-btn cd-btn--compact ${row.status === "active" ? "cd-btn--danger" : "cd-btn--success"}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleCollegeStatus(row.id);
+                }}
+              >
+                {row.status === "active" ? "Suspend" : "Reactivate"}
+              </button>
+            ) : null}
             <button
               className="cd-btn cd-btn--compact cd-btn--ghost"
               title="Delete College"
@@ -148,9 +193,12 @@ export default function CollegesListPage() {
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
         >
-          <option value="all">All Status</option>
+          <option value="all">All Statuses</option>
+          <option value="ready_for_review">Ready for Review</option>
+          <option value="pending_setup">Pending Setup</option>
           <option value="active">Active</option>
           <option value="suspended">Suspended</option>
+          <option value="rejected">Rejected</option>
         </select>
       </div>
 

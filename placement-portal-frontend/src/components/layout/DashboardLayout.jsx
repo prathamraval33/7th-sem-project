@@ -7,11 +7,11 @@ export default function DashboardLayout() {
   const { user } = useAuth();
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col bg-neutral-50 overflow-x-hidden">
       <Navbar />
-      <div className="flex flex-1">
+      <div className="flex flex-1 min-w-0">
         <Sidebar role={user?.user_type} />
-        <main className="flex-1 bg-neutral-50 p-6">
+        <main className="flex-1 min-w-0 p-4 md:p-6 overflow-x-hidden">
           <Outlet />
         </main>
       </div>

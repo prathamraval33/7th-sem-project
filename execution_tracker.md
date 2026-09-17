@@ -102,6 +102,7 @@
 | 2026-09-07 | Study Resources System (studyresourcerule.md) | AI-Curated, Curriculum-Driven Study Resource System: Alembic migration `c1d2e3f4a5b6`, PDF syllabus extraction with Groq, dynamic branches & subjects, TPO prioritization & web search curation, approve/reject workflow, student curriculum viewer, dynamic branch pills | Verified (15/15 backend tests pass, frontend build passes) |
 | 2026-09-10 | Phase 11 — Security Hardening | Comprehensive vulnerability remediation: exam answer key sanitization, proctoring disqualification enforcement, OTP brute-force limits, session revocation, IDOR fixes, magic bytes validation, protected file routes | Verified (25/25 backend tests pass, frontend build passes) |
 | 2026-09-11 | Phase 12 — Template-Matched Fee Verification (`feecheck.md`) | `FeeReceiptTemplate` + migrations `f3a4b5c6d7e8` & `g4b5c6d7e8f9`, dual-path AI verification (Path A general fallback, Path B multi-template matching with strict structure vs content separation), multi-template management with names/toggles & OCR preview, fixed callout banner CSS contrast, TPO review queue with side-by-side comparison modal, student review status, tenant isolation & protected uploads | Verified (32/32 backend tests pass, frontend build passes) |
+| 2026-09-16 | Phase 13 — Custom Feature Request System | Custom platform feature proposals from College Admins to SuperAdmin: migration `h5c6d7e8f9a0`, Admin submit/list endpoints, SuperAdmin list/patch review endpoints, automated notifications, 2-tab Admin Features page with priority tags & dialogue feedback, SuperAdmin console custom proposals management, 37/37 backend tests pass, frontend build passes | Verified |
 - [x] Demo the full flow once, start to finish, as if you were showing it to your project guide
 
 ---
@@ -149,3 +150,21 @@
 - [x] TPO approval/rejection endpoints (`POST /tpo/fee-receipts/{id}/approve`, `POST /tpo/fee-receipts/{id}/reject`)
 - [x] Protected template file serving in `uploads.py` blocking student access
 - [x] Automated test suite in `tests/test_fee_receipt_template_matching.py` (32/32 tests passing) and `npm run build` clean build
+
+---
+
+## PHASE 13 — Custom Feature Request System (Admin to SuperAdmin)
+- [x] Database model `CustomFeatureRequest` with college scoping (`college_id`), submitter ID (`admin_id`), `title`, `description`, `target_user`, `category`, `priority`, `status`, and `superadmin_feedback`
+- [x] Alembic migration `h5c6d7e8f9a0_add_custom_feature_requests_table.py` created and applied to database
+- [x] College Admin proposal endpoints: `POST /admin/custom-features` (creates proposal, dispatches notification to active SuperAdmins) and `GET /admin/custom-features` (college-scoped)
+- [x] SuperAdmin proposal governance endpoints: `GET /superadmin/custom-features` (cross-college proposal directory) and `PATCH /superadmin/custom-features/{id}` (updates lifecycle status, records audit log, leaves feedback dialogue, dispatches notification to Admin)
+- [x] Frontend API client methods in `admin.api.js` and `superadmin.api.js`
+- [x] SuperAdmin state store integration in `superAdminStore.js` with proposal fetching and live status/feedback mutations
+- [x] Semantic status pills in `StatusPill.jsx` supporting `under_review`, `planned`, `in_progress`, `completed`, and `declined`
+- [x] College Admin UI in `AdminFeaturesPage.jsx` upgraded to a 2-tab operational interface: "Catalog Modules" and "Custom Feature Proposals"
+- [x] Proposal card interface showing priority pills (Low, Medium, High, Critical), status badges, submission date, and interactive SuperAdmin dialogue callout
+- [x] "Propose New Feature" modal with validation for feature name, target persona, category, urgency/priority, and detailed business justification
+- [x] SuperAdmin Console in `FeatureManagementPage.jsx` upgraded with a 3rd tab: "Custom Proposals" and interactive "Review & Reply" modal
+- [x] Automated test suite in `tests/test_custom_feature_requests.py` (5/5 tests passing) and full backend test suite (37/37 tests passing)
+- [x] Clean frontend production bundle build (`npm run build`, exit code 0)
+

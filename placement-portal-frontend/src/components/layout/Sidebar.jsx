@@ -18,6 +18,7 @@ import {
   GraduationCap,
   Building2,
   FileCheck,
+  CreditCard,
 } from "lucide-react";
 import { useActiveFeatures } from "../../hooks/useActiveFeatures";
 
@@ -47,15 +48,13 @@ const NAV_ITEMS = {
     { label: "Contact Messages", to: "/tpo/contact-messages", icon: Mail },
   ],
   admin: [
+    { type: "section", label: "Overview" },
     { label: "Dashboard", to: "/admin/dashboard", icon: LayoutDashboard },
-    { label: "Curriculum Setup", to: "/admin/curriculum", icon: GraduationCap, featureCode: "study_resources" },
-    { label: "Study Materials", to: "/admin/resources", icon: BookOpen, featureCode: "study_resources" },
-    { label: "All Drives", to: "/admin/drives", icon: Briefcase },
-    { label: "All Students", to: "/admin/students", icon: Users },
-    { label: "Activity Feed", to: "/admin/activity", icon: Activity },
-    { label: "Available Features", to: "/admin/features", icon: Puzzle },
-    { label: "Contact Messages", to: "/admin/contact-messages", icon: Mail },
-    { label: "Analytics", to: "/admin/analytics", icon: BarChart3 },
+    { label: "Reports & Analytics", to: "/admin/analytics", icon: BarChart3 },
+    { type: "section", label: "Administration" },
+    { label: "User Management", to: "/admin/users", icon: Users },
+    { label: "Modules & Add-ons", to: "/admin/features", icon: Puzzle },
+    { label: "Billing & Subscription", to: "/admin/billing", icon: CreditCard },
     { label: "Institution Settings", to: "/admin/settings", icon: Building2 },
   ],
 };
@@ -70,22 +69,37 @@ export default function Sidebar({ role }) {
   );
 
   return (
-    <aside className="hidden w-60 shrink-0 border-r border-border bg-card p-4 md:block shadow-sm z-10">
+    <aside className="hidden w-56 md:w-60 shrink-0 border-r border-border bg-card p-3 md:p-4 md:block shadow-sm z-10 select-none">
       <nav className="flex flex-col gap-1">
-        {visibleItems.map(({ label, to, icon: Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            className={({ isActive }) =>
-              `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                isActive ? "bg-accent/10 text-accent" : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`
-            }
-          >
-            <Icon size={18} />
-            {label}
-          </NavLink>
-        ))}
+        {visibleItems.map((item, idx) => {
+          if (item.type === "section") {
+            return (
+              <div
+                key={`section-${idx}`}
+                className="pt-3.5 pb-1 px-3 text-[10px] font-bold tracking-wider uppercase text-slate-400"
+              >
+                {item.label}
+              </div>
+            );
+          }
+          const { label, to, icon: Icon } = item;
+          return (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                `flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-150 ${
+                  isActive
+                    ? "bg-accent/10 text-accent font-semibold shadow-2xs"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                }`
+              }
+            >
+              <Icon size={17} strokeWidth={1.75} />
+              <span className="truncate">{label}</span>
+            </NavLink>
+          );
+        })}
       </nav>
     </aside>
   );

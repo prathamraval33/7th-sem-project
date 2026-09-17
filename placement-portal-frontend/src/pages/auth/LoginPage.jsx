@@ -105,6 +105,15 @@ export default function LoginPage() {
                 Sign in
               </Button>
             </div>
+
+            <div className="mt-4 pt-4 border-t border-slate-100 text-center">
+              <p className="text-xs text-slate-500">
+                Are you an institution administrator?{" "}
+                <Link to="/register-college" className="font-semibold text-indigo-600 hover:text-indigo-800 underline">
+                  Register your college
+                </Link>
+              </p>
+            </div>
           </form>
         </div>
       </div>

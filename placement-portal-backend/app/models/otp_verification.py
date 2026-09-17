@@ -16,6 +16,7 @@ class OtpPurpose(str, enum.Enum):
     # section requires a third purpose (`purpose=change_password`) on this
     # same table. Added here so that flow is actually implementable later.
     CHANGE_PASSWORD = "change_password"
+    COLLEGE_REGISTRATION = "college_registration"
 
 
 class OtpVerification(Base):

@@ -14,6 +14,10 @@ import LoginPage from "./pages/auth/LoginPage";
 import SignupEmailPage from "./pages/auth/SignupEmailPage";
 import SignupOtpPage from "./pages/auth/SignupOtpPage";
 import SignupPasswordPage from "./pages/auth/SignupPasswordPage";
+import RegisterCollegePage from "./pages/auth/RegisterCollegePage";
+import RegisterCollegeOtpPage from "./pages/auth/RegisterCollegeOtpPage";
+import RegisterCollegePasswordPage from "./pages/auth/RegisterCollegePasswordPage";
+import RegisterCollegePaymentPage from "./pages/auth/RegisterCollegePaymentPage";
 import ForgotPasswordEmailPage from "./pages/auth/ForgotPasswordEmailPage";
 import ForgotPasswordOtpPage from "./pages/auth/ForgotPasswordOtpPage";
 import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
@@ -58,11 +62,9 @@ import TpoFeeReviewPage from "./pages/tpo/TpoFeeReviewPage";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminCurriculumPage from "./pages/admin/AdminCurriculumPage";
-import AdminResourcesPage from "./pages/admin/AdminResourcesPage";
-import AdminStudentsPage from "./pages/admin/AdminStudentsPage";
-import AdminDrivesPage from "./pages/admin/AdminDrivesPage";
+import AdminUsersPage from "./pages/admin/AdminUsersPage";
 import AdminFeaturesPage from "./pages/admin/AdminFeaturesPage";
+import AdminBillingPage from "./pages/admin/AdminBillingPage";
 import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
 
 // SuperAdmin Pages (Command Deck Console)
@@ -105,6 +107,10 @@ export default function App() {
             <Route path="/signup/email" element={<SignupEmailPage />} />
             <Route path="/signup/otp" element={<SignupOtpPage />} />
             <Route path="/signup/password" element={<SignupPasswordPage />} />
+            <Route path="/register-college" element={<RegisterCollegePage />} />
+            <Route path="/register-college/otp" element={<RegisterCollegeOtpPage />} />
+            <Route path="/register-college/password" element={<RegisterCollegePasswordPage />} />
+            <Route path="/register-college/subscription" element={<RegisterCollegePaymentPage />} />
             <Route path="/forgot-password/email" element={<ForgotPasswordEmailPage />} />
             <Route path="/forgot-password/otp" element={<ForgotPasswordOtpPage />} />
             <Route path="/forgot-password/reset" element={<ResetPasswordPage />} />
@@ -166,12 +172,18 @@ export default function App() {
             <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]} />}>
               <Route element={<DashboardLayout />}>
                 <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                <Route path="/admin/curriculum" element={<AdminCurriculumPage />} />
-                <Route path="/admin/resources" element={<AdminResourcesPage />} />
-                <Route path="/admin/students" element={<AdminStudentsPage />} />
-                <Route path="/admin/drives" element={<AdminDrivesPage />} />
+                <Route path="/admin/analytics" element={<AdminDashboard />} />
+                <Route path="/admin/users" element={<AdminUsersPage />} />
                 <Route path="/admin/features" element={<AdminFeaturesPage />} />
+                <Route path="/admin/billing" element={<AdminBillingPage />} />
                 <Route path="/admin/settings" element={<AdminSettingsPage />} />
+
+                {/* Legacy / Convenience Redirections */}
+                <Route path="/admin/students" element={<Navigate to="/admin/users?tab=students" replace />} />
+                <Route path="/admin/drives" element={<Navigate to="/admin/dashboard?tab=drives" replace />} />
+                <Route path="/admin/curriculum" element={<Navigate to="/admin/settings?tab=branches" replace />} />
+                <Route path="/admin/activity" element={<Navigate to="/admin/dashboard?tab=overview" replace />} />
+
                 <Route path="/admin/profile" element={<ProfilePage />} />
                 <Route path="/admin/change-password" element={<ChangePasswordPage />} />
                 <Route path="/admin/*" element={<FoundationNotice label="Admin Dashboard" />} />

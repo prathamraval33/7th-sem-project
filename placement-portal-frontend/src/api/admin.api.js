@@ -28,10 +28,14 @@ export const adminApi = {
   getFeatures: () => axiosClient.get("/admin/features"),
   requestFeature: (featureId) => axiosClient.post(`/admin/features/${featureId}/request`),
   createPaymentOrder: (payload) => axiosClient.post("/payments/create-order", payload),
+  createSubscriptionOrder: (collegeId) =>
+    axiosClient.post("/payments/subscription/create-order", { college_id: collegeId }),
   verifyPayment: (payload) => axiosClient.post("/payments/verify", payload),
+  getBillingTransactions: () => axiosClient.get("/admin/billing/transactions"),
 
   // Institution Settings & Allowed Domains
   getCollegeInfo: () => axiosClient.get("/admin/college"),
+  getSetupChecklist: () => axiosClient.get("/admin/college/setup-checklist"),
   updateCollegeDomain: (domain) => axiosClient.patch("/admin/college/domain", { domain }),
 
   // Reference Sample Fee Templates (Multi-template support)
@@ -46,4 +50,9 @@ export const adminApi = {
   deleteFeeTemplateById: (templateId) =>
     axiosClient.delete(`/admin/college/fee-templates/${templateId}`),
   deleteFeeTemplate: () => axiosClient.delete("/admin/college/fee-template"),
+
+  // Custom Feature Requests / Proposals to SuperAdmin
+  getCustomFeatures: () => axiosClient.get("/admin/custom-features"),
+  createCustomFeature: (payload) => axiosClient.post("/admin/custom-features", payload),
 };
+

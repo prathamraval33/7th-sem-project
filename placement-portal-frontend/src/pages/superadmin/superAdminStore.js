@@ -11,8 +11,21 @@ const normalizeCollege = (row) => ({
   applications: row.applications ?? 0,
   status: row.status,
   joinedAt: row.created_at ?? row.joinedAt ?? new Date().toISOString(),
+  registeredAt: row.registered_at,
+  activatedAt: row.activated_at,
+  rejectionReason: row.rejection_reason ?? null,
+  setupProgressPercentage: row.setup_progress_percentage ?? (row.status === "active" ? 100 : 0),
+  blockingItemsComplete: row.blocking_items_complete ?? (row.status === "active"),
+  contactName: row.contact_name ?? "",
+  contactMobile: row.contact_mobile ?? "",
+  contactMobileVerified: row.contact_mobile_verified ?? false,
+  subscriptionStatus: row.subscription_status ?? "active",
+  subscriptionPlan: row.subscription_plan ?? "campus_standard",
+  subscriptionAmount: row.subscription_amount ?? 10000.0,
+  subscriptionStartedAt: row.subscription_started_at ?? null,
+  subscriptionExpiresAt: row.subscription_expires_at ?? null,
   admin: {
-    name: row.admin_name ?? "",
+    name: row.admin_name ?? row.contact_name ?? "",
     email: row.admin_email ?? "",
   },
 });
@@ -85,16 +98,19 @@ export const useSuperAdminStore = create((set, get) => ({
     expiring_soon: [],
   },
   subscriptionsLoading: false,
+  customFeatureRequests: [],
+  customFeaturesLoading: false,
 
   hydrateSuperAdmin: async () => {
     try {
-      const [dashboardRes, collegesRes, featuresRes, requestsRes, announcementsRes, auditLogRes] = await Promise.all([
+      const [dashboardRes, collegesRes, featuresRes, requestsRes, announcementsRes, auditLogRes, customFeatRes] = await Promise.all([
         superadminApi.getDashboard(),
         superadminApi.getColleges(),
         superadminApi.getFeatures(),
         superadminApi.getFeatureRequests(),
         superadminApi.getAnnouncements(),
         superadminApi.getAuditLog(),
+        superadminApi.getCustomFeatureRequests().catch(() => ({ data: [] })),
       ]);
 
       const colleges = (collegesRes.data || []).map(normalizeCollege);
@@ -122,6 +138,7 @@ export const useSuperAdminStore = create((set, get) => ({
         announcements,
         auditLog,
         collegeFeatures,
+        customFeatureRequests: customFeatRes.data || [],
         dashboard: dashboardRes.data,
         activity: auditLog.slice(0, 8).map((entry) => ({
           id: entry.id,
@@ -197,6 +214,46 @@ export const useSuperAdminStore = create((set, get) => ({
     } catch (error) {
       set({ toast: error?.response?.data?.detail || "Unable to update college status." });
       setTimeout(() => set({ toast: null }), 4000);
+    }
+  },
+
+  approveCollege: async (collegeId) => {
+    const target = get().colleges.find((college) => college.id === collegeId);
+    try {
+      const response = await superadminApi.approveCollege(collegeId);
+      set((state) => ({
+        colleges: state.colleges.map((college) =>
+          college.id === collegeId ? { ...college, status: "active", activatedAt: new Date().toISOString() } : college
+        ),
+        toast: response.data?.message || `${target?.name || "College"} approved successfully.`,
+      }));
+      setTimeout(() => set({ toast: null }), 4000);
+      return response.data;
+    } catch (error) {
+      const msg = error?.response?.data?.detail || "Unable to approve college.";
+      set({ toast: msg });
+      setTimeout(() => set({ toast: null }), 4000);
+      throw error;
+    }
+  },
+
+  rejectCollege: async (collegeId, rejectionReason) => {
+    const target = get().colleges.find((college) => college.id === collegeId);
+    try {
+      const response = await superadminApi.rejectCollege(collegeId, rejectionReason);
+      set((state) => ({
+        colleges: state.colleges.map((college) =>
+          college.id === collegeId ? { ...college, status: "rejected", rejectionReason } : college
+        ),
+        toast: response.data?.message || `${target?.name || "College"} rejected.`,
+      }));
+      setTimeout(() => set({ toast: null }), 4000);
+      return response.data;
+    } catch (error) {
+      const msg = error?.response?.data?.detail || "Unable to reject college.";
+      set({ toast: msg });
+      setTimeout(() => set({ toast: null }), 4000);
+      throw error;
     }
   },
 
@@ -486,6 +543,36 @@ export const useSuperAdminStore = create((set, get) => ({
       set({ toast: error?.response?.data?.detail || "Unable to load transactions for this subscription." });
       setTimeout(() => set({ toast: null }), 4000);
       return [];
+    }
+  },
+
+  fetchCustomFeatureRequests: async () => {
+    set({ customFeaturesLoading: true });
+    try {
+      const res = await superadminApi.getCustomFeatureRequests();
+      set({ customFeatureRequests: res.data || [], customFeaturesLoading: false });
+      return res.data || [];
+    } catch (err) {
+      set({ customFeaturesLoading: false });
+      return [];
+    }
+  },
+
+  updateCustomFeatureProposal: async (id, payload) => {
+    try {
+      const res = await superadminApi.updateCustomFeatureRequest(id, payload);
+      set((state) => ({
+        customFeatureRequests: state.customFeatureRequests.map((item) =>
+          item.id === id ? res.data : item
+        ),
+        toast: "Custom feature proposal updated successfully.",
+      }));
+      setTimeout(() => set({ toast: null }), 4000);
+      return res.data;
+    } catch (error) {
+      set({ toast: error?.response?.data?.detail || "Failed to update custom feature proposal." });
+      setTimeout(() => set({ toast: null }), 4000);
+      throw error;
     }
   },
 

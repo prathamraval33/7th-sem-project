@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, Navigate } from "react-router-dom";
-import { Briefcase, Target, Brain, ArrowRight, ShieldCheck } from "lucide-react";
+import { Briefcase, Target, Brain, ArrowRight, ShieldCheck, Building2 } from "lucide-react";
 import Button from "../../components/common/Button";
 import { useAuth } from "../../auth/useAuth";
 
@@ -19,7 +19,12 @@ export default function LandingPage() {
           <Briefcase className="w-6 h-6 text-slate-700" />
           <span className="text-xl font-bold font-heading tracking-tight">Placement Portal</span>
         </div>
-        <div className="space-x-4">
+        <div className="flex items-center space-x-3">
+          <Link to="/register-college" className="hidden sm:inline-block">
+            <Button variant="ghost" className="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 font-medium">
+              For Institutions
+            </Button>
+          </Link>
           <Link to="/contact">
             <Button variant="ghost">Contact Us</Button>
           </Link>
@@ -39,12 +44,17 @@ export default function LandingPage() {
             Your career starts here.
           </h1>
           <p className="text-lg text-slate-600 mb-10 leading-relaxed">
-            AI-powered placement preparation, seamless drive applications, and smart career insights exclusively for BVM Engineering students.
+            AI-powered placement preparation, seamless drive applications, and smart career insights for modern engineering campuses.
           </p>
-          <div className="flex justify-center space-x-4">
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
             <Link to="/signup/email">
               <Button size="lg" className="flex items-center gap-2">
-                Get Started <ArrowRight className="w-5 h-5" />
+                Student Get Started <ArrowRight className="w-5 h-5" />
+              </Button>
+            </Link>
+            <Link to="/register-college">
+              <Button size="lg" variant="outline" className="flex items-center gap-2 border-slate-300 hover:bg-slate-100">
+                <Building2 className="w-5 h-5 text-indigo-600" /> Register College
               </Button>
             </Link>
           </div>

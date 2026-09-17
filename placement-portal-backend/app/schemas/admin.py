@@ -57,8 +57,29 @@ class CollegeInfoResponse(BaseModel):
     tpos: int = 0
     drives: int = 0
     applications: int = 0
+    subscription_status: str = "active"
+    subscription_plan: Optional[str] = "campus_standard"
+    subscription_amount: float = 10000.00
+    subscription_started_at: Optional[datetime] = None
+    subscription_expires_at: Optional[datetime] = None
+    is_subscription_expired: bool = False
+    days_remaining: int = 0
+    can_renew: bool = False
 
 
 class CollegeDomainUpdate(BaseModel):
     domain: str = Field(min_length=3, max_length=255)
+
+
+class CollegeBillingTransactionResponse(BaseModel):
+    id: int
+    amount: float
+    currency: str = "INR"
+    status: str
+    description: str
+    razorpay_order_id: str
+    razorpay_payment_id: Optional[str] = None
+    created_at: datetime
+    paid_at: Optional[datetime] = None
+
 

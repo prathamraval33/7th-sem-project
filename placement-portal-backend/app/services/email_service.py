@@ -14,6 +14,7 @@ _PURPOSE_SUBJECTS = {
     OtpPurpose.SIGNUP: "Verify your email — Placement Portal",
     OtpPurpose.FORGOT_PASSWORD: "Reset your password — Placement Portal",
     OtpPurpose.CHANGE_PASSWORD: "Confirm your password change — Placement Portal",
+    OtpPurpose.COLLEGE_REGISTRATION: "Verify institutional email — Placement Portal College Registration",
 }
 
 

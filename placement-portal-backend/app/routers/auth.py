@@ -11,6 +11,8 @@ from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from app.models.college import College, CollegeStatus
+from app.models.college_registration import CollegeRegistration
+from app.models.notification import Notification, NotificationType
 
 from app.core.config import settings
 from app.core.dependencies import get_current_user
@@ -25,16 +27,29 @@ from app.core.security import (
     verify_password,
 )
 from app.db.session import get_db
-from app.models.otp_verification import OtpPurpose
+from app.models.otp_verification import OtpPurpose, OtpVerification
 from app.models.profile import Profile
 from app.models.refresh_token import RefreshToken
 from app.models.user import User, UserType
+from app.schemas.college_onboarding import (
+    CollegeRegistrationComplete,
+    CollegeRegistrationOtpVerify,
+    CollegeRegistrationRequest,
+    CollegeRegistrationResponse,
+    CollegeRegistrationVerifyResponse,
+)
 from app.schemas.otp_verification import (
     OtpActionResponse,
     OtpEmailRequest,
     OtpVerifyRequest,
     OtpVerifyResponse,
     SignupRequestOtp,
+)
+from app.services import email_service, otp_service
+from app.services.college_onboarding_service import (
+    cleanup_expired_registrations,
+    extract_domain,
+    is_blocked_domain,
 )
 from app.schemas.profile import ProfileUpdate
 from app.schemas.user import (
@@ -88,17 +103,326 @@ def _resolve_college_for_email(db: Session, email: str) -> College:
         )
     domain = parts[1].lower().strip()
     college = db.scalar(
-        select(College).where(
-            func.lower(College.domain) == domain,
-            College.status == CollegeStatus.ACTIVE,
-        )
+        select(College).where(func.lower(College.domain) == domain)
     )
     if college is None:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
             detail=f"The email domain '{domain}' is not registered with any active institution on this platform.",
         )
+    if college.status != CollegeStatus.ACTIVE:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail="This college is not yet active on the platform — please contact your placement office.",
+        )
     return college
+
+
+# --------------------------------------------------------------------------
+# College Self-Service Registration & Onboarding Endpoints (Spec Parts 2 & 5)
+# --------------------------------------------------------------------------
+@router.post("/college-registration/request-otp", response_model=CollegeRegistrationResponse)
+async def college_registration_request_otp(
+    payload: CollegeRegistrationRequest, db: Session = Depends(get_db)
+) -> CollegeRegistrationResponse:
+    # 1. Spec 2.3: Reject personal / public email providers
+    if is_blocked_domain(payload.email):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail="Please register using your official college email address. Personal email addresses (Gmail, Yahoo, etc.) can't be used to register an institution.",
+        )
+
+    domain = extract_domain(payload.email)
+
+    # 2. Spec 2.4: Collision check against existing colleges
+    existing_college = db.scalar(
+        select(College).where(func.lower(College.domain) == domain)
+    )
+    if existing_college is not None:
+        # Notify existing College Admin(s)
+        admins = list(
+            db.scalars(
+                select(User).where(
+                    User.college_id == existing_college.id,
+                    User.user_type == UserType.ADMIN,
+                    User.is_active.is_(True),
+                )
+            ).all()
+        )
+        for adm in admins:
+            db.add(
+                Notification(
+                    recipient_id=adm.id,
+                    type=NotificationType.COLLEGE_COLLISION_ALERT,
+                    message=(
+                        f"Registration attempt alert: Someone attempted to register a new college account "
+                        f"using your institution's email domain ('{domain}') with email '{payload.email}'. "
+                        f"If this was a colleague, you can add them as an administrator in your Admin Console."
+                    ),
+                )
+            )
+        db.commit()
+
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            detail=(
+                "This college is already registered on the platform. Please contact your institution's "
+                "existing administrator for access, or get in touch with us if you believe this is an error."
+            ),
+        )
+
+    # 3. Check if an account already exists with this email
+    existing_user = db.scalar(select(User).where(User.email == payload.email.lower().strip()))
+    if existing_user is not None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            detail="An account with this email address already exists. Please sign in.",
+        )
+
+    # 4. Spec 2.9: Clean up expired registrations before checking pending reservations
+    cleanup_expired_registrations(db)
+
+    # Check if another registration for this domain is currently active
+    now = datetime.now(timezone.utc)
+    pending_collision = db.scalar(
+        select(CollegeRegistration).where(
+            CollegeRegistration.domain == domain,
+            CollegeRegistration.status.in_(["pending_otp", "verified"]),
+            CollegeRegistration.expires_at > now,
+            CollegeRegistration.email != payload.email.lower().strip(),
+        )
+    )
+    if pending_collision is not None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            detail=(
+                "A registration attempt for this institutional domain is already in progress. "
+                "Please wait for it to complete or expire before submitting a new request."
+            ),
+        )
+
+    # 5. Store / update registration record with 48h TTL
+    expires_at = now + timedelta(hours=settings.COLLEGE_REGISTRATION_EXPIRY_HOURS)
+    reg = db.scalar(select(CollegeRegistration).where(CollegeRegistration.email == payload.email.lower().strip()))
+    if reg is None:
+        reg = CollegeRegistration(
+            college_name=payload.college_name.strip(),
+            admin_name=payload.admin_name.strip(),
+            email=payload.email.lower().strip(),
+            domain=domain,
+            mobile_number=payload.mobile_number.strip() if payload.mobile_number else None,
+            status="pending_otp",
+            expires_at=expires_at,
+        )
+        db.add(reg)
+    else:
+        reg.college_name = payload.college_name.strip()
+        reg.admin_name = payload.admin_name.strip()
+        reg.domain = domain
+        reg.mobile_number = payload.mobile_number.strip() if payload.mobile_number else None
+        reg.status = "pending_otp"
+        reg.expires_at = expires_at
+
+    db.commit()
+
+    # 6. Generate OTP and dispatch email
+    try:
+        otp = otp_service.create_otp(db, payload.email.lower().strip(), OtpPurpose.COLLEGE_REGISTRATION)
+    except OtpError as error:
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, detail=error.message) from error
+
+    await email_service.send_otp_email(payload.email.lower().strip(), otp, OtpPurpose.COLLEGE_REGISTRATION)
+
+    return CollegeRegistrationResponse(
+        message="Verification code sent to your official college email address.",
+        email=payload.email.lower().strip(),
+        college_name=payload.college_name.strip(),
+    )
+
+
+@router.post("/college-registration/verify-otp", response_model=CollegeRegistrationVerifyResponse)
+def college_registration_verify_otp(
+    payload: CollegeRegistrationOtpVerify, db: Session = Depends(get_db)
+) -> CollegeRegistrationVerifyResponse:
+    clean_email = payload.email.lower().strip()
+    clean_otp = payload.otp.strip()
+    now = datetime.now(timezone.utc)
+
+    # 1. Verify OTP with brute force throttling & expiration
+    try:
+        otp_service.verify_otp(db, clean_email, clean_otp, OtpPurpose.COLLEGE_REGISTRATION)
+    except OtpError as error:
+        # Resilience: If this registration was already marked verified and user re-submits the matching OTP
+        # (e.g. client error or retry), re-issue the purpose token instead of failing with 400.
+        reg = db.scalar(
+            select(CollegeRegistration).where(
+                CollegeRegistration.email == clean_email,
+                CollegeRegistration.status == "verified",
+                CollegeRegistration.expires_at > now,
+            )
+        )
+        recent_otp = db.scalar(
+            select(OtpVerification)
+            .where(
+                OtpVerification.email == clean_email,
+                OtpVerification.purpose == OtpPurpose.COLLEGE_REGISTRATION,
+                OtpVerification.is_used.is_(True),
+            )
+            .order_by(OtpVerification.created_at.desc())
+        )
+        if (
+            reg is not None
+            and recent_otp is not None
+            and verify_password(clean_otp, recent_otp.otp_hash)
+            and (
+                recent_otp.expires_at.replace(tzinfo=timezone.utc)
+                if recent_otp.expires_at.tzinfo is None
+                else recent_otp.expires_at
+            ) > now
+        ):
+            token = create_purpose_token(clean_email, "college_registration")
+            return CollegeRegistrationVerifyResponse(
+                token=token,
+                verification_token=token,
+                expires_in_seconds=15 * 60,
+                email=clean_email,
+                college_name=reg.college_name,
+            )
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=error.message) from error
+
+    # 2. Find pending registration record
+    reg = db.scalar(
+        select(CollegeRegistration).where(
+            CollegeRegistration.email == clean_email,
+            CollegeRegistration.status.in_(["pending_otp", "verified"]),
+            CollegeRegistration.expires_at > now,
+        )
+    )
+    if reg is None:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail="Registration session expired or not found. Please start registration again.",
+        )
+
+    reg.status = "verified"
+    db.commit()
+
+    token = create_purpose_token(clean_email, "college_registration")
+    return CollegeRegistrationVerifyResponse(
+        token=token,
+        verification_token=token,
+        expires_in_seconds=15 * 60,
+        email=clean_email,
+        college_name=reg.college_name,
+    )
+
+
+@router.post("/college-registration/complete")
+def college_registration_complete(
+    payload: CollegeRegistrationComplete, db: Session = Depends(get_db)
+) -> dict:
+    # 1. Verify purpose token
+    try:
+        verified_email = decode_purpose_token(payload.registration_token, "college_registration")
+    except JWTError as error:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Invalid or expired registration token") from error
+
+    if verified_email.lower() != payload.email.lower().strip():
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Token does not match submitted email")
+
+    # 2. Retrieve verified registration record
+    now = datetime.now(timezone.utc)
+    reg = db.scalar(
+        select(CollegeRegistration).where(
+            CollegeRegistration.email == payload.email.lower().strip(),
+            CollegeRegistration.status == "verified",
+            CollegeRegistration.expires_at > now,
+        )
+    )
+    if reg is None:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail="Verified registration session not found or has expired. Please verify OTP again.",
+        )
+
+    # 3. Final collision check
+    if db.scalar(select(College).where(func.lower(College.domain) == reg.domain.lower())) is not None:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail="This institutional domain has already been registered.")
+
+    if db.scalar(select(College).where(func.lower(College.name) == reg.college_name.lower())) is not None:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail="An institution with this name already exists.")
+
+    if db.scalar(select(User).where(User.email == reg.email.lower())) is not None:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail="An account with this email already exists.")
+
+    # 4. Atomic tenant & College Admin account creation (Spec 2.7 & 5.1)
+    new_college = College(
+        name=reg.college_name.strip(),
+        domain=reg.domain.lower().strip(),
+        status=CollegeStatus.PENDING_SETUP,
+        subscription_status="pending_payment",
+        subscription_plan="campus_monthly",
+        subscription_amount=10000.00,
+        contact_name=reg.admin_name.strip(),
+        contact_mobile=reg.mobile_number,
+        contact_mobile_verified=False,
+        registered_at=now,
+    )
+    db.add(new_college)
+    db.flush()
+
+    admin_user = User(
+        college_id=new_college.id,
+        email=reg.email.lower().strip(),
+        hashed_password=hash_password(payload.password),
+        user_type=UserType.ADMIN,
+        is_active=True,
+        is_email_verified=True,
+    )
+    db.add(admin_user)
+    db.flush()
+
+    # Mark registration as completed
+    reg.status = "completed"
+
+    # Send initial welcome notification to the admin
+    db.add(
+        Notification(
+            recipient_id=admin_user.id,
+            type=NotificationType.SYSTEM,
+            message=(
+                f"Welcome to Placement Portal! '{new_college.name}' is registered in setup mode. "
+                f"Follow the progressive checklist on your dashboard to configure your college for approval."
+            ),
+        )
+    )
+
+    access_token = create_access_token(
+        subject=str(admin_user.id),
+        user_type=admin_user.user_type.value,
+        college_id=new_college.id,
+    )
+    refresh_token = create_refresh_token(
+        subject=str(admin_user.id),
+        user_type=admin_user.user_type.value,
+        college_id=new_college.id,
+    )
+
+    db.commit()
+
+    return {
+        "message": "Institution registered successfully! Status: PENDING_SETUP",
+        "redirect": "/login",
+        "college_id": new_college.id,
+        "college_name": new_college.name,
+        "admin_name": reg.admin_name,
+        "email": admin_user.email,
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+        "subscription_required": True,
+        "subscription_amount": 10000.00,
+    }
 
 
 @router.post("/signup/request-otp", response_model=OtpActionResponse)

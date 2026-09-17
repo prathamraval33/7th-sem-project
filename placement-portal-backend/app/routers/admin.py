@@ -1,7 +1,7 @@
 """Admin — platform-wide drive moderation, student/TPO oversight, activity
 feed, and global analytics.
 """
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
@@ -28,10 +28,12 @@ from app.models.analytics import Analytics
 from app.models.application import Application, ApplicationStatus
 from app.models.college import College
 from app.models.college_feature import CollegeFeature, FeatureRequestStatus
+from app.models.custom_feature_request import CustomFeatureRequest, CustomFeatureStatus
 from app.models.drive import Drive, DriveStatus
 from app.models.feature import Feature, FeatureStatus
 from app.models.notification import Notification, NotificationType
 from app.models.profile import Profile
+from app.models.transaction import Transaction
 from app.models.user import User, UserType
 from app.schemas.admin import (
     AdminFeatureResponse,
@@ -39,6 +41,13 @@ from app.schemas.admin import (
     AdminUserUpdate,
     CollegeDomainUpdate,
     CollegeInfoResponse,
+    CollegeBillingTransactionResponse,
+)
+from app.schemas.college_onboarding import SetupChecklistResponse
+from app.services.college_onboarding_service import compute_setup_checklist
+from app.schemas.custom_feature_request import (
+    CustomFeatureRequestCreate,
+    CustomFeatureRequestResponse,
 )
 from app.schemas.drive import DriveResponse, DriveUpdate
 from app.schemas.profile import ProfilePlacementOverrideUpdate, ProfileResponse
@@ -735,6 +744,38 @@ def get_college_info(
         select(func.count(Application.id)).join(Drive, Application.drive_id == Drive.id).where(Drive.college_id == cid)
     ) or 0
 
+    # Subscription status and cycle dates calculation (supporting old/enrolled/live colleges)
+    now = datetime.now(timezone.utc)
+    dirty = False
+    if college.subscription_started_at is None:
+        college.subscription_started_at = college.created_at or now
+        dirty = True
+    if college.subscription_expires_at is None:
+        college.subscription_expires_at = college.subscription_started_at + timedelta(days=30)
+        dirty = True
+
+    exp = college.subscription_expires_at
+    if exp and exp.tzinfo is None:
+        exp = exp.replace(tzinfo=timezone.utc)
+
+    is_expired = bool(exp and now >= exp)
+    if is_expired and college.subscription_status == "active":
+        college.subscription_status = "expired"
+        dirty = True
+    elif not is_expired and college.subscription_status == "expired":
+        college.subscription_status = "active"
+        dirty = True
+
+    if dirty:
+        db.commit()
+        db.refresh(college)
+
+    days_remaining = 0
+    if exp and exp > now:
+        days_remaining = max(0, (exp - now).days)
+
+    can_renew = is_expired or (college.subscription_status in ["expired", "pending_payment"])
+
     return CollegeInfoResponse(
         id=college.id,
         name=college.name,
@@ -745,7 +786,32 @@ def get_college_info(
         tpos=tpo_count,
         drives=drive_count,
         applications=app_count,
+        subscription_status=college.subscription_status or "active",
+        subscription_plan=college.subscription_plan or "campus_standard",
+        subscription_amount=float(college.subscription_amount or 10000.00),
+        subscription_started_at=college.subscription_started_at,
+        subscription_expires_at=college.subscription_expires_at,
+        is_subscription_expired=is_expired,
+        days_remaining=days_remaining,
+        can_renew=can_renew,
     )
+
+
+@router.get("/college/setup-checklist", response_model=SetupChecklistResponse)
+def get_college_setup_checklist(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> SetupChecklistResponse:
+    """Fetch live progressive setup checklist for this college admin, auto-transitioning to ready_for_review if complete."""
+    cid = current_user.college_id
+    if cid is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="No college associated with this admin account")
+
+    college = db.get(College, cid)
+    if college is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="College not found")
+
+    return compute_setup_checklist(db=db, college=college, current_user_id=current_user.id)
 
 
 @router.patch("/college/domain", response_model=CollegeInfoResponse)
@@ -935,4 +1001,111 @@ def deactivate_college_fee_template(
         t.is_active = False
     db.commit()
     return {"message": "All reference samples deactivated"}
+
+
+@router.post("/custom-features", response_model=CustomFeatureRequestResponse, status_code=status.HTTP_201_CREATED)
+def submit_custom_feature_request(
+    payload: CustomFeatureRequestCreate,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> CustomFeatureRequest:
+    """College Admin proposes a new custom platform feature to SuperAdmin."""
+    if current_user.college_id is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="No college associated with this admin account")
+
+    req = CustomFeatureRequest(
+        college_id=current_user.college_id,
+        admin_id=current_user.id,
+        title=payload.title,
+        description=payload.description,
+        target_user=payload.target_user,
+        category=payload.category,
+        priority=payload.priority,
+        status=CustomFeatureStatus.PENDING.value,
+    )
+    db.add(req)
+
+    # Notify all active SuperAdmins
+    college = db.get(College, current_user.college_id)
+    college_name = college.name if college else f"College #{current_user.college_id}"
+    superadmins = db.scalars(
+        select(User).where(User.user_type == UserType.SUPERADMIN, User.is_active == True)
+    ).all()
+    for sa in superadmins:
+        db.add(
+            Notification(
+                recipient_id=sa.id,
+                sender_id=current_user.id,
+                type=NotificationType.FEATURE_REQUEST_RECEIVED,
+                message=f"{college_name} submitted custom feature proposal: '{payload.title}'.",
+            )
+        )
+
+    db.commit()
+    db.refresh(req)
+    return req
+
+
+@router.get("/custom-features", response_model=list[CustomFeatureRequestResponse])
+def list_custom_feature_requests(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> list[CustomFeatureRequest]:
+    """List all custom feature proposals submitted by this college."""
+    if current_user.college_id is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="No college associated with this admin account")
+
+    requests = list(
+        db.scalars(
+            select(CustomFeatureRequest)
+            .options(joinedload(CustomFeatureRequest.college), joinedload(CustomFeatureRequest.admin))
+            .where(CustomFeatureRequest.college_id == current_user.college_id)
+            .order_by(CustomFeatureRequest.created_at.desc())
+        ).all()
+    )
+    return requests
+
+
+@router.get("/billing/transactions", response_model=list[CollegeBillingTransactionResponse])
+def get_college_billing_transactions(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> list[CollegeBillingTransactionResponse]:
+    """List all payment transactions and invoices for this college (subscription + modules)."""
+    cid = current_user.college_id
+    if cid is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="No college associated with this admin account")
+
+    txns = list(
+        db.scalars(
+            select(Transaction)
+            .options(joinedload(Transaction.feature))
+            .where(Transaction.college_id == cid)
+            .order_by(Transaction.created_at.desc())
+        ).all()
+    )
+
+    results = []
+    for t in txns:
+        desc = (
+            "Campus Standard License (Monthly)"
+            if t.feature_id is None
+            else f"Add-on: {t.feature.name if t.feature else 'Feature'}"
+        )
+        results.append(
+            CollegeBillingTransactionResponse(
+                id=t.id,
+                amount=float(t.amount),
+                currency=t.currency or "INR",
+                status=t.status.value if hasattr(t.status, "value") else str(t.status),
+                description=desc,
+                razorpay_order_id=t.razorpay_order_id,
+                razorpay_payment_id=t.razorpay_payment_id,
+                created_at=t.created_at,
+                paid_at=t.paid_at,
+            )
+        )
+    return results
+
+
 

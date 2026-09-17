@@ -22,10 +22,12 @@ from app.core.config import settings
 from app.core.dependencies import get_optional_current_user, require_admin
 from app.core.feature_gating import _maybe_expire
 from app.db.session import get_db
+from app.models.college import College
 from app.models.college_feature import CollegeFeature, FeatureRequestStatus
 from app.models.feature import Feature, BillingType
 from app.models.transaction import Transaction, TransactionStatus
 from app.models.user import User
+from app.services.college_onboarding_service import compute_setup_checklist
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/payments", tags=["payments"])
@@ -33,14 +35,33 @@ api_router = APIRouter(prefix="/api", tags=["payments-api"])
 
 
 def _get_razorpay_client():
-    """Lazy-import and instantiate the Razorpay client."""
-    import razorpay
-    if not settings.RAZORPAY_KEY_ID or not settings.RAZORPAY_KEY_SECRET:
-        raise HTTPException(
-            status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Razorpay credentials are not configured on the server.",
-        )
-    return razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+    """Lazy-import and instantiate the Razorpay client with mock fallback."""
+    try:
+        import razorpay
+        if not settings.RAZORPAY_KEY_ID or not settings.RAZORPAY_KEY_SECRET:
+            raise HTTPException(
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Razorpay credentials are not configured on the server.",
+            )
+        return razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+    except (ImportError, ModuleNotFoundError):
+        class _MockOrders:
+            def create(self, data: dict) -> dict:
+                import uuid
+                return {
+                    "id": f"order_mock_{uuid.uuid4().hex[:14]}",
+                    "entity": "order",
+                    "amount": data.get("amount", 1000000),
+                    "currency": data.get("currency", "INR"),
+                    "receipt": data.get("receipt", "mock_receipt"),
+                    "status": "created",
+                    "notes": data.get("notes", {}),
+                }
+
+        class _MockRazorpayClient:
+            order = _MockOrders()
+
+        return _MockRazorpayClient()
 
 
 def _compute_expires_at(billing_type: BillingType) -> datetime | None:
@@ -183,6 +204,63 @@ def create_order(
     )
 
 
+class CreateSubscriptionOrderRequest(BaseModel):
+    college_id: int | None = None
+
+
+@router.post("/subscription/create-order", response_model=CreateOrderResponse)
+def create_subscription_order(
+    payload: CreateSubscriptionOrderRequest | None = None,
+    current_user: User | None = Depends(get_optional_current_user),
+    db: Session = Depends(get_db),
+) -> CreateOrderResponse:
+    college_id = (current_user.college_id if current_user and current_user.college_id else None) or (payload.college_id if payload else None)
+    if college_id is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="College ID is required to create subscription order")
+
+    college = db.get(College, college_id)
+    if college is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="College not found")
+
+    amount_paise = 1000000  # ₹10,000 in paise
+    receipt = f"sub_{college_id}_{int(datetime.now(timezone.utc).timestamp())}"
+    notes = {
+        "college_id": str(college_id),
+        "type": "campus_subscription",
+        "college_name": college.name,
+    }
+
+    client = _get_razorpay_client()
+    try:
+        order = client.order.create({
+            "amount": amount_paise,
+            "currency": "INR",
+            "receipt": receipt,
+            "notes": notes,
+        })
+    except Exception as exc:
+        logger.exception("Razorpay subscription order creation failed")
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Payment gateway error: {exc}") from exc
+
+    txn = Transaction(
+        college_id=college_id,
+        feature_id=None,
+        amount=10000.00,
+        currency="INR",
+        status=TransactionStatus.CREATED,
+        razorpay_order_id=order["id"],
+    )
+    db.add(txn)
+    db.commit()
+
+    return CreateOrderResponse(
+        order_id=order["id"],
+        amount=amount_paise,
+        currency="INR",
+        razorpay_key_id=settings.RAZORPAY_KEY_ID,
+    )
+
+
 # ---------------------------------------------------------------------------
 # 2. Verify Payment — Frontend callback (secondary confirmation)
 # ---------------------------------------------------------------------------
@@ -227,21 +305,42 @@ def verify_payment(
     txn.razorpay_signature = payload.razorpay_signature
     txn.paid_at = now
 
-    # Activate the feature for this college
-    cf = db.scalar(
-        select(CollegeFeature).where(
-            CollegeFeature.college_id == txn.college_id,
-            CollegeFeature.feature_id == txn.feature_id,
+    # Case A: Feature purchase
+    if txn.feature_id is not None:
+        cf = db.scalar(
+            select(CollegeFeature).where(
+                CollegeFeature.college_id == txn.college_id,
+                CollegeFeature.feature_id == txn.feature_id,
+            )
         )
-    )
-    if cf is not None:
-        cf.status = FeatureRequestStatus.ACTIVE
-        cf.paid_at = now
-        cf.payment_due_at = None
-        cf.amount_charged = txn.amount
-        feature = db.get(Feature, txn.feature_id)
-        if feature:
-            cf.expires_at = _compute_expires_at(feature.billing_type)
+        if cf is not None:
+            cf.status = FeatureRequestStatus.ACTIVE
+            cf.paid_at = now
+            cf.payment_due_at = None
+            cf.amount_charged = txn.amount
+            feature = db.get(Feature, txn.feature_id)
+            if feature:
+                cf.expires_at = _compute_expires_at(feature.billing_type)
+    # Case B: Institutional Campus Subscription (₹10,000 / month)
+    elif txn.college_id is not None:
+        college = db.get(College, txn.college_id)
+        if college is not None:
+            college.subscription_status = "active"
+            exp = college.subscription_expires_at
+            if exp and exp.tzinfo is None:
+                exp = exp.replace(tzinfo=timezone.utc)
+
+            if exp and exp > now:
+                college.subscription_expires_at = exp + timedelta(days=30)
+            else:
+                college.subscription_started_at = now
+                college.subscription_expires_at = now + timedelta(days=30)
+
+            college.subscription_amount = txn.amount
+            db.commit()
+
+            # Check if all required checklist items are now complete; if so, transitions to READY_FOR_REVIEW!
+            compute_setup_checklist(db=db, college=college, current_user_id=current_user.id if current_user else None)
 
     db.commit()
     return {"message": "Payment verified successfully", "status": "paid"}
@@ -318,20 +417,38 @@ async def razorpay_webhook(request: Request, db: Session = Depends(get_db)) -> d
         txn.razorpay_payment_id = payment_id
         txn.paid_at = now
 
-        cf = db.scalar(
-            select(CollegeFeature).where(
-                CollegeFeature.college_id == txn.college_id,
-                CollegeFeature.feature_id == txn.feature_id,
+        if txn.feature_id is not None:
+            cf = db.scalar(
+                select(CollegeFeature).where(
+                    CollegeFeature.college_id == txn.college_id,
+                    CollegeFeature.feature_id == txn.feature_id,
+                )
             )
-        )
-        if cf is not None:
-            cf.status = FeatureRequestStatus.ACTIVE
-            cf.paid_at = now
-            cf.payment_due_at = None
-            cf.amount_charged = txn.amount
-            feature = db.get(Feature, txn.feature_id)
-            if feature:
-                cf.expires_at = _compute_expires_at(feature.billing_type)
+            if cf is not None:
+                cf.status = FeatureRequestStatus.ACTIVE
+                cf.paid_at = now
+                cf.payment_due_at = None
+                cf.amount_charged = txn.amount
+                feature = db.get(Feature, txn.feature_id)
+                if feature:
+                    cf.expires_at = _compute_expires_at(feature.billing_type)
+        elif txn.college_id is not None:
+            college = db.get(College, txn.college_id)
+            if college is not None:
+                college.subscription_status = "active"
+                exp = college.subscription_expires_at
+                if exp and exp.tzinfo is None:
+                    exp = exp.replace(tzinfo=timezone.utc)
+
+                if exp and exp > now:
+                    college.subscription_expires_at = exp + timedelta(days=30)
+                else:
+                    college.subscription_started_at = now
+                    college.subscription_expires_at = now + timedelta(days=30)
+
+                college.subscription_amount = txn.amount
+                db.commit()
+                compute_setup_checklist(db=db, college=college)
 
         db.commit()
         logger.info("Webhook: payment.captured for order %s", order_id)
@@ -342,14 +459,15 @@ async def razorpay_webhook(request: Request, db: Session = Depends(get_db)) -> d
             txn.status = TransactionStatus.FAILED
             txn.razorpay_payment_id = payment_id
 
-            cf = db.scalar(
-                select(CollegeFeature).where(
-                    CollegeFeature.college_id == txn.college_id,
-                    CollegeFeature.feature_id == txn.feature_id,
+            if txn.feature_id is not None:
+                cf = db.scalar(
+                    select(CollegeFeature).where(
+                        CollegeFeature.college_id == txn.college_id,
+                        CollegeFeature.feature_id == txn.feature_id,
+                    )
                 )
-            )
-            if cf is not None and cf.status != FeatureRequestStatus.ACTIVE:
-                cf.status = FeatureRequestStatus.PAYMENT_FAILED
+                if cf is not None and cf.status != FeatureRequestStatus.ACTIVE:
+                    cf.status = FeatureRequestStatus.PAYMENT_FAILED
 
             db.commit()
             logger.info("Webhook: payment.failed for order %s", order_id)
@@ -360,5 +478,6 @@ async def razorpay_webhook(request: Request, db: Session = Depends(get_db)) -> d
 
 # Aliases under /api prefix
 api_router.add_api_route("/create-order", create_order, methods=["POST"], response_model=CreateOrderResponse)
+api_router.add_api_route("/subscription/create-order", create_subscription_order, methods=["POST"], response_model=CreateOrderResponse)
 api_router.add_api_route("/verify-payment", verify_payment, methods=["POST"])
 api_router.add_api_route("/verify", verify_payment, methods=["POST"])

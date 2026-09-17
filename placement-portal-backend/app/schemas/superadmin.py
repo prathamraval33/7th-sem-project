@@ -35,6 +35,18 @@ class CollegeSummary(BaseModel):
     applications: int = 0
     admin_name: Optional[str] = None
     admin_email: Optional[str] = None
+    setup_progress_percentage: int = 100
+    blocking_items_complete: bool = True
+    contact_name: Optional[str] = None
+    contact_mobile: Optional[str] = None
+    contact_mobile_verified: bool = False
+    registered_at: Optional[datetime] = None
+    activated_at: Optional[datetime] = None
+    subscription_status: Optional[str] = "active"
+    subscription_plan: Optional[str] = "campus_standard"
+    subscription_amount: Optional[float] = 10000.00
+    subscription_started_at: Optional[datetime] = None
+    subscription_expires_at: Optional[datetime] = None
 
 
 class CollegeDetail(BaseModel):
@@ -54,6 +66,19 @@ class CollegeDetail(BaseModel):
     applications: int = 0
     enabled_features: list[str] = []
     pending_features: list[str] = []
+    setup_progress_percentage: int = 100
+    blocking_items_complete: bool = True
+    contact_name: Optional[str] = None
+    contact_mobile: Optional[str] = None
+    contact_mobile_verified: bool = False
+    registered_at: Optional[datetime] = None
+    activated_at: Optional[datetime] = None
+    rejection_reason: Optional[str] = None
+    subscription_status: Optional[str] = "active"
+    subscription_plan: Optional[str] = "campus_standard"
+    subscription_amount: Optional[float] = 10000.00
+    subscription_started_at: Optional[datetime] = None
+    subscription_expires_at: Optional[datetime] = None
 
 
 class FeatureCreate(BaseModel):

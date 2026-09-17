@@ -20,7 +20,7 @@ import "../../styles/commandDeck.css";
 
 const NAV_ITEMS = [
   { to: "/superadmin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/superadmin/colleges", label: "Colleges", icon: Building2 },
+  { to: "/superadmin/colleges", label: "Colleges", icon: Building2, showCollegeBadge: true },
   { to: "/superadmin/features", label: "Feature Management", icon: Puzzle, showBadge: true },
   { to: "/superadmin/subscriptions", label: "Subscriptions", icon: CreditCard },
   { to: "/superadmin/analytics", label: "Analytics", icon: BarChart3 },
@@ -29,6 +29,7 @@ const NAV_ITEMS = [
 ];
 
 export default function ConsoleShell() {
+  const colleges = useSuperAdminStore((s) => s.colleges);
   const featureRequests = useSuperAdminStore((s) => s.featureRequests);
   const toast = useSuperAdminStore((s) => s.toast);
   const hydrateSuperAdmin = useSuperAdminStore((s) => s.hydrateSuperAdmin);
@@ -39,6 +40,7 @@ export default function ConsoleShell() {
   }, [hydrateSuperAdmin]);
 
   const pendingCount = featureRequests.filter((r) => r.status === "pending" || r.status === "pending_review").length;
+  const pendingCollegeReviewCount = colleges.filter((c) => c.status === "ready_for_review").length;
 
   return (
     <div className="cd-shell">
@@ -77,6 +79,11 @@ export default function ConsoleShell() {
                 {item.showBadge && pendingCount > 0 && (
                   <span className={`cd-sidebar__badge ${pendingCount > 5 ? "cd-sidebar__badge--urgent" : ""}`}>
                     {pendingCount}
+                  </span>
+                )}
+                {item.showCollegeBadge && pendingCollegeReviewCount > 0 && (
+                  <span className="cd-sidebar__badge cd-sidebar__badge--urgent" title={`${pendingCollegeReviewCount} colleges pending review`}>
+                    {pendingCollegeReviewCount}
                   </span>
                 )}
               </NavLink>

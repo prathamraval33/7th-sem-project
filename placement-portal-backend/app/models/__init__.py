@@ -3,6 +3,7 @@ autogenerate and so mapper configuration (relationships) resolves cleanly.
 """
 from app.models.user import User, UserType
 from app.models.college import College, CollegeStatus
+from app.models.college_registration import CollegeRegistration
 from app.models.feature import Feature, FeatureStatus, BillingType
 from app.models.college_feature import CollegeFeature, FeatureRequestStatus
 from app.models.transaction import Transaction, TransactionStatus
@@ -36,12 +37,14 @@ from app.models.notification import Notification, NotificationType
 from app.models.analytics import Analytics
 from app.models.dashboard_insight import DashboardInsight
 from app.models.contact_message import ContactMessage, ContactCategory, ContactStatus
+from app.models.custom_feature_request import CustomFeatureRequest, CustomFeatureStatus
 
 __all__ = [
     "User",
     "UserType",
     "College",
     "CollegeStatus",
+    "CollegeRegistration",
     "Feature",
     "FeatureStatus",
     "BillingType",
@@ -96,4 +99,6 @@ __all__ = [
     "ContactMessage",
     "ContactCategory",
     "ContactStatus",
+    "CustomFeatureRequest",
+    "CustomFeatureStatus",
 ]

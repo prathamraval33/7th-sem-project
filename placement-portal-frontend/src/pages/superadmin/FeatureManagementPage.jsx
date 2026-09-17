@@ -587,11 +587,217 @@ function RequestsTab({ highlightRequestId }) {
 }
 
 // ---------------------------------------------------------------------------
+// Custom Proposals tab — proposals submitted by College Admins
+// ---------------------------------------------------------------------------
+function CustomProposalReviewModal({ proposal, onClose }) {
+  const [status, setStatus] = useState(proposal.status || "pending");
+  const [feedback, setFeedback] = useState(proposal.superadmin_feedback || "");
+  const [isSaving, setIsSaving] = useState(false);
+  const updateCustomFeatureProposal = useSuperAdminStore((s) => s.updateCustomFeatureProposal);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await updateCustomFeatureProposal(proposal.id, {
+        status,
+        superadmin_feedback: feedback.trim() || null,
+      });
+      onClose();
+    } catch (err) {
+      // Handled in store toast
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="cd-modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="cd-modal" role="dialog" aria-label="Review Custom Proposal">
+        <div className="cd-modal__title">Review Custom Feature Proposal</div>
+
+        <div className="cd-panel cd-panel--sunken" style={{ marginBottom: "var(--cd-gap-md)", padding: "14px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+            <div>
+              <div style={{ fontSize: "15px", fontWeight: 600, color: "var(--cd-text-primary)" }}>{proposal.title}</div>
+              <div style={{ fontSize: "12px", color: "var(--cd-text-secondary)", marginTop: 2 }}>
+                From: <strong>{proposal.college_name || `College #${proposal.college_id}`}</strong> ({proposal.admin_email || "Admin"})
+              </div>
+            </div>
+            <StatusPill status={proposal.status} />
+          </div>
+
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "10px" }}>
+            <span className="cd-pill cd-pill--neutral">Category: {proposal.category}</span>
+            <span className="cd-pill cd-pill--role">Target: {proposal.target_user}</span>
+            <span className="cd-pill cd-pill--info">Priority: {proposal.priority}</span>
+          </div>
+
+          <div style={{ marginTop: "12px", fontSize: "13px", color: "var(--cd-text-secondary)", whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
+            {proposal.description}
+          </div>
+        </div>
+
+        <div className="cd-input-group">
+          <label className="cd-label" htmlFor="proposalStatus">Update Status</label>
+          <select
+            id="proposalStatus"
+            className="cd-select"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+          >
+            <option value="pending">Pending Review</option>
+            <option value="under_review">Under Review</option>
+            <option value="planned">Planned on Roadmap</option>
+            <option value="in_progress">In Progress</option>
+            <option value="completed">Completed & Live</option>
+            <option value="declined">Declined</option>
+          </select>
+        </div>
+
+        <div className="cd-input-group">
+          <label className="cd-label" htmlFor="proposalFeedback">SuperAdmin Feedback / Notes to College Admin</label>
+          <textarea
+            id="proposalFeedback"
+            className="cd-textarea"
+            rows={4}
+            value={feedback}
+            onChange={(e) => setFeedback(e.target.value)}
+            placeholder="Write roadmap details, questions, or estimated release notes that the College Admin will see..."
+          />
+        </div>
+
+        <div className="cd-modal__actions">
+          <button className="cd-btn cd-btn--secondary" onClick={onClose} disabled={isSaving}>
+            Cancel
+          </button>
+          <button className="cd-btn cd-btn--primary" onClick={handleSave} disabled={isSaving}>
+            {isSaving ? "Saving..." : "Save & Send Feedback"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CustomProposalsTab() {
+  const customFeatureRequests = useSuperAdminStore((s) => s.customFeatureRequests);
+  const fetchCustomFeatureRequests = useSuperAdminStore((s) => s.fetchCustomFeatureRequests);
+  const [selectedProposal, setSelectedProposal] = useState(null);
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    fetchCustomFeatureRequests();
+  }, [fetchCustomFeatureRequests]);
+
+  const filteredProposals = customFeatureRequests.filter((p) => {
+    const term = search.toLowerCase();
+    return (
+      (p.title || "").toLowerCase().includes(term) ||
+      (p.college_name || "").toLowerCase().includes(term) ||
+      (p.category || "").toLowerCase().includes(term) ||
+      (p.description || "").toLowerCase().includes(term)
+    );
+  });
+
+  const columns = [
+    {
+      key: "college_name",
+      header: "College",
+      className: "cd-table__cell--bold",
+      render: (row) => (
+        <div>
+          <div>{row.college_name || `College #${row.college_id}`}</div>
+          <div style={{ fontSize: "11px", color: "var(--cd-text-muted)" }}>{row.admin_email}</div>
+        </div>
+      ),
+    },
+    {
+      key: "title",
+      header: "Proposal Title",
+      render: (row) => (
+        <div>
+          <div style={{ fontWeight: 600 }}>{row.title}</div>
+          <div style={{ fontSize: "12px", color: "var(--cd-text-secondary)" }}>
+            {row.category} • Target: {row.target_user}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "priority",
+      header: "Priority",
+      render: (row) => (
+        <span style={{ textTransform: "capitalize", fontWeight: 500, fontSize: "12px" }}>
+          {row.priority}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (row) => <StatusPill status={row.status} />,
+    },
+    {
+      key: "created_at",
+      header: "Submitted",
+      className: "cd-table__cell--meta",
+      render: (row) => (row.created_at ? format(new Date(row.created_at), "MMM d, yyyy") : "—"),
+    },
+    {
+      key: "actions",
+      header: "",
+      className: "cd-table__cell--actions",
+      render: (row) => (
+        <button className="cd-btn cd-btn--compact cd-btn--secondary" onClick={() => setSelectedProposal(row)}>
+          Review & Reply
+        </button>
+      ),
+    },
+  ];
+
+  return (
+    <>
+      <div className="cd-search-bar" style={{ marginBottom: "var(--cd-gap-md)" }}>
+        <input
+          className="cd-input"
+          type="text"
+          placeholder="Search proposals by title, college, or category…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+
+      {filteredProposals.length === 0 ? (
+        <div className="cd-panel">
+          <EmptyState
+            icon={CheckCircle}
+            title="No custom feature proposals found"
+            text="College Admins have not submitted any custom proposals matching your search."
+            positive
+          />
+        </div>
+      ) : (
+        <DataTable columns={columns} data={filteredProposals} />
+      )}
+
+      {selectedProposal && (
+        <CustomProposalReviewModal
+          proposal={selectedProposal}
+          onClose={() => setSelectedProposal(null)}
+        />
+      )}
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Page shell — tabs + top bar
 // ---------------------------------------------------------------------------
 export default function FeatureManagementPage() {
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState(location.state?.tab === "requests" ? "requests" : "catalog");
+  const [activeTab, setActiveTab] = useState(
+    location.state?.tab === "requests" ? "requests" : location.state?.tab === "proposals" ? "proposals" : "catalog"
+  );
   const [selectedFeatureId, setSelectedFeatureId] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingFeature, setEditingFeature] = useState(null);
@@ -625,7 +831,13 @@ export default function FeatureManagementPage() {
           className={`cd-tabs__item ${activeTab === "requests" ? "cd-tabs__item--active" : ""}`}
           onClick={() => setActiveTab("requests")}
         >
-          Requests
+          Subscription Requests
+        </button>
+        <button
+          className={`cd-tabs__item ${activeTab === "proposals" ? "cd-tabs__item--active" : ""}`}
+          onClick={() => setActiveTab("proposals")}
+        >
+          Custom Proposals
         </button>
       </div>
 
@@ -648,8 +860,11 @@ export default function FeatureManagementPage() {
 
       {activeTab === "requests" && <RequestsTab highlightRequestId={highlightRequestId} />}
 
+      {activeTab === "proposals" && <CustomProposalsTab />}
+
       {showAddModal && <FeatureFormModal onClose={() => setShowAddModal(false)} />}
       {editingFeature && <FeatureFormModal feature={editingFeature} onClose={() => setEditingFeature(null)} />}
     </>
   );
 }
+

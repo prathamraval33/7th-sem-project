@@ -8,6 +8,10 @@ export const superadminApi = {
   deleteCollege: (collegeId) => axiosClient.delete(`/superadmin/colleges/${collegeId}`),
   updateCollegeStatus: (collegeId, payload) =>
     axiosClient.patch(`/superadmin/colleges/${collegeId}/status`, payload),
+  approveCollege: (collegeId) =>
+    axiosClient.patch(`/superadmin/colleges/${collegeId}/approve`),
+  rejectCollege: (collegeId, rejectionReason) =>
+    axiosClient.patch(`/superadmin/colleges/${collegeId}/reject`, { rejection_reason: rejectionReason }),
 
   getFeatures: () => axiosClient.get("/superadmin/features"),
   createFeature: (payload) => axiosClient.post("/superadmin/features", payload),
@@ -37,4 +41,10 @@ export const superadminApi = {
     axiosClient.post(`/superadmin/subscriptions/${subscriptionId}/remind`),
   sendRenewalReminder: (subscriptionId) =>
     axiosClient.post(`/superadmin/subscriptions/${subscriptionId}/remind-renewal`),
+
+  // Custom Feature Proposals from College Admins
+  getCustomFeatureRequests: () => axiosClient.get("/superadmin/custom-features"),
+  updateCustomFeatureRequest: (id, payload) =>
+    axiosClient.patch(`/superadmin/custom-features/${id}`, payload),
 };
+

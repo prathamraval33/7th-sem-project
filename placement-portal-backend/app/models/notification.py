@@ -22,6 +22,10 @@ class NotificationType(str, enum.Enum):
     PAYMENT_REMINDER = "payment_reminder"
     SUBSCRIPTION_EXPIRING_SOON = "subscription_expiring_soon"
     APPROVAL_EXPIRED = "approval_expired"
+    COLLEGE_COLLISION_ALERT = "college_collision_alert"
+    COLLEGE_READY_FOR_REVIEW = "college_ready_for_review"
+    COLLEGE_APPROVED = "college_approved"
+    COLLEGE_REJECTED = "college_rejected"
 
 
 class Notification(Base):
