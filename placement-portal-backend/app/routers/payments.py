@@ -44,7 +44,14 @@ def _get_razorpay_client():
                 detail="Razorpay credentials are not configured on the server.",
             )
         return razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
-    except (ImportError, ModuleNotFoundError):
+    except (ImportError, ModuleNotFoundError) as exc:
+        logger.warning("razorpay library is not installed: %s", exc)
+        if settings.RAZORPAY_KEY_ID and settings.RAZORPAY_KEY_SECRET:
+            raise HTTPException(
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="The 'razorpay' Python library is not loaded in the backend environment. Please restart the backend server so it loads the installed razorpay package.",
+            ) from exc
+
         class _MockOrders:
             def create(self, data: dict) -> dict:
                 import uuid

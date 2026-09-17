@@ -82,6 +82,15 @@ export default function SubscriptionBannerCard({ collegeData = null, compact = f
       const orderRes = await adminApi.createSubscriptionOrder(college.id);
       const order = orderRes.data;
 
+      if (order.order_id?.startsWith("order_mock_")) {
+        showError(
+          "Gateway In Mock Mode",
+          `Backend generated a mock order (${order.order_id}). Razorpay client was not active when the backend started. Please restart your FastAPI backend server so it connects to Razorpay live test mode.`
+        );
+        setIsProcessing(false);
+        return;
+      }
+
       const options = {
         key: order.razorpay_key_id || import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_TXqWyY8wIQsVyy",
         amount: order.amount,

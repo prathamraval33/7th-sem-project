@@ -80,6 +80,16 @@ export default function RegisterCollegePaymentPage() {
       const orderRes = await adminApi.createSubscriptionOrder(collegeId);
       const order = orderRes.data;
 
+      // Guard: If backend returned a mock order ID (e.g. backend was running before razorpay was installed)
+      if (order.order_id?.startsWith("order_mock_")) {
+        showError(
+          "Gateway In Mock Mode",
+          `Backend generated a mock order (${order.order_id}). Razorpay client was not active when the backend started. Please restart your FastAPI backend server so it connects to Razorpay live test mode.`
+        );
+        setIsProcessing(false);
+        return;
+      }
+
       // 2. Open Razorpay Modal
       const options = {
         key: order.razorpay_key_id || import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_TXqWyY8wIQsVyy",
