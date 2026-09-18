@@ -66,6 +66,7 @@ import AdminUsersPage from "./pages/admin/AdminUsersPage";
 import AdminFeaturesPage from "./pages/admin/AdminFeaturesPage";
 import AdminBillingPage from "./pages/admin/AdminBillingPage";
 import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
+import AdminActivitiesPage from "./pages/admin/AdminActivitiesPage";
 
 // SuperAdmin Pages (Command Deck Console)
 import ConsoleShell from "./components/superadmin/ConsoleShell";
@@ -177,12 +178,13 @@ export default function App() {
                 <Route path="/admin/features" element={<AdminFeaturesPage />} />
                 <Route path="/admin/billing" element={<AdminBillingPage />} />
                 <Route path="/admin/settings" element={<AdminSettingsPage />} />
+                <Route path="/admin/activities" element={<AdminActivitiesPage />} />
 
                 {/* Legacy / Convenience Redirections */}
                 <Route path="/admin/students" element={<Navigate to="/admin/users?tab=students" replace />} />
                 <Route path="/admin/drives" element={<Navigate to="/admin/dashboard?tab=drives" replace />} />
                 <Route path="/admin/curriculum" element={<Navigate to="/admin/settings?tab=branches" replace />} />
-                <Route path="/admin/activity" element={<Navigate to="/admin/dashboard?tab=overview" replace />} />
+                <Route path="/admin/activity" element={<Navigate to="/admin/activities" replace />} />
 
                 <Route path="/admin/profile" element={<ProfilePage />} />
                 <Route path="/admin/change-password" element={<ChangePasswordPage />} />

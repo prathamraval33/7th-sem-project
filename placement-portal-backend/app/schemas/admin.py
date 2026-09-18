@@ -57,6 +57,9 @@ class CollegeInfoResponse(BaseModel):
     tpos: int = 0
     drives: int = 0
     applications: int = 0
+    contact_name: Optional[str] = None
+    contact_mobile: Optional[str] = None
+    contact_mobile_verified: bool = False
     subscription_status: str = "active"
     subscription_plan: Optional[str] = "campus_standard"
     subscription_amount: float = 10000.00
@@ -65,6 +68,12 @@ class CollegeInfoResponse(BaseModel):
     is_subscription_expired: bool = False
     days_remaining: int = 0
     can_renew: bool = False
+
+
+class CollegeProfileUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=2, max_length=255)
+    contact_name: Optional[str] = Field(default=None, min_length=2, max_length=255)
+    contact_mobile: Optional[str] = Field(default=None, max_length=50)
 
 
 class CollegeDomainUpdate(BaseModel):

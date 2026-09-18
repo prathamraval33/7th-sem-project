@@ -24,6 +24,14 @@ export const adminApi = {
   getActivityFeed: () => axiosClient.get("/admin/activity"),
   getAnalytics: () => axiosClient.get("/admin/analytics"),
 
+  // Activities & Messages Hub (Dual-Window: WhatsApp/Mail style communications & Audit Logs)
+  getMessages: () => axiosClient.get("/admin/messages"),
+  sendBroadcastMessage: (payload) => axiosClient.post("/admin/messages/broadcast", payload),
+  updateMessageStatus: (sourceType, messageId, status) =>
+    axiosClient.patch(`/admin/messages/${sourceType}/${messageId}/status`, { status }),
+  replyMessage: (payload) => axiosClient.post("/admin/messages/reply", payload),
+
+
   // Available Features & Razorpay Payment Flow
   getFeatures: () => axiosClient.get("/admin/features"),
   requestFeature: (featureId) => axiosClient.post(`/admin/features/${featureId}/request`),
@@ -37,6 +45,7 @@ export const adminApi = {
   getCollegeInfo: () => axiosClient.get("/admin/college"),
   getSetupChecklist: () => axiosClient.get("/admin/college/setup-checklist"),
   updateCollegeDomain: (domain) => axiosClient.patch("/admin/college/domain", { domain }),
+  updateCollegeProfile: (payload) => axiosClient.patch("/admin/college/profile", payload),
 
   // Reference Sample Fee Templates (Multi-template support)
   getFeeTemplates: () => axiosClient.get("/admin/college/fee-templates"),

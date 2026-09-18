@@ -303,7 +303,19 @@ export default function SetupChecklistWidget() {
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-slate-500 mt-1.5 line-clamp-2">{item.description}</p>
+                  <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">{item.description}</p>
+                  {item.missing_fields && item.missing_fields.length > 0 && !item.completed && (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {item.missing_fields.map((field) => (
+                        <span
+                          key={field}
+                          className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-900 bg-amber-100/90 px-2 py-0.5 rounded border border-amber-200"
+                        >
+                          Remaining: {field}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   {item.id === "campus_subscription" && !item.completed ? (
                     <div className="mt-3 flex items-center gap-2">
                       <Button

@@ -54,8 +54,8 @@ export default function AdminBillingPage() {
     <div className="space-y-6 pb-12 font-sans">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
-        <div>
-          <div className="flex items-center gap-2">
+        <div className="max-w-2xl">
+          <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-heading tracking-tight">
               Billing & Subscription
             </h1>
@@ -63,7 +63,7 @@ export default function AdminBillingPage() {
               <CreditCard className="w-3.5 h-3.5" /> Institutional Account
             </span>
           </div>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-slate-500 leading-relaxed">
             Manage your campus license, 30-day billing cycle, renewal payments, and transaction history for{" "}
             <span className="font-semibold text-slate-800">{college?.name || "your institution"}</span>.
           </p>
@@ -71,10 +71,11 @@ export default function AdminBillingPage() {
 
         <Link
           to="/admin/features"
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:text-indigo-600 hover:border-indigo-200 shadow-xs transition"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50/40 shadow-xs hover:shadow-sm transition-all flex-shrink-0 whitespace-nowrap self-start sm:self-center group"
         >
+          <Sparkles className="w-3.5 h-3.5 text-indigo-500 transition-transform group-hover:scale-110" />
           <span>Browse Modules & Add-ons</span>
-          <ArrowRight className="w-3.5 h-3.5" />
+          <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all" />
         </Link>
       </div>
 

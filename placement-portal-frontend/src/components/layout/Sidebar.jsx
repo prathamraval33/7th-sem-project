@@ -50,6 +50,7 @@ const NAV_ITEMS = {
   admin: [
     { type: "section", label: "Overview" },
     { label: "Dashboard", to: "/admin/dashboard", icon: LayoutDashboard },
+    { label: "Activities", to: "/admin/activities", icon: Activity },
     { label: "Reports & Analytics", to: "/admin/analytics", icon: BarChart3 },
     { type: "section", label: "Administration" },
     { label: "User Management", to: "/admin/users", icon: Users },

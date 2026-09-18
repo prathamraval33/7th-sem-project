@@ -72,6 +72,7 @@ class ChecklistItem(BaseModel):
     explanation: Optional[str] = None
     completed: Optional[bool] = None
     action_url: Optional[str] = None
+    missing_fields: Optional[list[str]] = None
 
     @model_validator(mode="after")
     def sync_item_fields(self) -> "ChecklistItem":

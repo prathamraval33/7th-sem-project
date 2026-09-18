@@ -84,15 +84,32 @@ def compute_setup_checklist(
     )
 
     # Item 3: Basic college profile completion
-    has_basic_profile = bool(college.name and college.contact_name)
+    missing_profile_fields = []
+    if not college.name or not str(college.name).strip():
+        missing_profile_fields.append("Institutional Name")
+    if not college.contact_name or not str(college.contact_name).strip():
+        missing_profile_fields.append("Primary Contact Person Name")
+
+    has_basic_profile = len(missing_profile_fields) == 0
+
+    if missing_profile_fields:
+        profile_desc = f"Confirm institutional name and primary administrative contact details. (Remaining: {', '.join(missing_profile_fields)})"
+        profile_explanation = f"Action Required: Please provide {', '.join(missing_profile_fields)} in your institutional profile settings."
+        profile_link = "/admin/settings?tab=profile&focus=contact"
+    else:
+        profile_desc = "Institutional name and primary administrative contact details confirmed."
+        profile_explanation = "Essential institutional records are confirmed for official student documentation."
+        profile_link = "/admin/settings?tab=profile"
+
     profile_item = ChecklistItem(
         id="basic_profile",
         title="Basic College Profile",
-        description="Confirm institutional name and primary administrative contact details.",
+        description=profile_desc,
         is_blocking=True,
         is_completed=has_basic_profile,
-        deep_link="/admin/settings?tab=profile",
-        explanation="Essential institutional records are required for official student documentation.",
+        deep_link=profile_link,
+        explanation=profile_explanation,
+        missing_fields=missing_profile_fields if missing_profile_fields else None,
     )
 
     # Item 4: Institutional Platform Subscription (₹10,000 / month)

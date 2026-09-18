@@ -38,6 +38,8 @@ import {
   Sparkles,
   Clock,
   CreditCard,
+  UserCheck,
+  Phone,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -54,6 +56,14 @@ export default function AdminSettingsPage() {
   // --- College Info & Domain State ---
   const [domainInput, setDomainInput] = useState("");
   const [isEditingDomain, setIsEditingDomain] = useState(false);
+
+  // --- College Profile & Administrative Contact State ---
+  const [collegeNameInput, setCollegeNameInput] = useState("");
+  const [contactNameInput, setContactNameInput] = useState("");
+  const [contactMobileInput, setContactMobileInput] = useState("");
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const contactSectionRef = React.useRef(null);
+  const focusParam = searchParams.get("focus");
 
   // --- Academic Branches State ---
   const [showBranchModal, setShowBranchModal] = useState(false);
@@ -75,12 +85,30 @@ export default function AdminSettingsPage() {
   const { data: college, isLoading: isCollegeLoading, isError: isCollegeError } = useQuery({
     queryKey: ["adminCollegeInfo"],
     queryFn: () => adminApi.getCollegeInfo().then((res) => res.data),
-    onSuccess: (data) => {
-      if (!isEditingDomain) {
-        setDomainInput(data.domain || "");
-      }
-    },
   });
+
+  React.useEffect(() => {
+    if (college) {
+      if (!isEditingDomain) {
+        setDomainInput(college.domain || "");
+      }
+      if (!isEditingProfile) {
+        setCollegeNameInput(college.name || "");
+        setContactNameInput(college.contact_name || "");
+        setContactMobileInput(college.contact_mobile || "");
+      }
+    }
+  }, [college, isEditingDomain, isEditingProfile]);
+
+  React.useEffect(() => {
+    if (focusParam === "contact" || focusParam === "profile") {
+      setTimeout(() => {
+        if (contactSectionRef.current) {
+          contactSectionRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 150);
+    }
+  }, [focusParam, activeTab]);
 
   const { data: branches = [], isLoading: isBranchesLoading } = useQuery({
     queryKey: ["branches"],
@@ -140,6 +168,45 @@ export default function AdminSettingsPage() {
     if (confirmed) {
       updateDomainMutation.mutate(cleanDomain);
     }
+  };
+
+  // ==========================================
+  // MUTATIONS: PROFILE & CONTACT DETAILS
+  // ==========================================
+  const updateProfileMutation = useMutation({
+    mutationFn: (payload) => adminApi.updateCollegeProfile(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["adminCollegeInfo"]);
+      queryClient.invalidateQueries(["collegeSetupChecklist"]);
+      setIsEditingProfile(false);
+      showSuccess(
+        "Profile Saved",
+        "Institution details and primary administrative contact updated successfully."
+      );
+    },
+    onError: (err) => {
+      showError("Profile Update Failed", err.response?.data?.detail || "Could not update institution profile.");
+    },
+  });
+
+  const handleProfileSubmit = (e) => {
+    e.preventDefault();
+    if (!collegeNameInput.trim()) {
+      showError("Validation Error", "Institution name is required.");
+      return;
+    }
+    if (!contactNameInput.trim()) {
+      showError(
+        "Contact Person Required",
+        "Please enter the primary administrative contact person name to complete your college profile."
+      );
+      return;
+    }
+    updateProfileMutation.mutate({
+      name: collegeNameInput.trim(),
+      contact_name: contactNameInput.trim(),
+      contact_mobile: contactMobileInput.trim() || null,
+    });
   };
 
   // ==========================================
@@ -500,6 +567,149 @@ export default function AdminSettingsPage() {
               icon={FileCheck}
               accent="warning"
             />
+          </div>
+
+          {/* Missing Contact Attention Alert */}
+          {!college.contact_name && (
+            <div className="rounded-xl border border-amber-300 bg-amber-50/90 p-4 text-amber-900 flex items-start gap-3 shadow-xs">
+              <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <h4 className="text-sm font-bold">Action Required: Complete Basic College Profile</h4>
+                <p className="text-xs text-amber-800 leading-relaxed">
+                  Primary administrative contact details are currently missing. Please enter the <strong>Contact Person Name</strong> below and save to satisfy the <strong>Basic College Profile</strong> requirement on your setup checklist.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Institutional Profile & Administrative Contact Card */}
+          <div
+            ref={contactSectionRef}
+            className={`rounded-xl border bg-card p-6 shadow-sm transition-all ${
+              focusParam === "contact" || focusParam === "profile"
+                ? "ring-2 ring-indigo-500 border-indigo-400"
+                : !college.contact_name
+                ? "border-amber-300"
+                : "border-border"
+            }`}
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-border/60">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                  <Building2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-slate-900 font-heading">
+                    Institutional Profile & Administrative Contact
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    Official institutional identity and designated administrative contact details.
+                  </p>
+                </div>
+              </div>
+              <div>
+                {college.contact_name ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Details Confirmed
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200 animate-pulse">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-600" /> Setup Required
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <form onSubmit={handleProfileSubmit} className="space-y-4 max-w-2xl">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* College Full Name */}
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
+                    Institution Official Name <span className="text-rose-500">*</span>
+                  </label>
+                  <Input
+                    type="text"
+                    value={collegeNameInput}
+                    onChange={(e) => {
+                      setIsEditingProfile(true);
+                      setCollegeNameInput(e.target.value);
+                    }}
+                    placeholder="e.g. Birla Vishvakarma Mahavidyalaya (BVM)"
+                    required
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    The legal or registered name of the educational institution.
+                  </p>
+                </div>
+
+                {/* Primary Contact Person Name */}
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5 flex items-center justify-between">
+                    <span>Primary Contact Person Name <span className="text-rose-500">*</span></span>
+                    {!college.contact_name && (
+                      <span className="text-[10px] text-amber-600 font-bold uppercase">Missing</span>
+                    )}
+                  </label>
+                  <Input
+                    type="text"
+                    value={contactNameInput}
+                    onChange={(e) => {
+                      setIsEditingProfile(true);
+                      setContactNameInput(e.target.value);
+                    }}
+                    placeholder="e.g. Dr. Indrajit Patel / Admin Name"
+                    className={!contactNameInput.trim() ? "border-amber-400 focus:border-amber-500 bg-amber-50/20" : ""}
+                    required
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Principal, Dean, or Placement Director name responsible for this portal.
+                  </p>
+                </div>
+
+                {/* Primary Contact Mobile */}
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
+                    Administrative Phone / Mobile
+                  </label>
+                  <Input
+                    type="text"
+                    value={contactMobileInput}
+                    onChange={(e) => {
+                      setIsEditingProfile(true);
+                      setContactMobileInput(e.target.value);
+                    }}
+                    placeholder="e.g. +91 9876543210"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Official contact number for critical platform notifications and audits.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center gap-3">
+                <Button
+                  type="submit"
+                  isLoading={updateProfileMutation.isPending}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-xs px-4 py-2 flex items-center gap-1.5 shadow-sm"
+                >
+                  <UserCheck className="w-4 h-4" /> Save Institutional Profile
+                </Button>
+                {isEditingProfile && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCollegeNameInput(college.name || "");
+                      setContactNameInput(college.contact_name || "");
+                      setContactMobileInput(college.contact_mobile || "");
+                      setIsEditingProfile(false);
+                    }}
+                    className="text-xs text-slate-500 hover:text-slate-800"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </form>
           </div>
 
           {/* Domain Settings Card */}

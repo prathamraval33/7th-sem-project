@@ -26,8 +26,10 @@ from app.core.security import hash_password
 from app.db.session import get_db
 from app.models.analytics import Analytics
 from app.models.application import Application, ApplicationStatus
+from app.models.audit_log import AuditLog
 from app.models.college import College
 from app.models.college_feature import CollegeFeature, FeatureRequestStatus
+from app.models.contact_message import ContactMessage, ContactStatus
 from app.models.custom_feature_request import CustomFeatureRequest, CustomFeatureStatus
 from app.models.drive import Drive, DriveStatus
 from app.models.feature import Feature, FeatureStatus
@@ -41,6 +43,7 @@ from app.schemas.admin import (
     AdminUserUpdate,
     CollegeDomainUpdate,
     CollegeInfoResponse,
+    CollegeProfileUpdate,
     CollegeBillingTransactionResponse,
 )
 from app.schemas.college_onboarding import SetupChecklistResponse
@@ -396,13 +399,21 @@ class ActivityEntry(BaseModel):
     target_entity: str
     created_at: datetime
     timestamp: datetime
+    category: Optional[str] = "general"
+    severity: Optional[str] = "info"
+    details: Optional[str] = None
 
 
 @router.get("/activity", response_model=list[ActivityEntry])
 def get_activity_feed(current_user: User = Depends(require_admin), db: Session = Depends(get_db)) -> list[ActivityEntry]:
     entries: list[ActivityEntry] = []
+    cid = current_user.college_id
 
-    for drive in db.scalars(select(Drive).options(joinedload(Drive.company)).order_by(Drive.created_at.desc()).limit(50)).all():
+    # 1. Drives created
+    drive_query = select(Drive).options(joinedload(Drive.company))
+    if cid is not None:
+        drive_query = drive_query.where(Drive.college_id == cid)
+    for drive in db.scalars(drive_query.order_by(Drive.created_at.desc()).limit(50)).all():
         comp_name = drive.company.name if drive.company else ""
         title = f"{drive.role} ({comp_name})" if comp_name else drive.role
         entries.append(
@@ -414,11 +425,20 @@ def get_activity_feed(current_user: User = Depends(require_admin), db: Session =
                 action="created placement drive",
                 target_entity=title,
                 created_at=drive.created_at,
-                timestamp=drive.created_at
+                timestamp=drive.created_at,
+                category="drives",
+                severity="info",
+                details=f"Placement drive for {title} registered with deadline {drive.deadline.strftime('%Y-%m-%d %H:%M') if drive.deadline else 'TBD'}",
             )
         )
 
-    for application in db.scalars(select(Application).order_by(Application.applied_on.desc()).limit(50)).all():
+    # 2. Student Applications
+    app_query = select(Application).join(Drive, Application.drive_id == Drive.id).options(
+        joinedload(Application.user), joinedload(Application.drive).joinedload(Drive.company)
+    )
+    if cid is not None:
+        app_query = app_query.where(Drive.college_id == cid)
+    for application in db.scalars(app_query.order_by(Application.applied_on.desc()).limit(50)).all():
         user = application.user or db.get(User, application.user_id)
         drive = application.drive or db.get(Drive, application.drive_id)
         comp_name = drive.company.name if (drive and drive.company) else ""
@@ -426,6 +446,12 @@ def get_activity_feed(current_user: User = Depends(require_admin), db: Session =
         
         user_email = user.email if user else "Student"
         status_label = application.status.value.capitalize()
+
+        sev = "info"
+        if application.status.value in ("selected", "offer_accepted"):
+            sev = "success"
+        elif application.status.value in ("rejected", "withdrawn"):
+            sev = "warning"
 
         entries.append(
             ActivityEntry(
@@ -436,29 +462,379 @@ def get_activity_feed(current_user: User = Depends(require_admin), db: Session =
                 action="applied to",
                 target_entity=f"{drive_title} — Status: {status_label}",
                 created_at=application.applied_on,
-                timestamp=application.applied_on
+                timestamp=application.applied_on,
+                category="applications",
+                severity=sev,
+                details=f"Application #{application.id} for {drive_title}. Current state: {status_label}",
             )
         )
 
-    for notification in db.scalars(
-        select(Notification).where(Notification.type.in_([NotificationType.WARNING, NotificationType.NOTICE]))
-        .order_by(Notification.created_at.desc()).limit(50)
-    ).all():
+    # 3. Disciplinary Warnings & Notices
+    notif_query = (
+        select(Notification)
+        .join(User, Notification.recipient_id == User.id)
+        .options(joinedload(Notification.sender), joinedload(Notification.recipient))
+        .where(Notification.type.in_([NotificationType.WARNING, NotificationType.NOTICE, NotificationType.TEST_VIOLATION]))
+    )
+    if cid is not None:
+        notif_query = notif_query.where(User.college_id == cid)
+    for notification in db.scalars(notif_query.order_by(Notification.created_at.desc()).limit(50)).all():
+        is_warn = notification.type in (NotificationType.WARNING, NotificationType.TEST_VIOLATION)
+        target = notification.recipient.email if notification.recipient else "Student"
         entries.append(
             ActivityEntry(
                 id=f"notif_{notification.id}",
                 type=notification.type.value,
                 description=notification.message,
                 actor_email=notification.sender.email if notification.sender else "System",
-                action="sent notification",
-                target_entity="Student",
+                action="issued warning" if is_warn else "sent notice",
+                target_entity=target,
                 created_at=notification.created_at,
-                timestamp=notification.created_at
+                timestamp=notification.created_at,
+                category="warnings" if is_warn else "notices",
+                severity="warning" if is_warn else "info",
+                details=f"Notification delivered to {target}. Type: {notification.type.value}",
             )
         )
 
+    # 4. Institutional AuditLog Entries
+    college = db.get(College, cid) if cid else None
+    college_name = college.name if college else ""
+    audit_query = select(AuditLog).options(joinedload(AuditLog.performed_by_user)).order_by(AuditLog.timestamp.desc()).limit(50)
+    for audit in db.scalars(audit_query).all():
+        belongs = False
+        if cid is None:
+            belongs = True
+        elif audit.performed_by_user and audit.performed_by_user.college_id == cid:
+            belongs = True
+        elif college_name and audit.details and college_name.lower() in audit.details.lower():
+            belongs = True
+        elif audit.action in ("announcement_sent", "platform_config_updated"):
+            belongs = True
+
+        if belongs:
+            sev = "info"
+            act_lower = audit.action.lower()
+            det_lower = (audit.details or "").lower()
+            if "warn" in act_lower or "suspend" in det_lower:
+                sev = "warning"
+            elif "delete" in act_lower or "critical" in det_lower or "reject" in act_lower:
+                sev = "critical"
+            elif "grant" in act_lower or "active" in det_lower or "verify" in act_lower or "approve" in act_lower:
+                sev = "success"
+
+            entries.append(
+                ActivityEntry(
+                    id=f"audit_{audit.id}",
+                    type="audit_log",
+                    description=audit.details or audit.action,
+                    actor_email=audit.performed_by_user.email if audit.performed_by_user else "SuperAdmin Console",
+                    action=audit.action.replace("_", " ").title(),
+                    target_entity=college_name or "Institutional Platform",
+                    created_at=audit.timestamp,
+                    timestamp=audit.timestamp,
+                    category="audit",
+                    severity=sev,
+                    details=audit.details,
+                )
+            )
+
     entries.sort(key=lambda entry: entry.created_at, reverse=True)
-    return entries[:100]
+    return entries[:120]
+
+
+# ─── Admin Messages Hub Schemas & Endpoints ─────────────────────────────────
+
+class AdminMessageItem(BaseModel):
+    id: str
+    source_type: str  # "contact" | "notification"
+    source_id: int
+    sender_name: str
+    sender_email: str
+    sender_role: str  # "student" | "tpo" | "visitor" | "admin" | "system"
+    recipient_name: Optional[str] = None
+    recipient_email: Optional[str] = None
+    recipient_role: Optional[str] = None
+    subject: str
+    content: str
+    category: str  # "inquiry" | "broadcast" | "warning" | "notice" | "system"
+    status: str  # "new" | "read" | "resolved"
+    is_read: bool
+    created_at: datetime
+    contact_phone: Optional[str] = None
+    academic_info: Optional[dict] = None
+
+
+class AdminBroadcastRequest(BaseModel):
+    target_audience: str  # "all_students" | "all_tpos" | "all" | "email"
+    subject: str
+    message: str
+    severity: str = "notice"  # "notice" | "warning" | "info"
+    target_email: Optional[str] = None
+
+
+class MessageStatusUpdate(BaseModel):
+    status: str  # "new" | "read" | "resolved"
+
+
+class AdminReplyRequest(BaseModel):
+    reply_message: str
+    target_email: str
+    target_name: Optional[str] = None
+    send_as_notification: bool = True
+
+
+@router.get("/messages", response_model=list[AdminMessageItem])
+def get_admin_messages(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> list[AdminMessageItem]:
+    import re
+    items: list[AdminMessageItem] = []
+    cid = current_user.college_id
+
+    # 1. Contact Messages (public or student contact inquiries)
+    contact_stmt = select(ContactMessage).options(
+        joinedload(ContactMessage.submitted_by).joinedload(User.profile)
+    ).order_by(ContactMessage.created_at.desc()).limit(100)
+
+    for cm in db.scalars(contact_stmt).all():
+        if cid is not None and cm.submitted_by and cm.submitted_by.college_id not in (None, cid):
+            continue
+
+        phone = None
+        acad = None
+        role = "visitor"
+        if cm.submitted_by:
+            role = cm.submitted_by.user_type.value
+            if cm.submitted_by.profile:
+                p = cm.submitted_by.profile
+                acad = {
+                    "student_id": p.student_id,
+                    "branch": p.branch,
+                    "cgpa": p.cgpa,
+                }
+
+        # Check if message contains a phone number or extract
+        phone_match = re.search(r"(\+?[0-9]{10,13})", cm.message)
+        if phone_match:
+            phone = phone_match.group(1)
+
+        items.append(
+            AdminMessageItem(
+                id=f"contact_{cm.id}",
+                source_type="contact",
+                source_id=cm.id,
+                sender_name=cm.name,
+                sender_email=cm.email,
+                sender_role=role,
+                recipient_name=current_user.email.split("@")[0].title(),
+                recipient_email=current_user.email,
+                recipient_role="admin",
+                subject=f"{cm.category.value.capitalize()} Inquiry from {cm.name}",
+                content=cm.message,
+                category="inquiry",
+                status=cm.status.value,
+                is_read=(cm.status.value != "new"),
+                created_at=cm.created_at,
+                contact_phone=phone,
+                academic_info=acad,
+            )
+        )
+
+    # 2. College Notifications (Notices, Warnings, Info, Broadcasts)
+    notif_stmt = (
+        select(Notification)
+        .options(
+            joinedload(Notification.recipient).joinedload(User.profile),
+            joinedload(Notification.sender),
+        )
+        .order_by(Notification.created_at.desc())
+        .limit(100)
+    )
+    for notif in db.scalars(notif_stmt).all():
+        is_relevant = False
+        if cid is None:
+            is_relevant = True
+        elif notif.recipient and notif.recipient.college_id == cid:
+            is_relevant = True
+        elif notif.sender and notif.sender.college_id == cid:
+            is_relevant = True
+        elif notif.recipient_id == current_user.id or notif.sender_id == current_user.id:
+            is_relevant = True
+
+        if not is_relevant:
+            continue
+
+        cat = "notice"
+        if notif.type in (NotificationType.WARNING, NotificationType.TEST_VIOLATION):
+            cat = "warning"
+        elif notif.type in (NotificationType.SYSTEM, NotificationType.COLLEGE_COLLISION_ALERT):
+            cat = "system"
+        elif notif.sender_id == current_user.id:
+            cat = "broadcast"
+
+        sender_name = "Admin Office" if not notif.sender else (notif.sender.email.split("@")[0].title())
+        sender_role = "admin" if not notif.sender else notif.sender.user_type.value
+        recipient_name = notif.recipient.email.split("@")[0].title() if notif.recipient else "Campus Members"
+        recipient_role = notif.recipient.user_type.value if notif.recipient else "all"
+
+        acad = None
+        if notif.recipient and notif.recipient.profile:
+            p = notif.recipient.profile
+            acad = {
+                "student_id": p.student_id,
+                "branch": p.branch,
+                "cgpa": p.cgpa,
+            }
+
+        items.append(
+            AdminMessageItem(
+                id=f"notif_{notif.id}",
+                source_type="notification",
+                source_id=notif.id,
+                sender_name=sender_name,
+                sender_email=notif.sender.email if notif.sender else "system@placementportal.edu",
+                sender_role=sender_role,
+                recipient_name=recipient_name,
+                recipient_email=notif.recipient.email if notif.recipient else "",
+                recipient_role=recipient_role,
+                subject=f"{cat.capitalize()}: {notif.message[:45]}...",
+                content=notif.message,
+                category=cat,
+                status="read" if notif.is_read else "new",
+                is_read=notif.is_read,
+                created_at=notif.created_at,
+                contact_phone=None,
+                academic_info=acad,
+            )
+        )
+
+    items.sort(key=lambda x: x.created_at, reverse=True)
+    return items
+
+
+@router.post("/messages/broadcast", status_code=status.HTTP_201_CREATED)
+def admin_broadcast_message(
+    payload: AdminBroadcastRequest,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    cid = current_user.college_id
+    if not payload.message.strip():
+        raise HTTPException(status_code=400, detail="Message body cannot be empty.")
+
+    notif_type = NotificationType.NOTICE
+    if payload.severity == "warning":
+        notif_type = NotificationType.WARNING
+    elif payload.severity == "info":
+        notif_type = NotificationType.INFO
+
+    # Determine recipient users
+    user_query = select(User).where(User.is_active == True)
+    if cid is not None:
+        user_query = user_query.where(User.college_id == cid)
+
+    if payload.target_audience == "all_students":
+        user_query = user_query.where(User.user_type == UserType.STUDENT)
+    elif payload.target_audience == "all_tpos":
+        user_query = user_query.where(User.user_type == UserType.TPO)
+    elif payload.target_audience == "email" and payload.target_email:
+        user_query = user_query.where(User.email == payload.target_email.strip().lower())
+
+    recipients = list(db.scalars(user_query).all())
+    if not recipients and payload.target_audience == "email":
+        raise HTTPException(status_code=404, detail=f"No user found with email {payload.target_email}")
+
+    formatted_msg = f"[{payload.subject}] {payload.message}" if payload.subject else payload.message
+    created_count = 0
+    for r in recipients:
+        db.add(
+            Notification(
+                recipient_id=r.id,
+                sender_id=current_user.id,
+                type=notif_type,
+                message=formatted_msg,
+                is_read=False,
+            )
+        )
+        created_count += 1
+
+    target_desc = payload.target_audience
+    if payload.target_audience == "email" and payload.target_email:
+        target_desc = payload.target_email
+
+    audit_entry = AuditLog(
+        action="admin_broadcast_sent",
+        details=f"Broadcast sent to {target_desc} ({created_count} recipients). Subject: '{payload.subject}'. Severity: {payload.severity}",
+        performed_by=current_user.id,
+    )
+    db.add(audit_entry)
+    db.commit()
+
+    return {
+        "success": True,
+        "message": f"Broadcast delivered to {created_count} recipients.",
+        "recipients_count": created_count,
+    }
+
+
+@router.patch("/messages/{source_type}/{message_id}/status")
+def update_message_status(
+    source_type: str,
+    message_id: int,
+    payload: MessageStatusUpdate,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    if source_type == "contact":
+        msg = db.get(ContactMessage, message_id)
+        if not msg:
+            raise HTTPException(status_code=404, detail="Contact message not found.")
+        try:
+            msg.status = ContactStatus(payload.status)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid status value.")
+        db.commit()
+        return {"status": msg.status.value}
+    elif source_type == "notification":
+        notif = db.get(Notification, message_id)
+        if not notif:
+            raise HTTPException(status_code=404, detail="Notification not found.")
+        notif.is_read = (payload.status in ("read", "resolved"))
+        db.commit()
+        return {"status": "read" if notif.is_read else "new"}
+    else:
+        raise HTTPException(status_code=400, detail="Invalid source type.")
+
+
+@router.post("/messages/reply")
+def reply_to_message(
+    payload: AdminReplyRequest,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    target_user = db.scalar(select(User).where(User.email == payload.target_email.strip().lower()))
+    if target_user and payload.send_as_notification:
+        notif = Notification(
+            recipient_id=target_user.id,
+            sender_id=current_user.id,
+            type=NotificationType.NOTICE,
+            message=f"[Admin Reply] {payload.reply_message}",
+            is_read=False,
+        )
+        db.add(notif)
+
+    db.add(
+        AuditLog(
+            action="admin_message_replied",
+            details=f"Admin replied to {payload.target_email}. Message snippet: {payload.reply_message[:80]}",
+            performed_by=current_user.id,
+        )
+    )
+    db.commit()
+    return {"success": True, "message": f"Reply dispatched to {payload.target_email}"}
+
 
 
 class DepartmentStat(BaseModel):
@@ -780,6 +1156,9 @@ def get_college_info(
         id=college.id,
         name=college.name,
         domain=college.domain,
+        contact_name=college.contact_name,
+        contact_mobile=college.contact_mobile,
+        contact_mobile_verified=college.contact_mobile_verified,
         status=college.status.value if hasattr(college.status, "value") else str(college.status),
         created_at=college.created_at,
         students=student_count,
@@ -812,6 +1191,49 @@ def get_college_setup_checklist(
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="College not found")
 
     return compute_setup_checklist(db=db, college=college, current_user_id=current_user.id)
+
+
+@router.patch("/college/profile", response_model=CollegeInfoResponse)
+def update_college_profile(
+    payload: CollegeProfileUpdate,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> CollegeInfoResponse:
+    """Update the institution's official name, primary contact person name, and contact phone."""
+    cid = current_user.college_id
+    if cid is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="No college associated with this admin account")
+
+    college = db.get(College, cid)
+    if college is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="College not found")
+
+    if payload.name is not None:
+        new_name = payload.name.strip()
+        if len(new_name) < 2:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Institution name must be at least 2 characters")
+        existing = db.scalar(
+            select(College).where(func.lower(College.name) == new_name.lower(), College.id != cid)
+        )
+        if existing is not None:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                detail=f"An institution with the name '{new_name}' already exists.",
+            )
+        college.name = new_name
+
+    if payload.contact_name is not None:
+        cleaned_contact = payload.contact_name.strip()
+        college.contact_name = cleaned_contact if cleaned_contact else None
+
+    if payload.contact_mobile is not None:
+        cleaned_mobile = payload.contact_mobile.strip()
+        college.contact_mobile = cleaned_mobile if cleaned_mobile else None
+
+    db.commit()
+    db.refresh(college)
+
+    return get_college_info(current_user=current_user, db=db)
 
 
 @router.patch("/college/domain", response_model=CollegeInfoResponse)
