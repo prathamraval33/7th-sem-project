@@ -472,7 +472,7 @@ export default function AdminActivitiesPage() {
                       }}
                       className={`group relative flex cursor-pointer items-start gap-3 p-3.5 transition-all ${
                         isSelected
-                          ? "bg-accent/8 border-l-4 border-accent shadow-2xs"
+                          ? "bg-accent/10 border-l-4 border-accent shadow-2xs"
                           : "hover:bg-slate-50/80 border-l-4 border-transparent"
                       }`}
                     >

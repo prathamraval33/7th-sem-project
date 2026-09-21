@@ -1,8 +1,8 @@
-import { NavLink } from "react-router-dom";
+import { useEffect } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Briefcase,
-  ClipboardList,
   BookOpen,
   MessagesSquare,
   FileText,
@@ -19,6 +19,7 @@ import {
   Building2,
   FileCheck,
   CreditCard,
+  X,
 } from "lucide-react";
 import { useActiveFeatures } from "../../hooks/useActiveFeatures";
 
@@ -60,49 +61,105 @@ const NAV_ITEMS = {
   ],
 };
 
-export default function Sidebar({ role }) {
+export default function Sidebar({ role, mobileOpen, onCloseMobile }) {
   const { isFeatureActive } = useActiveFeatures();
+  const location = useLocation();
   const rawItems = NAV_ITEMS[role] ?? [];
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    if (mobileOpen) {
+      onCloseMobile?.();
+    }
+  }, [location.pathname]);
+
+  // Lock body scroll when mobile drawer is open
+  useEffect(() => {
+    if (mobileOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [mobileOpen]);
 
   // Hide nav items whose features have been revoked or not activated
   const visibleItems = rawItems.filter(
     (item) => !item.featureCode || isFeatureActive(item.featureCode)
   );
 
-  return (
-    <aside className="hidden w-56 md:w-60 shrink-0 border-r border-border bg-card p-3 md:p-4 md:block shadow-sm z-10 select-none">
-      <nav className="flex flex-col gap-1">
-        {visibleItems.map((item, idx) => {
-          if (item.type === "section") {
-            return (
-              <div
-                key={`section-${idx}`}
-                className="pt-3.5 pb-1 px-3 text-[10px] font-bold tracking-wider uppercase text-slate-400"
-              >
-                {item.label}
-              </div>
-            );
-          }
-          const { label, to, icon: Icon } = item;
+  const renderNavLinks = (isMobile = false) => (
+    <nav className="flex flex-col gap-1 pb-6">
+      {visibleItems.map((item, idx) => {
+        if (item.type === "section") {
           return (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) =>
-                `flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-150 ${
-                  isActive
-                    ? "bg-accent/10 text-accent font-semibold shadow-2xs"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                }`
-              }
+            <div
+              key={`section-${idx}`}
+              className="pt-3.5 pb-1 px-3 text-[10px] font-bold tracking-wider uppercase text-slate-400"
             >
-              <Icon size={17} strokeWidth={1.75} />
-              <span className="truncate">{label}</span>
-            </NavLink>
+              {item.label}
+            </div>
           );
-        })}
-      </nav>
-    </aside>
+        }
+        const { label, to, icon: Icon } = item;
+        return (
+          <NavLink
+            key={to}
+            to={to}
+            onClick={() => {
+              if (isMobile) onCloseMobile?.();
+            }}
+            className={({ isActive }) =>
+              `flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-150 ${
+                isActive
+                  ? "bg-accent/10 text-accent font-semibold shadow-2xs"
+                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              }`
+            }
+          >
+            <Icon size={17} strokeWidth={1.75} />
+            <span className="truncate">{label}</span>
+          </NavLink>
+        );
+      })}
+    </nav>
+  );
+
+  return (
+    <>
+      {/* Desktop Persistent Sidebar */}
+      <aside className="sticky top-16 z-20 self-start hidden w-56 md:w-60 shrink-0 border-r border-border bg-card p-3 md:p-4 md:block shadow-xs select-none h-[calc(100vh-4rem)] overflow-y-auto">
+        {renderNavLinks(false)}
+      </aside>
+
+      {/* Mobile Slide-Over Drawer */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 md:hidden flex">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-neutral-950/40 backdrop-blur-xs animate-in fade-in transition-opacity"
+            onClick={onCloseMobile}
+            aria-hidden="true"
+          />
+
+          {/* Drawer Menu */}
+          <div className="relative z-10 w-72 max-w-[85vw] bg-card h-full p-4 shadow-2xl flex flex-col overflow-y-auto animate-in fade-in">
+            <div className="flex items-center justify-between pb-4 mb-2 border-b border-border">
+              <span className="font-heading font-bold text-slate-900 text-base">Navigation</span>
+              <button
+                type="button"
+                onClick={onCloseMobile}
+                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+                aria-label="Close menu"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            {renderNavLinks(true)}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
-

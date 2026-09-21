@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useSearchParams, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "../../api/admin.api";
@@ -92,6 +92,15 @@ export default function AdminDashboard() {
     ? "overview"
     : searchParams.get("tab") || "overview";
   const [activeTab, setActiveTab] = useState(initialTab);
+
+  useEffect(() => {
+    const tabFromUrl = location.pathname.includes("/analytics")
+      ? "overview"
+      : searchParams.get("tab");
+    if (tabFromUrl && tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams, location.pathname, activeTab]);
 
   const handleTabChange = (tabKey) => {
     setActiveTab(tabKey);

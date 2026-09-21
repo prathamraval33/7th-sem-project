@@ -18,7 +18,7 @@ export default function FeeReceiptUploadPage() {
   const fetchStatus = async () => {
     try {
       setIsLoadingStatus(true);
-      const res = await studentApi.getFeeStatus();
+      const res = await studentApi.getFeeVerificationStatus();
       setStatus(res.data);
     } catch (err) {
       console.error("Failed to fetch fee status", err);
@@ -40,7 +40,9 @@ export default function FeeReceiptUploadPage() {
     try {
       setUploadError("");
       setIsUploading(true);
-      await studentApi.uploadFeeReceipt(receiptFile);
+      const formData = new FormData();
+      formData.append("file", receiptFile);
+      await studentApi.uploadFeeReceipt(formData);
       setReceiptFile(null);
       await fetchStatus();
       await refreshUser();

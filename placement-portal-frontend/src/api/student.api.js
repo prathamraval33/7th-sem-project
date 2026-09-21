@@ -13,6 +13,7 @@ export const studentApi = {
   getAnalyticsMe: () => axiosClient.get("/analytics/me"),
 
   getFeeVerificationStatus: () => axiosClient.get("/fee-verification/status"),
+  getFeeStatus: () => axiosClient.get("/fee-verification/status"),
   uploadFeeReceipt: (formData) =>
     axiosClient.post("/fee-verification/upload", formData, {
       headers: { "Content-Type": "multipart/form-data" },

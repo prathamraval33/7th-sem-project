@@ -238,12 +238,15 @@ export default function NotificationBell({ variant = "default" }) {
   const notifications = data ?? [];
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
-  const handleMarkAllRead = () => {
-    notifications
-      .filter((n) => !n.is_read)
-      .forEach((n) => {
-        markReadMutation.mutate(n.id);
-      });
+  const handleMarkAllRead = async () => {
+    const unread = notifications.filter((n) => !n.is_read);
+    if (unread.length === 0) return;
+    try {
+      await Promise.all(unread.map((n) => notificationsApi.markRead(n.id)));
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    } catch (err) {
+      console.error("Failed to mark all notifications as read", err);
+    }
   };
 
   return (
@@ -283,7 +286,7 @@ export default function NotificationBell({ variant = "default" }) {
           className={
             isCommandDeck
               ? "absolute right-0 z-50 mt-2 w-96 rounded-xl border border-slate-200 bg-white shadow-xl ring-1 ring-black/5 overflow-hidden animate-in fade-in zoom-in-95 duration-100"
-              : "absolute right-0 z-20 mt-2 w-96 rounded-xl border border-gray-200 bg-white shadow-lg"
+              : "absolute right-0 z-50 mt-2 w-96 rounded-xl border border-gray-200 bg-white shadow-lg"
           }
         >
           <div

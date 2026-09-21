@@ -60,6 +60,7 @@
   height: 100vh !important;
   position: sticky !important;
   top: 0 !important;
+  align-self: flex-start !important;
   background: var(--cd-surface-sunken) !important;
   border-right: 1px solid var(--cd-border) !important;
   display: flex !important;

@@ -2,7 +2,7 @@ import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { tpoApi } from "../../api/tpo.api";
-import { Users, Briefcase, FileText, CheckCircle2, FileCheck, TrendingUp, Activity, CheckCircle } from "lucide-react";
+import { Users, Briefcase, FileText, CheckCircle2, FileCheck, TrendingUp, Activity, CheckCircle, Building } from "lucide-react";
 import StatCard from "../../components/common/StatCard";
 import Card from "../../components/ui/Card";
 import Badge from "../../components/ui/Badge";
@@ -33,6 +33,9 @@ export default function TpoDashboard() {
     );
   }
 
+  const stats = summary || {};
+  const recentDrives = stats.recent_drives || [];
+
   return (
     <div className="space-y-8">
       <div>
@@ -46,25 +49,25 @@ export default function TpoDashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             label="Total Students"
-            value={summary.total_students}
+            value={stats.total_students ?? 0}
             icon={Users}
             accent="brand"
           />
           <StatCard
             label="Fee Verified"
-            value={summary.fee_verified_students}
+            value={stats.fee_verified_students ?? 0}
             icon={CheckCircle}
             accent="success"
           />
           <StatCard
             label="Placed Students"
-            value={summary.placed_students}
+            value={stats.placed_students ?? 0}
             icon={CheckCircle2}
             accent="success"
           />
           <StatCard
             label="Avg Readiness"
-            value={`${Math.round(summary.average_readiness_score || 0)}%`}
+            value={`${Math.round(stats.average_readiness_score || 0)}%`}
             icon={Activity}
             accent="warning"
           />
@@ -77,31 +80,31 @@ export default function TpoDashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <StatCard
             label="Total Drives"
-            value={summary.total_drives}
+            value={stats.total_drives ?? 0}
             icon={Briefcase}
             accent="brand"
           />
           <StatCard
             label="Active Drives"
-            value={summary.active_drives}
+            value={stats.active_drives ?? 0}
             icon={Activity}
             accent="accent"
           />
           <StatCard
             label="Total Applications"
-            value={summary.total_applied}
+            value={stats.total_applied ?? 0}
             icon={FileText}
             accent="accent"
           />
           <StatCard
             label="Total Selected"
-            value={summary.total_selected}
+            value={stats.total_selected ?? 0}
             icon={FileCheck}
             accent="success"
           />
           <StatCard
             label="Highest CTC (LPA)"
-            value={summary.highest_ctc ? `₹${summary.highest_ctc}` : "N/A"}
+            value={stats.highest_ctc ? `₹${stats.highest_ctc}` : "N/A"}
             icon={TrendingUp}
             accent="warning"
           />
@@ -117,7 +120,7 @@ export default function TpoDashboard() {
           </Link>
         </div>
         
-        {summary.recent_drives?.length === 0 ? (
+        {recentDrives.length === 0 ? (
           <div className="text-center py-8 text-slate-500">
             No drives created yet.
           </div>
@@ -126,16 +129,23 @@ export default function TpoDashboard() {
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50 text-slate-600">
                 <tr>
-                  <th className="px-4 py-3 font-medium rounded-l-lg">Role</th>
+                  <th className="px-4 py-3 font-medium rounded-l-lg">Company</th>
+                  <th className="px-4 py-3 font-medium">Role</th>
                   <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Deadline</th>
+                  <th className="px-4 py-3 font-medium rounded-r-lg">Deadline</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {summary.recent_drives.map((drive) => (
+                {recentDrives.map((drive) => (
                   <tr key={drive.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-4 py-3 font-medium text-slate-900">
+                      <div className="flex items-center gap-2">
+                        <Building size={16} className="text-slate-400 shrink-0" />
+                        <span>{drive.company_name || drive.company || "Unnamed Company"}</span>
+                      </div>
+                    </td>
                     <td className="px-4 py-3">
-                      <Link to={`/tpo/drives/${drive.id}`} className="font-medium text-slate-900 hover:text-accent">
+                      <Link to={`/tpo/drives/${drive.id}`} className="font-medium text-accent hover:underline">
                         {drive.role}
                       </Link>
                     </td>
@@ -145,7 +155,7 @@ export default function TpoDashboard() {
                       </Badge>
                     </td>
                     <td className="px-4 py-3 text-slate-600">
-                      {new Date(drive.deadline).toLocaleDateString()}
+                      {drive.deadline ? new Date(drive.deadline).toLocaleDateString() : "N/A"}
                     </td>
                   </tr>
                 ))}

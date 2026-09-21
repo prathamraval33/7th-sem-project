@@ -154,14 +154,14 @@ export const useSuperAdminStore = create((set, get) => ({
     }
   },
 
-  addCollege: async ({ name, domain, adminName, adminEmail, accessMethod }) => {
+  addCollege: async ({ name, domain, adminName, adminEmail, adminPassword, accessMethod }) => {
     try {
       const response = await superadminApi.createCollege({
         name,
         domain,
         admin_name: adminName,
         admin_email: adminEmail,
-        admin_password: "Password@123",
+        admin_password: adminPassword || "Password@123",
         access_method: accessMethod || "invite",
       });
       const created = normalizeCollege(response.data);
@@ -287,7 +287,7 @@ export const useSuperAdminStore = create((set, get) => ({
         featureRequests: state.featureRequests.map((item) =>
           item.id === requestId ? { ...item, status: "rejected", decidedAt: new Date().toISOString() } : item
         ),
-        toast: response.data?.message || `${request.featureName} rejected for ${request.collegeName}.`,
+        toast: response.data?.message || `${request?.featureName || "Feature"} rejected for ${request?.collegeName || "college"}.`,
       }));
       setTimeout(() => set({ toast: null }), 4000);
     } catch (error) {

@@ -111,7 +111,7 @@ export default function OnboardingPage() {
         <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-foreground font-heading">
           Complete Your Profile
         </h2>
-        <p className="mt-2 text-center text-sm text-muted">
+        <p className="mt-2 text-center text-sm text-muted-foreground">
           Provide your official academic details to access placement drives.
         </p>
       </div>
