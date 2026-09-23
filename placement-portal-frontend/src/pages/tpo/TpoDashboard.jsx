@@ -136,29 +136,34 @@ export default function TpoDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {recentDrives.map((drive) => (
-                  <tr key={drive.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-4 py-3 font-medium text-slate-900">
-                      <div className="flex items-center gap-2">
-                        <Building size={16} className="text-slate-400 shrink-0" />
-                        <span>{drive.company_name || drive.company || "Unnamed Company"}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Link to={`/tpo/drives/${drive.id}`} className="font-medium text-accent hover:underline">
-                        {drive.role}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant={drive.is_active ? "success" : "neutral"}>
-                        {drive.is_active ? "Active" : "Closed"}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {drive.deadline ? new Date(drive.deadline).toLocaleDateString() : "N/A"}
-                    </td>
-                  </tr>
-                ))}
+                {recentDrives.map((drive) => {
+                  const companyName = drive.company?.name || drive.company_name || (typeof drive.company === "string" ? drive.company : "Unnamed Company");
+                  const isActive = drive.status === "open" || drive.is_active;
+
+                  return (
+                    <tr key={drive.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-4 py-3 font-medium text-slate-900">
+                        <div className="flex items-center gap-2">
+                          <Building size={16} className="text-slate-400 shrink-0" />
+                          <span>{companyName}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Link to={`/tpo/drives/${drive.id}`} className="font-medium text-accent hover:underline">
+                          {drive.role}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge variant={isActive ? "success" : "neutral"}>
+                          {drive.status ? (drive.status === "open" ? "Active" : drive.status.toUpperCase()) : (isActive ? "Active" : "Closed")}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {drive.deadline ? new Date(drive.deadline).toLocaleDateString() : "N/A"}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

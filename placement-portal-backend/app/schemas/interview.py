@@ -35,6 +35,7 @@ class QuestionResponse(BaseModel):
     q_type: QuestionType
     difficulty: DifficultyLevel
     order_index: int
+    total_questions: int = 10
 
 
 class AnswerResponse(BaseModel):

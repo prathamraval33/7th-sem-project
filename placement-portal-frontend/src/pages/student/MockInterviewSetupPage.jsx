@@ -199,18 +199,18 @@ export default function MockInterviewSetupPage() {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Interview Mode
+                Interview Mode (10 Questions Total)
               </label>
               <select
                 value={mode}
                 onChange={(e) => setMode(e.target.value)}
                 className="w-full rounded-xl border border-border px-3 py-2 text-sm text-foreground bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
               >
-                <option value="full">Full Session (Comprehensive - Technical & HR)</option>
-                <option value="technical">Technical Focus Only</option>
-                <option value="aptitude">Aptitude & Problem Solving</option>
-                <option value="coding">Coding & Data Structures</option>
-                <option value="hr">HR & Behavioral Focus Only</option>
+                <option value="full">Full Comprehensive Session (10 Questions: Aptitude, Technical, Coding, HR)</option>
+                <option value="technical">Technical Focus (10 Questions)</option>
+                <option value="aptitude">Aptitude & Problem Solving (10 Questions)</option>
+                <option value="coding">Coding & Data Structures (10 Questions)</option>
+                <option value="hr">HR & Behavioral Focus (10 Questions)</option>
               </select>
             </div>
 
@@ -239,7 +239,7 @@ export default function MockInterviewSetupPage() {
             <div>
               <h2 className="text-lg font-semibold text-slate-900 font-heading">Resume-Grounded Interview</h2>
               <p className="text-sm text-slate-500">
-                The AI reads your uploaded resume projects & skills to generate tailored interview questions.
+                The AI reads your uploaded resume projects & skills to generate a tailored 10-question comprehensive mock interview.
               </p>
             </div>
           </div>

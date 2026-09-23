@@ -40,6 +40,7 @@ import {
   CreditCard,
   UserCheck,
   Phone,
+  Edit3,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -72,6 +73,7 @@ export default function AdminSettingsPage() {
   const [selectedCurriculumFile, setSelectedCurriculumFile] = useState(null);
   const [draftData, setDraftData] = useState(null);
   const [activeCurriculumBranchIdx, setActiveCurriculumBranchIdx] = useState(0);
+  const curriculumFileInputRef = React.useRef(null);
 
   // --- Multi-Template Fee State ---
   const [templateFile, setTemplateFile] = useState(null);
@@ -268,8 +270,12 @@ export default function AdminSettingsPage() {
     onSuccess: (res) => {
       queryClient.invalidateQueries(["latestCurriculumUpload"]);
       setSelectedCurriculumFile(null);
+      if (curriculumFileInputRef.current) {
+        curriculumFileInputRef.current.value = "";
+      }
       if (res.data.raw_extracted_data) {
         setDraftData(res.data.raw_extracted_data);
+        setActiveCurriculumBranchIdx(0);
       }
       showSuccess(
         "Extraction Complete",
@@ -293,6 +299,41 @@ export default function AdminSettingsPage() {
       showError("Confirmation Failed", err.response?.data?.detail || "Could not confirm curriculum structure.");
     },
   });
+
+  const deleteCurriculumMutation = useMutation({
+    mutationFn: () => {
+      if (latestUpload?.id) {
+        return curriculumApi.deleteUpload(latestUpload.id);
+      }
+      return curriculumApi.deleteLatest();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["latestCurriculumUpload"]);
+      queryClient.invalidateQueries(["curriculumSubjects"]);
+      queryClient.invalidateQueries(["curriculumBranches"]);
+      setDraftData(null);
+      setSelectedCurriculumFile(null);
+      if (curriculumFileInputRef.current) {
+        curriculumFileInputRef.current.value = "";
+      }
+      showSuccess("Curriculum Deleted", "The curriculum document and all subject catalog entries have been completely removed.");
+    },
+    onError: (err) => {
+      showError("Deletion Failed", err.response?.data?.detail || "Could not delete curriculum.");
+    },
+  });
+
+  const handleDeleteCurriculum = async () => {
+    const confirmed = await showConfirm({
+      title: "Delete Curriculum & Catalog?",
+      text: "This will permanently remove the uploaded syllabus PDF and all generated subjects. You will be able to upload a new syllabus from scratch.",
+      confirmButtonText: "Yes, Delete Curriculum",
+      confirmButtonColor: "#dc2626",
+    });
+    if (confirmed) {
+      deleteCurriculumMutation.mutate();
+    }
+  };
 
   const handleCurriculumFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -328,6 +369,18 @@ export default function AdminSettingsPage() {
     });
     setDraftData({ branches: newBranches });
     setActiveCurriculumBranchIdx(newBranches.length - 1);
+    showToast("Branch added");
+  };
+
+  const handleEditCurriculumBranch = (bIdx) => {
+    const branch = draftData?.branches?.[bIdx];
+    if (!branch) return;
+    const newName = prompt("Edit Branch Name:", branch.name);
+    if (!newName || !newName.trim() || newName.trim() === branch.name) return;
+    const newBranches = [...draftData.branches];
+    newBranches[bIdx] = { ...newBranches[bIdx], name: newName.trim() };
+    setDraftData({ ...draftData, branches: newBranches });
+    showToast("Branch name updated");
   };
 
   const handleRemoveCurriculumBranch = (bIdx) => {
@@ -337,6 +390,7 @@ export default function AdminSettingsPage() {
     if (activeCurriculumBranchIdx >= newBranches.length) {
       setActiveCurriculumBranchIdx(Math.max(0, newBranches.length - 1));
     }
+    showToast("Branch removed");
   };
 
   const handleAddSemester = (bIdx) => {
@@ -345,6 +399,7 @@ export default function AdminSettingsPage() {
     const newBranches = [...draftData.branches];
     newBranches[bIdx].semesters.push({ number: maxSem + 1, subjects: [] });
     setDraftData({ branches: newBranches });
+    showToast(`Semester ${maxSem + 1} added`);
   };
 
   const handleAddSubject = (bIdx, sIdx) => {
@@ -353,12 +408,25 @@ export default function AdminSettingsPage() {
     const newBranches = [...draftData.branches];
     newBranches[bIdx].semesters[sIdx].subjects.push(name.trim());
     setDraftData({ branches: newBranches });
+    showToast("Subject added");
+  };
+
+  const handleEditSubject = (bIdx, sIdx, subjIdx) => {
+    const currentName = draftData?.branches?.[bIdx]?.semesters?.[sIdx]?.subjects?.[subjIdx];
+    if (!currentName) return;
+    const newName = prompt("Edit Subject Name:", currentName);
+    if (!newName || !newName.trim() || newName.trim() === currentName) return;
+    const newBranches = [...draftData.branches];
+    newBranches[bIdx].semesters[sIdx].subjects[subjIdx] = newName.trim();
+    setDraftData({ ...draftData, branches: newBranches });
+    showToast("Subject updated");
   };
 
   const handleRemoveSubject = (bIdx, sIdx, subjIdx) => {
     const newBranches = [...draftData.branches];
     newBranches[bIdx].semesters[sIdx].subjects.splice(subjIdx, 1);
     setDraftData({ branches: newBranches });
+    showToast("Subject removed");
   };
 
   const handleConfirmCurriculumSubmit = async () => {
@@ -367,10 +435,13 @@ export default function AdminSettingsPage() {
       return;
     }
 
+    const isAlreadyConfirmed = latestUpload?.extraction_status === "confirmed";
     const confirmed = await showConfirm({
-      title: "Confirm Curriculum Structure?",
-      text: "This will establish the official subject catalog for your college. Any previous curriculum data will be replaced.",
-      confirmButtonText: "Yes, confirm curriculum",
+      title: isAlreadyConfirmed ? "Update Curriculum Structure?" : "Confirm Curriculum Structure?",
+      text: isAlreadyConfirmed
+        ? "This will update the active subject catalog for your college with your latest edits."
+        : "This will establish the official subject catalog for your college. Any previous curriculum data will be replaced.",
+      confirmButtonText: isAlreadyConfirmed ? "Yes, update catalog" : "Yes, confirm curriculum",
     });
 
     if (confirmed) {
@@ -868,6 +939,53 @@ export default function AdminSettingsPage() {
               )}
             </div>
 
+            {/* Current File & Management Card if an upload exists */}
+            {latestUpload && (
+              <div className="rounded-xl border border-border bg-slate-50/80 p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-accent/10 text-accent flex items-center justify-center shrink-0">
+                    <FileText size={20} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-semibold text-slate-800 truncate max-w-[260px] sm:max-w-md">
+                        {latestUpload.original_filename || "Curriculum Document (PDF)"}
+                      </span>
+                      <Badge variant={isCurriculumConfirmed ? "success" : "secondary"} className="text-[10px]">
+                        {isCurriculumConfirmed ? "Catalog Confirmed" : "Draft / Pending Confirmation"}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Uploaded on {new Date(latestUpload.uploaded_at).toLocaleDateString()} &bull;{" "}
+                      {latestUpload.extraction_status === "confirmed" ? "Active in student learning paths & quizzes" : "Draft ready for review"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => curriculumFileInputRef.current?.click()}
+                  >
+                    <UploadCloud size={13} className="mr-1.5" /> Re-upload / Replace File
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="danger"
+                    size="sm"
+                    className="text-xs"
+                    onClick={handleDeleteCurriculum}
+                    isLoading={deleteCurriculumMutation.isPending}
+                  >
+                    <Trash2 size={13} className="mr-1.5" /> Delete Curriculum
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* Upload PDF Form */}
             <form onSubmit={handleCurriculumUploadSubmit} className="space-y-4">
               <div className="p-5 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -876,13 +994,16 @@ export default function AdminSettingsPage() {
                     <UploadCloud size={20} />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-slate-800">Upload Curriculum / Syllabus Document</p>
+                    <p className="text-sm font-semibold text-slate-800">
+                      {latestUpload ? "Upload New Syllabus PDF to Replace Current" : "Upload Curriculum / Syllabus Document"}
+                    </p>
                     <p className="text-xs text-slate-500">Supported formats: PDF (up to 15MB)</p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3 w-full sm:w-auto">
                   <input
+                    ref={curriculumFileInputRef}
                     type="file"
                     accept=".pdf"
                     onChange={handleCurriculumFileChange}
@@ -906,13 +1027,15 @@ export default function AdminSettingsPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
                   <div>
                     <h3 className="text-sm font-bold text-slate-900">
-                      Draft Curriculum Review & Confirmation
+                      {isCurriculumConfirmed ? "Curriculum Catalog & Structure Editor" : "Draft Curriculum Review & Confirmation"}
                     </h3>
                     <p className="text-xs text-slate-500">
-                      Edit structure before committing to the official institution catalog.
+                      {isCurriculumConfirmed
+                        ? "Edit branch names, add/remove subjects, or update the active catalog structure."
+                        : "Edit structure before committing to the official institution catalog."}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <Button variant="outline" size="sm" onClick={handleAddCurriculumBranch} className="text-xs">
                       <Plus size={12} className="mr-1" /> Add Branch
                     </Button>
@@ -922,7 +1045,17 @@ export default function AdminSettingsPage() {
                       isLoading={confirmCurriculumMutation.isPending}
                       className="text-xs"
                     >
-                      <CheckCircle2 size={12} className="mr-1" /> Confirm Structure
+                      <CheckCircle2 size={12} className="mr-1" /> {isCurriculumConfirmed ? "Update Catalog" : "Confirm Structure"}
+                    </Button>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={handleDeleteCurriculum}
+                      isLoading={deleteCurriculumMutation.isPending}
+                      className="text-xs"
+                      title="Delete all curriculum data and uploaded file"
+                    >
+                      <Trash2 size={12} className="mr-1" /> Delete
                     </Button>
                   </div>
                 </div>
@@ -948,14 +1081,24 @@ export default function AdminSettingsPage() {
                 {/* Active Branch Semesters */}
                 {currentCurriculumBranch && (
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-border">
-                      <p className="text-xs font-bold text-slate-800">
-                        {currentCurriculumBranch.name} —{" "}
-                        <span className="font-normal text-slate-500">
-                          {currentCurriculumBranch.semesters.reduce((acc, s) => acc + s.subjects.length, 0)} subjects across{" "}
-                          {currentCurriculumBranch.semesters.length} semesters
-                        </span>
-                      </p>
+                    <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-border flex-wrap gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-xs font-bold text-slate-800">
+                          {currentCurriculumBranch.name} —{" "}
+                          <span className="font-normal text-slate-500">
+                            {currentCurriculumBranch.semesters.reduce((acc, s) => acc + s.subjects.length, 0)} subjects across{" "}
+                            {currentCurriculumBranch.semesters.length} semesters
+                          </span>
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => handleEditCurriculumBranch(activeCurriculumBranchIdx)}
+                          className="text-[11px] text-accent hover:underline flex items-center gap-1 font-medium px-2 py-0.5 rounded bg-accent/10 hover:bg-accent/20 transition-colors"
+                          title="Rename branch"
+                        >
+                          <Edit3 size={11} /> Rename Branch
+                        </button>
+                      </div>
                       <div className="flex items-center gap-2">
                         <Button
                           variant="outline"
@@ -983,6 +1126,7 @@ export default function AdminSettingsPage() {
                           <div className="flex items-center justify-between border-b border-border/80 pb-1.5">
                             <span className="font-bold text-xs text-slate-800">Semester {sem.number}</span>
                             <button
+                              type="button"
                               onClick={() => handleAddSubject(activeCurriculumBranchIdx, sIdx)}
                               className="text-[11px] font-semibold text-accent hover:underline flex items-center gap-1"
                             >
@@ -997,15 +1141,33 @@ export default function AdminSettingsPage() {
                               {sem.subjects.map((subj, subjIdx) => (
                                 <li
                                   key={subjIdx}
-                                  className="flex items-center justify-between gap-2 px-2 py-1 rounded bg-slate-50 text-xs text-slate-700"
+                                  className="group flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100/80 border border-slate-200/50 text-xs text-slate-700 transition-colors"
                                 >
-                                  <span className="truncate font-medium">{subj}</span>
-                                  <button
-                                    onClick={() => handleRemoveSubject(activeCurriculumBranchIdx, sIdx, subjIdx)}
-                                    className="text-slate-400 hover:text-red-500 transition-colors"
+                                  <span
+                                    onClick={() => handleEditSubject(activeCurriculumBranchIdx, sIdx, subjIdx)}
+                                    className="truncate font-medium cursor-pointer hover:text-accent hover:underline flex-1"
+                                    title="Click to rename subject"
                                   >
-                                    &times;
-                                  </button>
+                                    {subj}
+                                  </span>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleEditSubject(activeCurriculumBranchIdx, sIdx, subjIdx)}
+                                      className="text-slate-400 hover:text-accent p-0.5 rounded transition-colors"
+                                      title="Edit Subject Name"
+                                    >
+                                      <Edit3 size={11} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveSubject(activeCurriculumBranchIdx, sIdx, subjIdx)}
+                                      className="text-slate-400 hover:text-red-500 p-0.5 rounded transition-colors text-sm leading-none"
+                                      title="Delete Subject"
+                                    >
+                                      &times;
+                                    </button>
+                                  </div>
                                 </li>
                               ))}
                             </ul>

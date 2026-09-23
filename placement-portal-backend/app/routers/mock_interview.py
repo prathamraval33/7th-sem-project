@@ -38,6 +38,7 @@ class AnswerSubmitResponse(BaseModel):
     answer: AnswerResponse
     next_question: Optional[QuestionResponse] = None
     session_status: InterviewSessionStatus
+    total_questions: int = interview_engine.MAX_INTERVIEW_QUESTIONS
 
 
 @router.post("/start", response_model=StartSessionResponse, status_code=status.HTTP_201_CREATED)
@@ -136,6 +137,9 @@ def get_next_question(
     session = db.get(InterviewSession, session_id)
     if session is None or session.user_id != current_user.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Interview session not found")
+
+    if session.status == InterviewSessionStatus.COMPLETED:
+        return None
 
     return db.scalar(
         select(Question).where(Question.session_id == session_id).order_by(Question.order_index.desc())

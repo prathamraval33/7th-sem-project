@@ -149,10 +149,10 @@ export default function MockInterviewResultPage() {
             <span className="font-heading text-4xl font-extrabold text-slate-900">
               {questionAnswerPairs.length}
             </span>
-            <span className="text-sm font-semibold text-slate-400">Questions</span>
+            <span className="text-sm font-semibold text-slate-400">/ 10 Completed</span>
           </div>
           <p className="text-xs text-slate-500">
-            Mode: <span className="font-semibold text-slate-700 uppercase">{mode || "Standard"}</span>
+            Mode: <span className="font-semibold text-slate-700 uppercase">{mode || "Standard"}</span> • 10-Question Target
           </p>
         </div>
 

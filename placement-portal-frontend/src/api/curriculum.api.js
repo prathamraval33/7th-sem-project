@@ -9,6 +9,14 @@ export const curriculumApi = {
   getLatestUpload: () => axiosClient.get("/curriculum/latest"),
   confirmCurriculum: (uploadId, payload) =>
     axiosClient.post(`/curriculum/uploads/${uploadId}/confirm`, payload),
+  updateDraft: (uploadId, payload) =>
+    axiosClient.put(`/curriculum/uploads/${uploadId}/draft`, payload),
+  deleteUpload: (uploadId) =>
+    axiosClient.delete(`/curriculum/uploads/${uploadId}`),
+  deleteLatest: () =>
+    axiosClient.delete("/curriculum/latest"),
+  resetCurriculum: () =>
+    axiosClient.delete("/curriculum/reset"),
 
   // Branch & Subject retrieval
   getBranches: () => axiosClient.get("/curriculum/branches"),

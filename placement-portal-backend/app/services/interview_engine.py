@@ -13,9 +13,21 @@ from app.models.interview_session import InterviewMode, InterviewSession, Interv
 from app.models.question import DifficultyLevel, Question, QuestionType
 from app.services import groq_client
 
-STAGE_SEQUENCE_FULL = [QuestionType.APTITUDE, QuestionType.TECHNICAL, QuestionType.CODING, QuestionType.HR]
-QUESTIONS_PER_STAGE_FULL = 2
-QUESTIONS_PER_SINGLE_MODE = 5
+MAX_INTERVIEW_QUESTIONS = 10
+
+# Exactly 10 questions for FULL mode: 2 Aptitude, 3 Technical, 3 Coding, 2 HR
+FULL_STAGE_DISTRIBUTION: list[QuestionType] = [
+    QuestionType.APTITUDE,   # Q1 (index 0)
+    QuestionType.APTITUDE,   # Q2 (index 1)
+    QuestionType.TECHNICAL,  # Q3 (index 2)
+    QuestionType.TECHNICAL,  # Q4 (index 3)
+    QuestionType.TECHNICAL,  # Q5 (index 4)
+    QuestionType.CODING,     # Q6 (index 5)
+    QuestionType.CODING,     # Q7 (index 6)
+    QuestionType.CODING,     # Q8 (index 7)
+    QuestionType.HR,         # Q9 (index 8)
+    QuestionType.HR,         # Q10 (index 9)
+]
 
 _MODE_TO_QUESTION_TYPE = {
     InterviewMode.APTITUDE: QuestionType.APTITUDE,
@@ -23,6 +35,7 @@ _MODE_TO_QUESTION_TYPE = {
     InterviewMode.CODING: QuestionType.CODING,
     InterviewMode.HR: QuestionType.HR,
 }
+
 
 _QUESTION_SYSTEM_PROMPT = """You are a senior technical interviewer running a mock placement interview
 for company "{company_name}" targeting the stack/skills: {skills}. You are currently in the
@@ -40,18 +53,12 @@ object of the exact shape: {"weak_areas": [string, ...]} listing the 2-5 most si
 areas the candidate should improve on."""
 
 
-def _stage_plan(mode: InterviewMode) -> tuple[list[QuestionType], int]:
-    if mode == InterviewMode.FULL:
-        return STAGE_SEQUENCE_FULL, QUESTIONS_PER_STAGE_FULL
-    return [_MODE_TO_QUESTION_TYPE[mode]], QUESTIONS_PER_SINGLE_MODE
-
-
 def _stage_for_index(mode: InterviewMode, order_index: int) -> QuestionType | None:
-    stages, per_stage = _stage_plan(mode)
-    stage_position = order_index // per_stage
-    if stage_position >= len(stages):
+    if order_index < 0 or order_index >= MAX_INTERVIEW_QUESTIONS:
         return None
-    return stages[stage_position]
+    if mode == InterviewMode.FULL:
+        return FULL_STAGE_DISTRIBUTION[order_index]
+    return _MODE_TO_QUESTION_TYPE.get(mode)
 
 
 async def _generate_question(company_name: str, skills: list[str], stage: QuestionType) -> dict:
@@ -139,7 +146,7 @@ async def submit_answer(
 ) -> tuple[Answer, Question | None]:
     """Evaluates the answer, then either generates the next question or
     finalizes the session (computing overall_score + weak_areas) if this
-    was the last question for the session's mode.
+    was the last question (limit: MAX_INTERVIEW_QUESTIONS = 10).
     """
     evaluation = await _evaluate_answer(question, answer_text)
     answer = Answer(
@@ -154,7 +161,7 @@ async def submit_answer(
     next_stage = _stage_for_index(session.mode, next_index)
 
     next_question: Question | None = None
-    if next_stage is None:
+    if next_index >= MAX_INTERVIEW_QUESTIONS or next_stage is None:
         db.flush()
         await _finalize_session(db, session)
     else:

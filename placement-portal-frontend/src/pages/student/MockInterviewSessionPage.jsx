@@ -88,6 +88,8 @@ export default function MockInterviewSessionPage() {
     }
   };
 
+  const MAX_QUESTIONS = 10;
+
   const handleSubmitAnswer = async (e) => {
     if (e) e.preventDefault();
 
@@ -113,15 +115,16 @@ export default function MockInterviewSessionPage() {
       setHistory((prev) => [...prev, historyItem]);
       setAnswerInput("");
 
-      if (session_status === "completed" || !next_question) {
+      const currentOrder = currentQuestion?.order_index !== undefined ? currentQuestion.order_index : history.length;
+      if (session_status === "completed" || !next_question || currentOrder + 1 >= MAX_QUESTIONS) {
         setIsSessionEnded(true);
-        showToast("Mock Interview Completed!", "success");
+        showToast("Mock Interview Completed! All 10 questions evaluated.", "success");
         setTimeout(() => {
           navigate(`/student/mock-interview/${sessionId}/result`);
         }, 1500);
       } else {
         setCurrentQuestion(next_question);
-        showToast("Answer recorded! Next question loaded.");
+        showToast(`Answer recorded! Question ${next_question.order_index + 1} of ${MAX_QUESTIONS} loaded.`);
       }
     } catch (err) {
       showError("Submission Failed", err.response?.data?.detail || "Could not submit your answer. Please try again.");
@@ -131,9 +134,10 @@ export default function MockInterviewSessionPage() {
   };
 
   const handleExitSession = async () => {
+    const answeredCount = history.length;
     const confirmed = await showConfirm({
       title: "Exit Mock Interview?",
-      text: "Your current progress will be saved up to the last answered question.",
+      text: `You have answered ${answeredCount} of ${MAX_QUESTIONS} questions. Your progress up to now will be saved.`,
       confirmButtonText: "Yes, Exit",
     });
     if (confirmed) {
@@ -180,43 +184,70 @@ export default function MockInterviewSessionPage() {
     );
   }
 
-  const questionIndex = history.length + 1;
+  const questionIndex = currentQuestion?.order_index !== undefined ? currentQuestion.order_index + 1 : history.length + 1;
+  const isFinalQuestion = questionIndex === MAX_QUESTIONS;
+  const progressPercent = Math.min(100, Math.round((Math.min(questionIndex, MAX_QUESTIONS) / MAX_QUESTIONS) * 100));
   const isCoding = currentQuestion?.q_type === "coding";
 
   return (
     <div className="mx-auto max-w-5xl space-y-4">
       {/* Session Top Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleExitSession}
-            className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Exit Session
-          </button>
-          <div>
-            <h1 className="font-heading text-lg font-bold text-slate-900 flex items-center gap-2">
-              <BrainCircuit className="h-5 w-5 text-indigo-600" />
-              AI Mock Interview
-            </h1>
-            <p className="text-xs text-slate-500">Session ID: #{sessionId}</p>
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleExitSession}
+              className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Exit Session
+            </button>
+            <div>
+              <h1 className="font-heading text-lg font-bold text-slate-900 flex items-center gap-2">
+                <BrainCircuit className="h-5 w-5 text-indigo-600" />
+                AI Mock Interview
+              </h1>
+              <p className="text-xs text-slate-500">Session ID: #{sessionId}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            {isFinalQuestion && (
+              <span className="inline-flex items-center gap-1.5 rounded-xl bg-amber-50 text-amber-800 border border-amber-300 px-3 py-1.5 text-xs font-bold animate-pulse">
+                <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
+                Final Question (10/10)
+              </span>
+            )}
+
+            <div className="flex items-center gap-2 rounded-xl bg-indigo-50 px-3 py-1.5 border border-indigo-100">
+              <Sparkles className="h-4 w-4 text-indigo-600 animate-pulse" />
+              <span className="text-xs font-bold text-indigo-900">
+                Question #{Math.min(questionIndex, MAX_QUESTIONS)} of {MAX_QUESTIONS}
+              </span>
+            </div>
+
+            {currentQuestion && (
+              <Badge variant={getDifficultyBadgeVariant(currentQuestion.difficulty)}>
+                {currentQuestion.difficulty?.toUpperCase()}
+              </Badge>
+            )}
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 rounded-xl bg-indigo-50 px-3 py-1.5 border border-indigo-100">
-            <Sparkles className="h-4 w-4 text-indigo-600 animate-pulse" />
-            <span className="text-xs font-bold text-indigo-900">
-              Question #{questionIndex}
+        {/* 10-Question Progress Bar */}
+        <div className="pt-2 border-t border-slate-100 flex flex-col gap-1.5">
+          <div className="flex items-center justify-between text-[11px] font-medium text-slate-500">
+            <span>
+              Question {Math.min(questionIndex, MAX_QUESTIONS)} of {MAX_QUESTIONS} • {history.length} completed
             </span>
+            <span className="font-semibold text-indigo-600">{progressPercent}% Completed</span>
           </div>
-
-          {currentQuestion && (
-            <Badge variant={getDifficultyBadgeVariant(currentQuestion.difficulty)}>
-              {currentQuestion.difficulty?.toUpperCase()}
-            </Badge>
-          )}
+          <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200">
+            <div
+              className="h-full bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
         </div>
       </div>
 
@@ -231,7 +262,7 @@ export default function MockInterviewSessionPage() {
               <div>
                 <p className="font-semibold text-indigo-950">Welcome to your AI Mock Interview session!</p>
                 <p className="mt-0.5 text-indigo-800">
-                  Answer each question carefully. The AI will evaluate your answers step-by-step and provide instant feedback upon submission.
+                  This interview consists of exactly 10 questions designed to test your placement readiness. The AI evaluates each answer turn-by-turn with scores and actionable feedback.
                 </p>
               </div>
             </div>
@@ -338,6 +369,15 @@ export default function MockInterviewSessionPage() {
                     <span>Provide your complete code response below. You can select your preferred programming language.</span>
                   </div>
                 )}
+
+                {isFinalQuestion && (
+                  <div className="mt-3 rounded-lg bg-emerald-50 border border-emerald-200 p-2.5 text-xs text-emerald-900 flex items-center gap-2">
+                    <Award className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+                    <span className="font-semibold">
+                      This is Question 10 of 10 (Final Question). Submit your response to finalize the interview and generate your performance scorecard!
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -361,9 +401,11 @@ export default function MockInterviewSessionPage() {
           {isSessionEnded && (
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center shadow-sm">
               <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-600 mb-2" />
-              <h3 className="text-lg font-bold text-emerald-950 font-heading">Interview Session Complete!</h3>
+              <h3 className="text-lg font-bold text-emerald-950 font-heading">
+                Interview Session Complete! (10/10 Questions Evaluated)
+              </h3>
               <p className="text-xs text-emerald-800 mt-1">
-                Redirecting you to the interview performance dashboard...
+                You have answered all 10 questions. Redirecting you to the interview performance dashboard...
               </p>
             </div>
           )}
@@ -445,10 +487,23 @@ export default function MockInterviewSessionPage() {
                   type="submit"
                   isLoading={isSubmitting}
                   disabled={!answerInput.trim() || isSubmitting}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2.5 rounded-xl shadow-md hover:shadow-indigo-200"
+                  className={
+                    isFinalQuestion
+                      ? "bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-2.5 rounded-xl shadow-md hover:shadow-emerald-200"
+                      : "bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2.5 rounded-xl shadow-md hover:shadow-indigo-200"
+                  }
                 >
-                  <Send className="mr-2 h-4 w-4" />
-                  Submit Answer
+                  {isFinalQuestion ? (
+                    <>
+                      <Award className="mr-2 h-4 w-4" />
+                      Submit & Complete Interview (10/10)
+                    </>
+                  ) : (
+                    <>
+                      <Send className="mr-2 h-4 w-4" />
+                      Submit Answer ({Math.min(questionIndex, MAX_QUESTIONS)}/{MAX_QUESTIONS})
+                    </>
+                  )}
                 </Button>
               </div>
             </form>

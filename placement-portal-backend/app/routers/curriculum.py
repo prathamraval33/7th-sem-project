@@ -165,6 +165,122 @@ def confirm_curriculum_structure(
     }
 
 
+@router.put("/uploads/{upload_id}/draft")
+def update_curriculum_draft(
+    upload_id: int,
+    payload: CurriculumConfirmRequest,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Saves edits to the curriculum draft structure without requiring immediate confirmation."""
+    cid = current_user.college_id
+    if cid is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="No college associated with this account.")
+
+    upload = db.get(CurriculumUpload, upload_id)
+    if upload is None or upload.college_id != cid:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Curriculum upload not found.")
+
+    upload.raw_extracted_data = payload.model_dump()
+    db.commit()
+    return {"message": "Curriculum draft saved successfully.", "raw_extracted_data": upload.raw_extracted_data}
+
+
+@router.delete("/uploads/{upload_id}")
+def delete_curriculum_upload(
+    upload_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> dict:
+    """College Admin deletes a curriculum upload, removes the physical PDF file, and cleans up linked subjects."""
+    cid = current_user.college_id
+    if cid is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="No college associated with this account.")
+
+    upload = db.get(CurriculumUpload, upload_id)
+    if upload is None or upload.college_id != cid:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Curriculum upload not found.")
+
+    # 1. Remove physical file from disk
+    try:
+        physical_path = UPLOAD_ROOT / upload.file_path
+        if physical_path.is_file():
+            physical_path.unlink()
+    except OSError:
+        pass
+
+    # 2. Delete any subjects and resources for this college that were created from this upload
+    subjects = db.scalars(
+        select(CurriculumSubject).where(
+            (CurriculumSubject.college_id == cid)
+            & ((CurriculumSubject.source_upload_id == upload.id) | (CurriculumSubject.source_upload_id.is_(None)))
+        )
+    ).all()
+    for s in subjects:
+        db.delete(s)
+    db.flush()
+
+    # 3. Delete the upload record itself
+    db.delete(upload)
+    db.commit()
+
+    return {"message": "Curriculum document and associated subjects deleted successfully."}
+
+
+@router.delete("/latest")
+def delete_latest_curriculum_upload(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Deletes the latest curriculum upload and all catalog subjects for this college."""
+    cid = current_user.college_id
+    if cid is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="No college associated with this account.")
+
+    upload = db.scalar(
+        select(CurriculumUpload)
+        .where(CurriculumUpload.college_id == cid)
+        .order_by(CurriculumUpload.uploaded_at.desc())
+    )
+    if upload is None:
+        # Also clean up any lingering subjects if no upload row exists
+        old_subjects = db.scalars(select(CurriculumSubject).where(CurriculumSubject.college_id == cid)).all()
+        for s in old_subjects:
+            db.delete(s)
+        db.commit()
+        return {"message": "Curriculum catalog cleaned up successfully."}
+
+    return delete_curriculum_upload(upload.id, current_user, db)
+
+
+@router.delete("/reset")
+def reset_curriculum_catalog(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Completely resets all curriculum uploads and catalog subjects for this college."""
+    cid = current_user.college_id
+    if cid is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="No college associated with this account.")
+
+    uploads = db.scalars(select(CurriculumUpload).where(CurriculumUpload.college_id == cid)).all()
+    for u in uploads:
+        try:
+            p = UPLOAD_ROOT / u.file_path
+            if p.is_file():
+                p.unlink()
+        except OSError:
+            pass
+        db.delete(u)
+
+    subjects = db.scalars(select(CurriculumSubject).where(CurriculumSubject.college_id == cid)).all()
+    for s in subjects:
+        db.delete(s)
+
+    db.commit()
+    return {"message": "All curriculum documents and subjects have been completely reset."}
+
+
 @router.get("/branches", response_model=CurriculumBranchesResponse)
 def get_curriculum_branches(
     current_user: User = Depends(get_current_user),
