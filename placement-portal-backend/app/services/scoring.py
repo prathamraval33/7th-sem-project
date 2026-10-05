@@ -15,9 +15,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.analytics import Analytics
+from app.models.answer import Answer
 from app.models.application import Application
 from app.models.interview_session import InterviewSession
 from app.models.profile import Profile
+from app.models.question import Question
 from app.models.resume import Resume
 
 RESUME_SCORE_WEIGHT = 0.30
@@ -27,6 +29,14 @@ APPLICATION_ACTIVITY_WEIGHT = 0.20
 
 APPLICATION_ACTIVITY_POINTS_PER_APPLICATION = 10
 APPLICATION_ACTIVITY_MAX_SCORE = 100
+
+# Part 4.5: Internal numeric mapping for rating bands (never shown to student)
+RATING_NUMERIC_MAP: dict[str, float] = {
+    "interview_ready": 95.0,
+    "good": 72.0,
+    "somewhat_closer": 45.0,
+    "not_relevant": 15.0,
+}
 
 PROFILE_COMPLETENESS_FIELDS = (
     "full_name",
@@ -86,8 +96,22 @@ def update_analytics(db: Session, user_id: int) -> Analytics:
     interview_sessions = db.scalars(
         select(InterviewSession).where(InterviewSession.user_id == user_id)
     ).all()
-    completed_scores = [s.overall_score for s in interview_sessions if s.overall_score is not None]
-    avg_interview_score = sum(completed_scores) / len(completed_scores) if completed_scores else None
+    session_averages: list[float] = []
+    for s in interview_sessions:
+        if s.status.value != "completed":
+            continue
+        answers = db.scalars(
+            select(Answer).join(Question, Answer.question_id == Question.id).where(Question.session_id == s.id)
+        ).all()
+        rating_scores = [
+            RATING_NUMERIC_MAP[a.rating] for a in answers if a.rating and a.rating in RATING_NUMERIC_MAP
+        ]
+        if rating_scores:
+            session_averages.append(sum(rating_scores) / len(rating_scores))
+        elif s.overall_score is not None:
+            session_averages.append(s.overall_score)
+
+    avg_interview_score = round(sum(session_averages) / len(session_averages), 2) if session_averages else None
 
     total_applications = db.scalars(select(Application).where(Application.user_id == user_id)).all()
     application_count = len(total_applications)

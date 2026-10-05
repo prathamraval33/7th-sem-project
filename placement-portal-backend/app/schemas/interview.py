@@ -15,12 +15,14 @@ class MockInterviewStartRequest(BaseModel):
     company_name: str
     skills: list[str] = []
     mode: InterviewMode
+    difficulty_level: str = "fresher"
     drive_id: Optional[int] = None
 
 
 class MockInterviewFromResumeRequest(BaseModel):
     resume_id: int
     company_name: str
+    difficulty_level: str = "fresher"
 
 
 class AnswerSubmitRequest(BaseModel):
@@ -36,6 +38,7 @@ class QuestionResponse(BaseModel):
     difficulty: DifficultyLevel
     order_index: int
     total_questions: int = 10
+    resume_reference: Optional[str] = None
 
 
 class AnswerResponse(BaseModel):
@@ -45,6 +48,9 @@ class AnswerResponse(BaseModel):
     question_id: int
     answer_text: str
     ai_feedback: Optional[str] = None
+    rating: Optional[str] = None
+    what_was_missing: Optional[str] = None
+    interviewer_note_reveal: Optional[str] = None
     score: Optional[float] = None
 
 
@@ -57,6 +63,7 @@ class InterviewSessionResponse(BaseModel):
     company_name: str
     skills: list[str] = []
     mode: InterviewMode
+    difficulty_level: str = "fresher"
     overall_score: Optional[float] = None
     weak_areas: Optional[list[str]] = None
     status: InterviewSessionStatus
@@ -70,3 +77,4 @@ class MockInterviewResultResponse(InterviewSessionResponse):
 
     questions: list[QuestionResponse] = []
     answers: list[AnswerResponse] = []
+    rating_distribution: Optional[dict[str, int]] = None

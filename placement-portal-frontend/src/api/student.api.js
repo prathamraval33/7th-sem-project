@@ -9,6 +9,7 @@ import axiosClient from "./axiosClient";
 
 export const studentApi = {
   createProfile: (payload) => axiosClient.post("/student/profile", payload),
+  getProfile: () => axiosClient.get("/student/profile"),
   getWeakAreas: () => axiosClient.get("/student/weak-areas"),
   getAnalyticsMe: () => axiosClient.get("/analytics/me"),
 

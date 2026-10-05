@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.dependencies import require_student
 from app.core.feature_gating import require_feature
 from app.db.session import get_db
-from app.models.interview_session import InterviewSession, InterviewSessionStatus
+from app.models.interview_session import InterviewMode, InterviewSession, InterviewSessionStatus
 from app.models.question import Question
 from app.models.resume import Resume
 from app.models.user import User
@@ -53,6 +53,7 @@ async def start_mock_interview(
         company_name=payload.company_name,
         skills=payload.skills,
         mode=payload.mode,
+        difficulty_level=payload.difficulty_level,
         drive_id=payload.drive_id,
     )
     return StartSessionResponse(**QuestionResponse.model_validate(question).model_dump(), session_id=session.id)
@@ -70,25 +71,19 @@ async def start_mock_interview_from_resume(
     if not resume.parsed_text:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="This resume has no extracted text to build questions from")
 
-    # Feed the resume's parsed text into the prompt as a single "skill"
-    # context entry so interview_engine's question generation is grounded
-    # in the actual resume content, not just the company name.
-    resume_context = [f"Resume content: {resume.parsed_text[:2000]}"]
+    # Part 2: pass full parsed text (up to 4000 chars) to ground questions in actual projects/experience
+    resume_text = resume.parsed_text[:4000]
 
     session, question = await interview_engine.start_session(
         db,
         current_user.id,
         company_name=payload.company_name,
-        skills=resume_context,
-        mode=session_mode_from_resume(),
+        skills=[],
+        mode=InterviewMode.RESUME,
+        difficulty_level=payload.difficulty_level,
+        resume_text=resume_text,
     )
     return StartSessionResponse(**QuestionResponse.model_validate(question).model_dump(), session_id=session.id)
-
-
-def session_mode_from_resume():
-    from app.models.interview_session import InterviewMode
-
-    return InterviewMode.FULL
 
 
 @router.post("/{session_id}/answer", response_model=AnswerSubmitResponse)
@@ -114,15 +109,18 @@ async def submit_answer(
     if current_question.answer is not None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="This question has already been answered")
 
-    answer, next_question = await interview_engine.submit_answer(
+    answer, next_question, interviewer_note_reveal = await interview_engine.submit_answer(
         db, session, current_question, payload.answer_text
     )
 
     if session.status == InterviewSessionStatus.COMPLETED:
         scoring.update_analytics(db, current_user.id)
 
+    answer_resp = AnswerResponse.model_validate(answer)
+    answer_resp.interviewer_note_reveal = interviewer_note_reveal
+
     return AnswerSubmitResponse(
-        answer=AnswerResponse.model_validate(answer),
+        answer=answer_resp,
         next_question=QuestionResponse.model_validate(next_question) if next_question else None,
         session_status=session.status,
     )
@@ -151,7 +149,7 @@ def get_mock_interview_result(
     session_id: int,
     current_user: User = Depends(require_student),
     db: Session = Depends(get_db),
-) -> InterviewSession:
+) -> MockInterviewResultResponse:
     session = db.get(InterviewSession, session_id)
     if session is None or session.user_id != current_user.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Interview session not found")
@@ -160,19 +158,37 @@ def get_mock_interview_result(
 
     answers = [question.answer for question in session.questions if question.answer is not None]
 
+    rating_counts = {
+        "interview_ready": 0,
+        "good": 0,
+        "somewhat_closer": 0,
+        "not_relevant": 0,
+    }
+
+    q_map = {q.id: q for q in session.questions}
+    answer_responses = []
+    for a in answers:
+        a_resp = AnswerResponse.model_validate(a)
+        q = q_map.get(a.question_id)
+        if q and q.interviewer_note:
+            a_resp.interviewer_note_reveal = q.interviewer_note
+        if a.rating in rating_counts:
+            rating_counts[a.rating] += 1
+        answer_responses.append(a_resp)
+
     return MockInterviewResultResponse(
-        **{
-            "id": session.id,
-            "user_id": session.user_id,
-            "drive_id": session.drive_id,
-            "company_name": session.company_name,
-            "skills": session.skills or [],
-            "mode": session.mode,
-            "overall_score": session.overall_score,
-            "weak_areas": session.weak_areas,
-            "status": session.status,
-            "created_at": session.created_at,
-            "questions": [QuestionResponse.model_validate(q) for q in session.questions],
-            "answers": [AnswerResponse.model_validate(a) for a in answers],
-        }
+        id=session.id,
+        user_id=session.user_id,
+        drive_id=session.drive_id,
+        company_name=session.company_name,
+        skills=session.skills or [],
+        mode=session.mode,
+        difficulty_level=session.difficulty_level,
+        overall_score=session.overall_score,
+        weak_areas=session.weak_areas,
+        status=session.status,
+        created_at=session.created_at,
+        questions=[QuestionResponse.model_validate(q) for q in session.questions],
+        answers=answer_responses,
+        rating_distribution=rating_counts,
     )

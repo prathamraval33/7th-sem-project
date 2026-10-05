@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BVM IT — Placement Portal Mid-Sem Presentation (Basel Theme)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #F4F1EA;
+      --black: #111111;
+      --red: #E32213;
+      --grid: #DCD8CE;
+      --muted: #69645F;
+      --white: #FFFFFF;
+      --card-bg: #FAF8F4;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #1a1a1a;
+      font-family: 'Archivo', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      color: var(--black);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Presentation Frame (16:9 aspect ratio standard) */
+    #deck-container {
+      width: 100vw;
+      height: 56.25vw; /* 16:9 */
+      max-height: 100vh;
+      max-width: 177.78vh; /* 16:9 */
+      background: var(--bg);
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 25px 70px rgba(0, 0, 0, 0.4);
+    }
+
+    .slide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateX(20px);
+      transition: opacity 0.35s cubic-bezier(0.2, 0, 0, 1), transform 0.35s cubic-bezier(0.2, 0, 0, 1);
+      padding: 2.8vw 4.5vw;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .slide.active {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(0);
+      z-index: 10;
+    }
+
+    /* Section Break Slides (Solid Black) */
+    .slide.section-break {
+      background: var(--black);
+      color: var(--white);
+      justify-content: center;
+      padding-left: 7vw;
+    }
+
+    /* Swiss Top Metadata Bar */
+    .swiss-top-bar {
+      position: absolute;
+      top: 2vw;
+      left: 4.5vw;
+      right: 4.5vw;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4vw;
+      z-index: 5;
+    }
+
+    .top-rule {
+      height: 3px;
+      background: var(--black);
+      width: 100%;
+    }
+
+    .top-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.72vw;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .top-meta span.slide-idx {
+      color: var(--black);
+    }
+
+    /* 3-Column Grid Lines */
+    .grid-overlay {
+      position: absolute;
+      top: 3.5vw;
+      bottom: 2vw;
+      left: 4.5vw;
+      right: 4.5vw;
+      pointer-events: none;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      z-index: 1;
+    }
+
+    .grid-col {
+      border-right: 1px solid var(--grid);
+      height: 100%;
+    }
+    .grid-col:last-child {
+      border-right: none;
+    }
+
+    /* Slide Content Container */
+    .slide-body {
+      position: relative;
+      z-index: 2;
+      margin-top: 2.2vw;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Typography */
+    .red-accent {
+      display: inline-block;
+      width: 0.9vw;
+      height: 0.9vw;
+      background: var(--red);
+      vertical-align: middle;
+      margin-right: 0.6vw;
+    }
+
+    .eyebrow {
+      font-size: 0.75vw;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      margin-bottom: 0.6vw;
+      display: flex;
+      align-items: center;
+    }
+
+    h1.swiss-headline {
+      font-size: 3.0vw;
+      line-height: 0.94;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: var(--black);
+      margin-bottom: 1.0vw;
+      text-transform: lowercase;
+    }
+
+    .section-break h1.swiss-num {
+      font-size: 8.5vw;
+      font-weight: 900;
+      line-height: 0.85;
+      letter-spacing: -0.06em;
+      color: var(--white);
+      margin-bottom: 1.2vw;
+    }
+
+    .section-break .red-rule {
+      width: 6vw;
+      height: 6px;
+      background: var(--red);
+      margin-bottom: 1.8vw;
+    }
+
+    .section-break h2.section-title {
+      font-size: 3vw;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+      color: var(--white);
+      text-transform: lowercase;
+    }
+
+    .section-break p.section-desc {
+      font-size: 1.1vw;
+      font-weight: 400;
+      color: #999999;
+      margin-top: 0.8vw;
+      max-width: 50vw;
+    }
+
+    /* 3-Column Layouts */
+    .cols-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2.2vw;
+      margin-top: 1.2vw;
+      flex: 1;
+    }
+
+    .col-card {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6vw;
+    }
+
+    .col-header {
+      font-size: 0.85vw;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--black);
+      padding-bottom: 0.4vw;
+      border-bottom: 2px solid var(--black);
+      margin-bottom: 0.4vw;
+    }
+
+    .col-header.red {
+      color: var(--red);
+      border-color: var(--red);
+    }
+
+    .item-group {
+      margin-bottom: 0.8vw;
+    }
+
+    .item-title {
+      font-size: 0.92vw;
+      font-weight: 700;
+      color: var(--black);
+      margin-bottom: 0.2vw;
+    }
+
+    .item-desc {
+      font-size: 0.78vw;
+      line-height: 1.35;
+      color: var(--muted);
+    }
+
+    /* Dual-Module (2 Features Per Page) Grid */
+    .two-modules-grid {
+      display: grid;
+      grid-template-columns: 1fr 1px 1fr;
+      gap: 2.2vw;
+      height: 100%;
+      margin-top: 0.2vw;
+    }
+
+    .module-divider {
+      background: var(--grid);
+      height: 100%;
+      width: 1px;
+    }
+
+    .module-column {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4vw;
+    }
+
+    .module-card-header {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15vw;
+    }
+
+    .module-card-header .module-tag {
+      font-size: 0.68vw;
+      font-weight: 800;
+      color: var(--red);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .module-card-header .module-title {
+      font-size: 1.0vw;
+      font-weight: 800;
+      color: var(--black);
+      line-height: 1.15;
+    }
+
+    .module-card-header .module-sub {
+      font-size: 0.70vw;
+      color: var(--muted);
+      line-height: 1.25;
+    }
+
+    .module-column .image-frame {
+      border: 1.5px solid var(--black);
+      background: #000;
+      aspect-ratio: 16/9;
+      overflow: hidden;
+      width: 100%;
+    }
+
+    .module-column .image-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .module-column .caption-box {
+      display: flex;
+      flex-direction: column;
+      gap: 0.1vw;
+    }
+
+    .caption-tag {
+      font-size: 0.65vw;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      color: var(--red);
+      text-transform: uppercase;
+    }
+
+    .caption-tech {
+      font-size: 0.63vw;
+      color: var(--muted);
+      font-family: monospace;
+    }
+
+    .module-column .selling-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35vw;
+      margin-top: 0.15vw;
+    }
+
+    .module-column .selling-item {
+      font-size: 0.70vw;
+      line-height: 1.3;
+      color: var(--muted);
+    }
+
+    .module-column .selling-item strong {
+      color: var(--black);
+      font-weight: 700;
+    }
+
+    /* Table Matrix */
+    .matrix-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0.8vw;
+      font-size: 0.72vw;
+    }
+
+    .matrix-table th {
+      background: var(--black);
+      color: var(--white);
+      padding: 0.5vw 0.8vw;
+      text-align: left;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      border: 1px solid var(--black);
+    }
+
+    .matrix-table td {
+      padding: 0.45vw 0.8vw;
+      border: 1px solid var(--grid);
+      color: var(--black);
+    }
+
+    .matrix-table tr:nth-child(even) td {
+      background: var(--card-bg);
+    }
+
+    .badge-verified {
+      font-weight: 800;
+      color: var(--black);
+    }
+
+    .badge-pending {
+      font-weight: 800;
+      color: var(--red);
+    }
+
+    /* Controls & Navigation Bar */
+    #nav-controls {
+      position: absolute;
+      bottom: 1.2vw;
+      right: 4.5vw;
+      display: flex;
+      gap: 0.8vw;
+      align-items: center;
+      z-index: 20;
+    }
+
+    .btn-nav {
+      background: var(--black);
+      color: var(--white);
+      border: none;
+      padding: 0.4vw 0.9vw;
+      font-family: 'Archivo', sans-serif;
+      font-size: 0.75vw;
+      font-weight: 700;
+      text-transform: uppercase;
+      cursor: pointer;
+      letter-spacing: 0.05em;
+      transition: background 0.15s ease;
+    }
+
+    .btn-nav:hover {
+      background: var(--red);
+    }
+
+    .btn-download {
+      background: var(--red);
+      color: var(--white);
+      text-decoration: none;
+      padding: 0.4vw 0.9vw;
+      font-size: 0.75vw;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: inline-block;
+    }
+
+    .btn-download:hover {
+      background: #b5170b;
+    }
+
+    #progress-line {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 4px;
+      background: var(--red);
+      width: 0%;
+      transition: width 0.3s ease;
+      z-index: 25;
+    }
+  </style>
+</head>
+<body>
+
+<div id="deck-container">
+  <!-- Progress Bar -->
+  <div id="progress-line"></div>
+
+  <!-- SLIDE 1: Title Slide -->
+  <div class="slide active" id="slide-1">
+    <div class="swiss-top-bar">
+      <div class="top-meta">
+        <span>BVM ENGINEERING COLLEGE  //  IT DEPARTMENT  //  ACADEMIC YEAR 2026-27</span>
+        <span class="slide-idx">SLIDE 01 / 14</span>
+      </div>
+      <div class="top-rule"></div>
+    </div>
+    <div class="grid-overlay"><div class="grid-col"></div><div class="grid-col"></div><div class="grid-col"></div></div>
+
+    <div class="slide-body">
+      <div class="eyebrow"><span class="red-accent"></span> BIRLA VISHVAKARMA MAHAVIDYALAYA (ENGINEERING COLLEGE) · AN AUTONOMOUS INSTITUTION</div>
+      <h1 class="swiss-headline" style="font-size: 4.0vw; margin-bottom: 0.8vw;">
+        ai-powered smart placement &<br />career preparation portal.
+      </h1>
+      <p style="font-size: 1.1vw; font-weight: 700; color: var(--red); margin-bottom: 0.3vw; text-transform: lowercase;">
+        mid-semester project evaluation — 7th semester b.tech information technology
+      </p>
+      <p style="font-size: 0.85vw; color: var(--muted); max-width: 65vw; line-height: 1.4; margin-bottom: 1.5vw;">
+        An enterprise multi-tenant recruitment operating system featuring automated institutional onboarding, Groq AI syllabus curation, turn-by-turn mock interviews, and ATS resume engineering.
+      </p>
+
+      <div class="cols-3">
+        <div class="col-card">
+          <div class="col-header">PROJECT TEAM (GROUP-2)</div>
+          <div class="item-group">
+            <div class="item-title">• Pratham Raval [23IT449]</div>
+            <div class="item-title">• Prit Patel [23IT408]</div>
+            <div class="item-title">• Yashvi Chauhan [23IT447]</div>
+          </div>
+        </div>
+
+        <div class="col-card">
+          <div class="col-header">FACULTY GUIDE</div>
+          <div class="item-title" style="font-size: 1.05vw;">Dr. Dharmesh G. Patel</div>
+          <div class="item-desc">Associate Professor, IT Department<br />Birla Vishvakarma Mahavidyalaya</div>
+        </div>
+
+        <div class="col-card">
+          <div class="col-header">DEPARTMENT & GOVERNANCE</div>
+          <div class="item-desc">
+            Information Technology Department<br />
+            Managed by Charutar Vidya Mandal (CVM)<br />
+            Vallabh Vidyanagar, Gujarat
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: Section Break 01 -->
+  <div class="slide section-break" id="slide-2">
+    <h1 class="swiss-num">01</h1>
+    <div class="red-rule"></div>
+    <h2 class="section-title">project orientation.</h2>
+    <p class="section-desc">Executive outline, problem definition, and multi-tenant architectural scope.</p>
+  </div>
+
+  <!-- SLIDE 3: Presentation Outline -->
+  <div class="slide" id="slide-3">
+    <div class="swiss-top-bar">
+      <div class="top-meta">
+        <span>BVM ENGINEERING COLLEGE  //  IT DEPARTMENT  //  AGENDA & ROADMAP</span>
+        <span class="slide-idx">SLIDE 03 / 14</span>
+      </div>
+      <div class="top-rule"></div>
+    </div>
+    <div class="grid-overlay"><div class="grid-col"></div><div class="grid-col"></div><div class="grid-col"></div></div>
+
+    <div class="slide-body">
+      <div class="eyebrow"><span class="red-accent"></span> ROADMAP & MILESTONES</div>
+      <h1 class="swiss-headline">presentation outline.</h1>
+
+      <div class="cols-3">
+        <div class="col-card">
+          <div class="col-header">01 / FOUNDATIONS</div>
+          <div class="item-group">
+            <div class="item-title">Project Definition</div>
+            <div class="item-desc">Transforming manual, spreadsheet-bound placement cycles into orchestrated intelligence.</div>
+          </div>
+          <div class="item-group">
+            <div class="item-title">Problem Statement</div>
+            <div class="item-desc">Eliminating spreadsheet silos, delayed eligibility checks, and unstandardized resume reviews.</div>
+          </div>
+          <div class="item-group">
+            <div class="item-title">Stakeholder Scope</div>
+            <div class="item-desc">Seamless coexistence of SuperAdmin, College Admin, TPO, and Student personas.</div>
+          </div>
+        </div>
+
+        <div class="col-card">
+          <div class="col-header red">02 / IMPLEMENTED MODULES</div>
+          <div class="item-group">
+            <div class="item-title">Admin Onboarding & Licensing</div>
+            <div class="item-desc">Domain-gated signup, Razorpay SaaS checkout, and 4-step setup checklist.</div>
+          </div>
+          <div class="item-group">
+            <div class="item-title">Governance & Custom Features</div>
+            <div class="item-desc">9-department curriculum, Fee OCR templates, and custom proposal pipelines.</div>
+          </div>
+          <div class="item-group">
+            <div class="item-title">SuperAdmin Command Deck</div>
+            <div class="item-desc">Multi-tenant directory, modular feature toggles, and platform telemetry.</div>
+          </div>
+          <div class="item-group">
+            <div class="item-title">Student AI Prep & Testing</div>
+            <div class="item-desc">Live TCS drive matching, AI mock interviews, ATS resume enhancer, and study curation.</div>
+          </div>
+        </div>
+
+        <div class="col-card">
+          <div class="col-header">03 / FUTURE & DEMO</div>
+          <div class="item-group">
+            <div class="item-title">Video Demonstration</div>
+            <div class="item-desc">Walkthrough of live recording capturing all verified production workflows.</div>
+          </div>
+          <div class="item-group">
+            <div class="item-title">Features Yet to Implement</div>
+            <div class="item-desc">Fee-verified drive application gate, accreditation reports, and proctoring upgrades.</div>
+          </div>
+          <div class="item-group">
+            <div class="item-title">Mid-Sem Status Matrix</div>
+            <div class="item-desc">Evaluation of current progress against final semester deliverables.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: Definition & Scope -->
+  <div class="slide" id="slide-4">
+    <div class="swiss-top-bar">
+      <div class="top-meta">
+        <span>BVM ENGINEERING COLLEGE  //  IT DEPARTMENT  //  DEFINITION & SCOPE</span>
+        <span class="slide-idx">SLIDE 04 / 14</span>
+      </div>
+      <div class="top-rule"></div>
+    </div>
+    <div class="grid-overlay"><div class="grid-col"></div><div class="grid-col"></div><div class="grid-col"></div></div>
+
+    <div class="slide-body">
+      <div class="eyebrow"><span class="red-accent"></span> PLATFORM CHARTER</div>
+      <h1 class="swiss-headline">definition & architectural scope.</h1>
+
+      <p style="font-size: 1.0vw; line-height: 1.45; color: var(--black); max-width: 68vw; margin-bottom: 1.2vw;">
+        A centralized multi-tenant digital ecosystem that automates the entire campus recruitment lifecycle — from college onboarding and verified eligibility gating to curriculum-grounded study curation, proctored instant assessments, and generative AI interview simulations.
+      </p>
+
+      <div class="cols-3">
+        <div class="col-card">
+          <div class="col-header red">COLLEGE ADMIN & TPO</div>
+          <div class="item-group">
+            <div class="item-title">• Institutional SaaS Setup</div>
+            <div class="item-desc">Domain whitelisting, Razorpay license activation, and setup checklist.</div>
+          </div>
+          <div class="item-group">
+            <div class="item-title">• Departmental Governance</div>
+            <div class="item-desc">Dynamic 9-department curriculum catalog, fee receipt OCR templates.</div>
+          </div>
+          <div class="item-group">
+            <div class="item-title">• Drive Pipeline Control</div>
+            <div class="item-desc">Dynamic multi-criteria eligibility filters, real-time applicant shortlists.</div>
+          </div>
+        </div>
+
+        <div class="col-card">
+          <div class="col-header">STUDENT CANDIDATES</div>
+          <div class="item-group">
+            <div class="item-title">• Real-Time Drive Matching</div>
+            <div class="item-desc">Instant eligibility badging with transparent shortfall breakdown.</div>
+          </div>
+          <div class="item-group">
+            <div class="item-title">• AI Mock Prep & Interviews</div>
+            <div class="item-desc">10-question behavioral and technical rounds with live turn-by-turn feedback.</div>
+          </div>
+          <div class="item-group">
+            <div class="item-title">• ATS Resume Engineering</div>
+            <div class="item-desc">Live scoring (78/100), 8 detected skill gaps, and quantified project rebuilder.</div>
+          </div>
+        </div>
+
+        <div class="col-card">
+          <div class="col-header">SUPERADMIN PLATFORM</div>
+          <div class="item-group">
+            <div class="item-title">• Multi-Tenant Governance</div>
+            <div class="item-desc">Global university directory, domain authorization, and quota limits.</div>
+          </div>
+          <div class="item-group">
+            <div class="item-title">• Modular Feature Catalog</div>
+            <div class="item-desc">Selective activation of premium add-ons with single-click toggle.</div>
+          </div>
+          <div class="item-group">
+            <div class="item-title">• Collaborative Proposals</div>
+            <div class="item-desc">Two-way feedback loop for custom campus feature requests.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: Section Break 02 -->
+  <div class="slide section-break" id="slide-5">
+    <h1 class="swiss-num">02</h1>
+    <div class="red-rule"></div>
+    <h2 class="section-title">implemented modules.</h2>
+    <p class="section-desc">Detailed functional breakdown pairing 10 core modules with live video demonstration evidence.</p>
+  </div>
+
+  <!-- SLIDE 6: Modules 01 & 02 — Onboarding & Governance -->
+  <div class="slide" id="slide-6">
+    <div class="swiss-top-bar">
+      <div class="top-meta">
+        <span>BVM ENGINEERING COLLEGE  //  MODULES 01 & 02  //  LIVE VIDEO EVIDENCE</span>
+        <span class="slide-idx">SLIDE 06 / 14</span>
+      </div>
+      <div class="top-rule"></div>
+    </div>
+
+    <div class="slide-body">
+      <div class="eyebrow"><span class="red-accent"></span> SECTION 02 · IMPLEMENTED MODULES</div>
+      <h1 class="swiss-headline">modules 01 & 02: campus onboarding & governance.</h1>
+
+      <div class="two-modules-grid">
+        <!-- Module 01 -->
+        <div class="module-column">
+          <div class="module-card-header">
+            <span class="module-tag">MODULE 01 // CAMPUS ONBOARDING</span>
+            <span class="module-title">Admin Onboarding & SaaS Licensing</span>
+            <span class="module-sub">Official campus domain gating, integrated Razorpay checkout, and setup wizard.</span>
+          </div>
+          <div class="image-frame">
+            <img src="presentation_assets/02_razorpay_license_checkout.png" alt="Razorpay License Checkout" />
+          </div>
+          <div class="caption-box">
+            <span class="caption-tag">EVIDENCE [DEMO VIDEO] — RAZORPAY CHECKOUT MODAL & CHECKLIST</span>
+            <span class="caption-tech">FastAPI · SQLAlchemy ORM · Razorpay Checkout API · Multi-Tenant Isolation</span>
+          </div>
+          <div class="selling-list">
+            <div class="selling-item"><strong>■ Campus Domain Gating:</strong> Prevents generic emails; colleges register with verified domains (e.g., bvmengineering.ac.in).</div>
+            <div class="selling-item"><strong>■ Razorpay SaaS Checkout:</strong> Direct subscription for ₹10,000/mo Campus Standard License with automated webhooks.</div>
+            <div class="selling-item"><strong>■ 4-Step Setup Checklist:</strong> Guides administrators through domain validation, TPO setup, and role activation.</div>
+          </div>
+        </div>
+
+        <div class="module-divider"></div>
+
+        <!-- Module 02 -->
+        <div class="module-column">
+          <div class="module-card-header">
+            <span class="module-tag">MODULE 02 // CAMPUS GOVERNANCE</span>
+            <span class="module-title">College Admin Governance Hub</span>
+            <span class="module-sub">Management of 9 academic departments, fee OCR standards, and billing transparency.</span>
+          </div>
+          <div class="image-frame">
+            <img src="presentation_assets/04_admin_branches_curriculum.png" alt="Admin Branches & Curriculum" />
+          </div>
+          <div class="caption-box">
+            <span class="caption-tag">EVIDENCE [DEMO VIDEO] — DEPARTMENTAL ARCHITECTURE & CURRICULUM</span>
+            <span class="caption-tech">PostgreSQL · FastAPI Subscriptions · Alembic Migrations · BVM Schemas</span>
+          </div>
+          <div class="selling-list">
+            <div class="selling-item"><strong>■ 9-Department Directory:</strong> Standardizes all campus branches (Civil, Mech, Comp, IT, EC, EE, etc.) for drive filtering.</div>
+            <div class="selling-item"><strong>■ Curriculum Ingestion Engine:</strong> Uploads official university syllabus blueprints with confirmed 22 core subjects.</div>
+            <div class="selling-item"><strong>■ Fee OCR & Billing Ledger:</strong> Multi-template receipt standards with 30-day billing cycle countdown and invoice logs.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: Modules 03 & 04 — Custom Proposals & SuperAdmin Command -->
+  <div class="slide" id="slide-7">
+    <div class="swiss-top-bar">
+      <div class="top-meta">
+        <span>BVM ENGINEERING COLLEGE  //  MODULES 03 & 04  //  LIVE VIDEO EVIDENCE</span>
+        <span class="slide-idx">SLIDE 07 / 14</span>
+      </div>
+      <div class="top-rule"></div>
+    </div>
+
+    <div class="slide-body">
+      <div class="eyebrow"><span class="red-accent"></span> SECTION 02 · IMPLEMENTED MODULES</div>
+      <h1 class="swiss-headline">modules 03 & 04: custom proposals & superadmin command.</h1>
+
+      <div class="two-modules-grid">
+        <!-- Module 03 -->
+        <div class="module-column">
+          <div class="module-card-header">
+            <span class="module-tag">MODULE 03 // COLLABORATIVE ENGINEERING</span>
+            <span class="module-title">Custom Feature Proposal Pipeline</span>
+            <span class="module-sub">Bi-directional collaborative engineering roadmap between College Admins and SuperAdmin.</span>
+          </div>
+          <div class="image-frame">
+            <img src="presentation_assets/09_custom_feature_request_modal.png" alt="Custom Feature Request Modal" />
+          </div>
+          <div class="caption-box">
+            <span class="caption-tag">EVIDENCE [DEMO VIDEO] — INTERACTIVE PROPOSAL MODAL & DIALOGUE</span>
+            <span class="caption-tech">Alembic h5c6d7e8f9a0 · CustomFeatureRequest Model · Reactive SuperAdmin Store</span>
+          </div>
+          <div class="selling-list">
+            <div class="selling-item"><strong>■ Structured Proposal Modal:</strong> College admins submit bespoke requests specifying Target Persona, Category, and Urgency.</div>
+            <div class="selling-item"><strong>■ Engineering Rationale Pipeline:</strong> Detailed business and technical justifications route immediately to SuperAdmin console.</div>
+            <div class="selling-item"><strong>■ Real-Time Status Tracking:</strong> Proposals advance transparently from Under Review to In Progress or Completed.</div>
+          </div>
+        </div>
+
+        <div class="module-divider"></div>
+
+        <!-- Module 04 -->
+        <div class="module-column">
+          <div class="module-card-header">
+            <span class="module-tag">MODULE 04 // PLATFORM OVERSIGHT</span>
+            <span class="module-title">SuperAdmin Command Center</span>
+            <span class="module-sub">Multi-tenant institutional governance, modular feature catalog toggles, and platform telemetry.</span>
+          </div>
+          <div class="image-frame">
+            <img src="presentation_assets/10_superadmin_custom_proposals.png" alt="SuperAdmin Custom Proposals" />
+          </div>
+          <div class="caption-box">
+            <span class="caption-tag">EVIDENCE [DEMO VIDEO] — GLOBAL MULTI-TENANT ADMINISTRATION CONSOLE</span>
+            <span class="caption-tech">JWT SuperAdmin Guards · Cross-Tenant Checks · Real-Time Telemetry</span>
+          </div>
+          <div class="selling-list">
+            <div class="selling-item"><strong>■ Cross-Campus Directory:</strong> Centralized audit cockpit for all institutions with domain filters and quota limits.</div>
+            <div class="selling-item"><strong>■ Modular Feature Toggles:</strong> One-click activation of optional platform extensions (Instant Tests, AI Interviews) per college.</div>
+            <div class="selling-item"><strong>■ Global Broadcast Center:</strong> Push notifications dispatched system-wide across all connected campus dashboards.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 8: Modules 05 & 06 — Placement Drives & Skill Diagnostics -->
+  <div class="slide" id="slide-8">
+    <div class="swiss-top-bar">
+      <div class="top-meta">
+        <span>BVM ENGINEERING COLLEGE  //  MODULES 05 & 06  //  LIVE VIDEO EVIDENCE</span>
+        <span class="slide-idx">SLIDE 08 / 14</span>
+      </div>
+      <div class="top-rule"></div>
+    </div>
+
+    <div class="slide-body">
+      <div class="eyebrow"><span class="red-accent"></span> SECTION 02 · IMPLEMENTED MODULES</div>
+      <h1 class="swiss-headline">modules 05 & 06: placement drives & skill diagnostics.</h1>
+
+      <div class="two-modules-grid">
+        <!-- Module 05 -->
+        <div class="module-column">
+          <div class="module-card-header">
+            <span class="module-tag">MODULE 05 // RECRUITMENT PIPELINE</span>
+            <span class="module-title">Placement Drives & Eligibility Engine</span>
+            <span class="module-sub">Automated multi-criteria matching, instant compensation breakdown, and one-click application.</span>
+          </div>
+          <div class="image-frame">
+            <img src="presentation_assets/15_student_dashboard_placement_drives.png" alt="Student Placement Drives" />
+          </div>
+          <div class="caption-box">
+            <span class="caption-tag">EVIDENCE [DEMO VIDEO] — LIVE TCS DRIVE MATCHING (₹3.4 - ₹10 LPA)</span>
+            <span class="caption-tech">Eligibility Engine · Unique Application Constraint · Role Authorization</span>
+          </div>
+          <div class="selling-list">
+            <div class="selling-item"><strong>■ Verified Drive Opportunities:</strong> Live campus drives with transparent salary breakdowns (₹3.4 - ₹10 LPA) and bond terms.</div>
+            <div class="selling-item"><strong>■ Automated Eligibility Checks:</strong> Real-time evaluation across CGPA, active backlogs, 10th/12th cutoffs, and branch.</div>
+            <div class="selling-item"><strong>■ Placement Lock Protection:</strong> Prevents offer holders from blocking slots unless granted TPO dream override.</div>
+          </div>
+        </div>
+
+        <div class="module-divider"></div>
+
+        <!-- Module 06 -->
+        <div class="module-column">
+          <div class="module-card-header">
+            <span class="module-tag">MODULE 06 // STUDENT ANALYTICS</span>
+            <span class="module-title">Skill Diagnostics & Weak Areas</span>
+            <span class="module-sub">Automated aggregation of candidate performance shortfalls across assessments and mock interviews.</span>
+          </div>
+          <div class="image-frame">
+            <img src="presentation_assets/17_student_weak_areas_diagnostics.png" alt="Student Weak Areas Diagnostics" />
+          </div>
+          <div class="caption-box">
+            <span class="caption-tag">EVIDENCE [DEMO VIDEO] — RECURRING WEAKNESS AGGREGATOR (JAVA / DSA)</span>
+            <span class="caption-tech">Diagnostic Analytics Engine · Performance Aggregator · Targeted Practice Routing</span>
+          </div>
+          <div class="selling-list">
+            <div class="selling-item"><strong>■ Aggregated Shortfalls:</strong> Tracks error patterns across practice assessments, test screenings, and mock interviews.</div>
+            <div class="selling-item"><strong>■ Recurring Weakness Detection:</strong> Flags persistent knowledge gaps (2+ occurrences) across Java, Algorithms, and SQL.</div>
+            <div class="selling-item"><strong>■ Direct 'Practice This' Drills:</strong> One-click deep links directing students directly to remedial quiz questions.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 9: Modules 07 & 08 — AI Study Curation & Mock Interview -->
+  <div class="slide" id="slide-9">
+    <div class="swiss-top-bar">
+      <div class="top-meta">
+        <span>BVM ENGINEERING COLLEGE  //  MODULES 07 & 08  //  LIVE VIDEO EVIDENCE</span>
+        <span class="slide-idx">SLIDE 09 / 14</span>
+      </div>
+      <div class="top-rule"></div>
+    </div>
+
+    <div class="slide-body">
+      <div class="eyebrow"><span class="red-accent"></span> SECTION 02 · IMPLEMENTED MODULES</div>
+      <h1 class="swiss-headline">modules 07 & 08: ai study curation & mock interview.</h1>
+
+      <div class="two-modules-grid">
+        <!-- Module 07 -->
+        <div class="module-column">
+          <div class="module-card-header">
+            <span class="module-tag">MODULE 07 // AI CURATION</span>
+            <span class="module-title">AI Curriculum Study Resources</span>
+            <span class="module-sub">Groq AI syllabus parsing, 34-course repository indexing, and verified academic links.</span>
+          </div>
+          <div class="image-frame">
+            <img src="presentation_assets/20_study_resources_tpo_ai_curation.png" alt="Study Resources AI Curation" />
+          </div>
+          <div class="caption-box">
+            <span class="caption-tag">EVIDENCE [DEMO VIDEO] — TPO AI SYLLABUS EXTRACTION & CURATION</span>
+            <span class="caption-tech">Groq AI Llama-3.3-70B · PyPDF Parser · MIT OpenCourseWare Curation</span>
+          </div>
+          <div class="selling-list">
+            <div class="selling-item"><strong>■ Automated Syllabus Parsing:</strong> Groq AI extracts subjects, unit syllabi, and prerequisites directly from PDF curricula.</div>
+            <div class="selling-item"><strong>■ 34-Subject Digital Catalog:</strong> Organizes 8 semesters into a structured hierarchy from Data Structures to Sem-7 Electives.</div>
+            <div class="selling-item"><strong>■ OpenCourseWare Integration:</strong> Automatically links verified textbooks and open courseware (MIT 6.01SC, O'Reilly).</div>
+          </div>
+        </div>
+
+        <div class="module-divider"></div>
+
+        <!-- Module 08 -->
+        <div class="module-column">
+          <div class="module-card-header">
+            <span class="module-tag">MODULE 08 // AI SIMULATION</span>
+            <span class="module-title">Conversational AI Mock Interview</span>
+            <span class="module-sub">Realistic multi-round practice with turn-by-turn AI feedback, DSA coding, and resume grounding.</span>
+          </div>
+          <div class="image-frame">
+            <img src="presentation_assets/23_mock_interview_interactive_session.png" alt="AI Mock Interview Interactive Session" />
+          </div>
+          <div class="caption-box">
+            <span class="caption-tag">EVIDENCE [DEMO VIDEO] — 10-QUESTION DYNAMIC INTERVIEW & DSA CHALLENGE</span>
+            <span class="caption-tech">Groq AI LLM Streaming · Structured JSON Feedback · Resume Extraction</span>
+          </div>
+          <div class="selling-list">
+            <div class="selling-item"><strong>■ 10-Question Multi-Round:</strong> Realistic simulation covering Behavioral, System Architecture, and Algorithms.</div>
+            <div class="selling-item"><strong>■ Turn-by-Turn AI Scoring:</strong> Instant critiques on communication clarity, STAR methodology, and correctness.</div>
+            <div class="selling-item"><strong>■ Interactive DSA Coding:</strong> Live coding challenges (e.g. zero-sum subarray detection) presented directly in-chat.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 10: Modules 09 & 10 — AI Resume ATS Scoring & Enhancer Wizard -->
+  <div class="slide" id="slide-10">
+    <div class="swiss-top-bar">
+      <div class="top-meta">
+        <span>BVM ENGINEERING COLLEGE  //  MODULES 09 & 10  //  LIVE VIDEO EVIDENCE</span>
+        <span class="slide-idx">SLIDE 10 / 14</span>
+      </div>
+      <div class="top-rule"></div>
+    </div>
+
+    <div class="slide-body">
+      <div class="eyebrow"><span class="red-accent"></span> SECTION 02 · IMPLEMENTED MODULES</div>
+      <h1 class="swiss-headline">modules 09 & 10: ai resume ats analysis & enhancer.</h1>
+
+      <div class="two-modules-grid">
+        <!-- Module 09 -->
+        <div class="module-column">
+          <div class="module-card-header">
+            <span class="module-tag">MODULE 09 // ATS RESUME ENGINE</span>
+            <span class="module-title">AI Resume ATS Analyzer & Scoring</span>
+            <span class="module-sub">Automated ATS benchmark scoring, missing keyword detection, and recruiter readiness audit.</span>
+          </div>
+          <div class="image-frame">
+            <img src="presentation_assets/26_resume_ats_analysis_score.png" alt="Resume AI ATS Score Analysis" />
+          </div>
+          <div class="caption-box">
+            <span class="caption-tag">EVIDENCE [DEMO VIDEO] — LIVE ATS BENCHMARK SCORE (78.0/100) & GAP AUDIT</span>
+            <span class="caption-tech">PyPDF Extraction · Groq ATS Heuristics · Keyword Gap Analysis</span>
+          </div>
+          <div class="selling-list">
+            <div class="selling-item"><strong>■ 100-Point ATS Benchmark:</strong> Evaluates uploaded resume PDF on layout, parsing compatibility, and keyword density.</div>
+            <div class="selling-item"><strong>■ Critical Skill Gap Audit:</strong> Identifies high-impact missing industry requirements (AWS/GCP, Docker, CI/CD).</div>
+            <div class="selling-item"><strong>■ Actionable Recommendations:</strong> Generates clear, prioritized action items to boost recruiter shortlisting rates.</div>
+          </div>
+        </div>
+
+        <div class="module-divider"></div>
+
+        <!-- Module 10 -->
+        <div class="module-column">
+          <div class="module-card-header">
+            <span class="module-tag">MODULE 10 // RESUME TRANSFORMATION</span>
+            <span class="module-title">AI Resume Enhancer Wizard</span>
+            <span class="module-sub">Step-by-step interactive wizard transforming vague bullet points into metric-driven achievements.</span>
+          </div>
+          <div class="image-frame">
+            <img src="presentation_assets/28_resume_enhancer_wizard.png" alt="Resume Enhancer Wizard" />
+          </div>
+          <div class="caption-box">
+            <span class="caption-tag">EVIDENCE [DEMO VIDEO] — QUANTIFIED BULLET REBUILDER & PROJECT ENHANCER</span>
+            <span class="caption-tech">Metric Transformation Heuristics · Structured Prompt Pipelines · Groq AI</span>
+          </div>
+          <div class="selling-list">
+            <div class="selling-item"><strong>■ Quantified Project Rebuilder:</strong> Turns vague descriptions into quantified bullet points with measurable impact.</div>
+            <div class="selling-item"><strong>■ Interactive Step-by-Step Flow:</strong> Guides students through skill highlighting, metric additions, and impact verbs.</div>
+            <div class="selling-item"><strong>■ Export & Sync:</strong> Instantly updates student profile and generates polished, ATS-optimized resume exports.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 11: Section Break 03 -->
+  <div class="slide section-break" id="slide-11">
+    <h1 class="swiss-num">03</h1>
+    <div class="red-rule"></div>
+    <h2 class="section-title">features yet to implement.</h2>
+    <p class="section-desc">Targeted engineering roadmap for final semester completion and institutional deployment.</p>
+  </div>
+
+  <!-- SLIDE 12: Pending Enhancements & Future Modules -->
+  <div class="slide" id="slide-12">
+    <div class="swiss-top-bar">
+      <div class="top-meta">
+        <span>BVM ENGINEERING COLLEGE  //  IT DEPARTMENT  //  NEXT SPRINT ROADMAP</span>
+        <span class="slide-idx">SLIDE 12 / 14</span>
+      </div>
+      <div class="top-rule"></div>
+    </div>
+    <div class="grid-overlay"><div class="grid-col"></div><div class="grid-col"></div><div class="grid-col"></div></div>
+
+    <div class="slide-body">
+      <div class="eyebrow"><span class="red-accent"></span> SPRINT ROADMAP</div>
+      <h1 class="swiss-headline">work in progress & pending modules.</h1>
+
+      <div class="cols-3">
+        <div class="col-card">
+          <div class="col-header red">01 / STRICT FEE-VERIFIED DRIVE APPLICATION GATE</div>
+          <div class="item-group">
+            <div class="item-title">• Current State</div>
+            <div class="item-desc">Template matching and OCR extraction are complete in fee_receipt_service.py; however, the hard gate in applications.py was temporarily bypassed for testing.</div>
+          </div>
+          <div class="item-group">
+            <div class="item-title">• Implementation Plan</div>
+            <div class="item-desc">Enforce strict require_fee_verified=True check in POST /applications. Students with unverified receipts will be blocked with an informative 403 modal directing them to upload proof.</div>
+          </div>
+          <div class="item-group">
+            <div class="item-title">• TPO Manual Override</div>
+            <div class="item-desc">Allow TPO officers to grant emergency provisional exemptions for students awaiting bank clearance.</div>
+          </div>
+        </div>
+
+        <div class="col-card">
+          <div class="col-header">02 / ADVANCED UI / UX & DESIGN HARMONIZATION</div>
+          <div class="item-group">
+            <div class="item-title">• Current State</div>
+            <div class="item-desc">Core components built with clean Tailwind CSS; certain dense data tables need enhanced mobile responsive layouts.</div>
+          </div>
+          <div class="item-group">
+            <div class="item-title">• Implementation Plan</div>
+            <div class="item-desc">Full design system alignment with the Swiss 'Basel' theme: strict high-contrast typography, refined micro-animations, and unified status badges.</div>
+          </div>
+          <div class="item-group">
+            <div class="item-title">• Accessibility & Dark Mode</div>
+            <div class="item-desc">Complete WCAG AA contrast compliance and seamless system-level dark/light mode toggle.</div>
+          </div>
+        </div>
+
+        <div class="col-card">
+          <div class="col-header">03 / ACCREDITATION & RECRUITER PORTAL</div>
+          <div class="item-group">
+            <div class="item-title">• NBA / NAAC Criterion 5.2.1</div>
+            <div class="item-desc">Automated one-click generation of formatted Excel spreadsheets and signed audit-ready placement statistics.</div>
+          </div>
+          <div class="item-group">
+            <div class="item-title">• WebRTC Live Video Proctoring</div>
+            <div class="item-desc">Upgrading current tab-blur & 3D head tracking to continuous dual-camera streaming with automated phone / multiple-face detection.</div>
+          </div>
+          <div class="item-group">
+            <div class="item-title">• Corporate Recruiter Portal</div>
+            <div class="item-desc">Dedicated employer login for direct job postings, candidate shortlisting, and automated digital offer letter rollouts.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 13: Implementation Status Matrix -->
+  <div class="slide" id="slide-13">
+    <div class="swiss-top-bar">
+      <div class="top-meta">
+        <span>BVM ENGINEERING COLLEGE  //  IT DEPARTMENT  //  DELIVERABLES MATRIX</span>
+        <span class="slide-idx">SLIDE 13 / 14</span>
+      </div>
+      <div class="top-rule"></div>
+    </div>
+    <div class="grid-overlay"><div class="grid-col"></div><div class="grid-col"></div><div class="grid-col"></div></div>
+
+    <div class="slide-body">
+      <div class="eyebrow"><span class="red-accent"></span> EVALUATION AUDIT</div>
+      <h1 class="swiss-headline">mid-sem implementation matrix.</h1>
+
+      <table class="matrix-table">
+        <thead>
+          <tr>
+            <th>CORE MODULE / SYSTEM COMPONENT</th>
+            <th>PLANNED SCOPE</th>
+            <th>MID-SEM STATUS</th>
+            <th>VERIFICATION EVIDENCE</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Institutional Onboarding & Gating</td>
+            <td>Domain validation, signup OTP</td>
+            <td class="badge-verified">VERIFIED & SHOWN IN VIDEO</td>
+            <td>Razorpay Modal & Setup Checklist</td>
+          </tr>
+          <tr>
+            <td>College Admin Governance Hub</td>
+            <td>Department & syllabus settings</td>
+            <td class="badge-verified">VERIFIED & SHOWN IN VIDEO</td>
+            <td>9 Engineering Branches & Billing</td>
+          </tr>
+          <tr>
+            <td>Custom Feature Proposals</td>
+            <td>Bi-directional request loop</td>
+            <td class="badge-verified">VERIFIED & SHOWN IN VIDEO</td>
+            <td>Proposal Modal & SuperAdmin Reply</td>
+          </tr>
+          <tr>
+            <td>SuperAdmin Command Deck</td>
+            <td>Multi-tenant university control</td>
+            <td class="badge-verified">VERIFIED & SHOWN IN VIDEO</td>
+            <td>Colleges Directory & Global Broadcast</td>
+          </tr>
+          <tr>
+            <td>Placement Drives & Eligibility</td>
+            <td>Automated criteria screening</td>
+            <td class="badge-verified">VERIFIED & SHOWN IN VIDEO</td>
+            <td>TCS Drive (₹3.4-10 LPA) Badging</td>
+          </tr>
+          <tr>
+            <td>Skill Gap Diagnostics</td>
+            <td>Failure tracking across tests</td>
+            <td class="badge-verified">VERIFIED & SHOWN IN VIDEO</td>
+            <td>Recurring Weak Areas (Java/DSA)</td>
+          </tr>
+          <tr>
+            <td>Curriculum Study Resources</td>
+            <td>Groq AI syllabus parsing</td>
+            <td class="badge-verified">VERIFIED & SHOWN IN VIDEO</td>
+            <td>34 Subjects & MIT OCW Links</td>
+          </tr>
+          <tr>
+            <td>Turn-by-Turn AI Mock Interview</td>
+            <td>10-question behavioral/technical</td>
+            <td class="badge-verified">VERIFIED & SHOWN IN VIDEO</td>
+            <td>Interactive Dialogue & Zero-Sum DSA</td>
+          </tr>
+          <tr>
+            <td>ATS Resume Benchmark Scoring</td>
+            <td>ATS heuristic scoring & gaps</td>
+            <td class="badge-verified">VERIFIED & SHOWN IN VIDEO</td>
+            <td>Score 78.0/100 & 8 Skill Gaps</td>
+          </tr>
+          <tr>
+            <td>AI Resume Enhancer Wizard</td>
+            <td>Interactive project quantifier</td>
+            <td class="badge-verified">VERIFIED & SHOWN IN VIDEO</td>
+            <td>Metric Transformer & Rebuilder</td>
+          </tr>
+          <tr>
+            <td>Fee-Verified Drive Application Gate</td>
+            <td>Mandatory receipt check</td>
+            <td class="badge-pending">PENDING FINAL SPRINT</td>
+            <td>Under active migration in applications.py</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SLIDE 14: Conclusion & Thank You -->
+  <div class="slide" id="slide-14">
+    <div class="swiss-top-bar">
+      <div class="top-meta">
+        <span>BVM ENGINEERING COLLEGE  //  IT DEPARTMENT  //  CONCLUSION & Q&A</span>
+        <span class="slide-idx">SLIDE 14 / 14</span>
+      </div>
+      <div class="top-rule"></div>
+    </div>
+    <div class="grid-overlay"><div class="grid-col"></div><div class="grid-col"></div><div class="grid-col"></div></div>
+
+    <div class="slide-body" style="justify-content: space-between;">
+      <div>
+        <div class="eyebrow"><span class="red-accent"></span> PRESENTATION CONCLUSION</div>
+        <h1 class="swiss-headline" style="font-size: 5vw; margin-bottom: 0.5vw;">
+          thank you.
+        </h1>
+        <p style="font-size: 1.3vw; font-weight: 700; color: var(--red); text-transform: lowercase; margin-bottom: 0.8vw;">
+          ai-powered smart placement & career preparation portal.
+        </p>
+        <p style="font-size: 1vw; color: var(--muted); max-width: 55vw; line-height: 1.45;">
+          All 10 core modules are running in local staging with 37/37 passing backend tests and verified video demonstration. Open for faculty questions and project feedback.
+        </p>
+      </div>
+
+      <div class="cols-3" style="flex: initial; margin-bottom: 1.5vw;">
+        <div class="col-card">
+          <div class="col-header">PROJECT STATUS</div>
+          <div class="item-desc">All planned mid-sem milestones completed and verified against live PostgreSQL database.</div>
+        </div>
+        <div class="col-card">
+          <div class="col-header">FACULTY MENTORSHIP</div>
+          <div class="item-desc">Sincere gratitude to Dr. Dharmesh G. Patel and the IT Department of BVM Engineering College.</div>
+        </div>
+        <div class="col-card">
+          <div class="col-header">OPEN FOR QUESTIONS</div>
+          <div class="item-desc">We welcome faculty critiques, technical queries, and recommendations for the final semester phase.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Nav Controls -->
+  <div id="nav-controls">
+    <a href="Placement_Portal_MidSem_Presentation.pptx" download class="btn-download">Download .PPTX</a>
+    <button class="btn-nav" id="btn-prev">← Prev</button>
+    <button class="btn-nav" id="btn-next">Next →</button>
+    <button class="btn-nav" id="btn-fs">Fullscreen [F]</button>
+  </div>
+</div>
+
+<script>
+  let currentSlide = 1;
+  const totalSlides = 14;
+
+  function showSlide(index) {
+    if (index < 1) index = 1;
+    if (index > totalSlides) index = totalSlides;
+
+    document.querySelectorAll('.slide').forEach((s) => s.classList.remove('active'));
+    const target = document.getElementById(`slide-${index}`);
+    if (target) {
+      target.classList.add('active');
+      currentSlide = index;
+    }
+
+    const progress = (currentSlide / totalSlides) * 100;
+    document.getElementById('progress-line').style.width = progress + '%';
+  }
+
+  document.getElementById('btn-next').addEventListener('click', () => showSlide(currentSlide + 1));
+  document.getElementById('btn-prev').addEventListener('click', () => showSlide(currentSlide - 1));
+
+  document.getElementById('btn-fs').addEventListener('click', () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => console.log(err));
+    } else {
+      document.exitFullscreen();
+    }
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+      e.preventDefault();
+      showSlide(currentSlide + 1);
+    } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+      e.preventDefault();
+      showSlide(currentSlide - 1);
+    } else if (e.key === 'f' || e.key === 'F') {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => console.log(err));
+      } else {
+        document.exitFullscreen();
+      }
+    } else if (e.key === 'Home') {
+      showSlide(1);
+    } else if (e.key === 'End') {
+      showSlide(totalSlides);
+    }
+  });
+
+  showSlide(1);
+</script>
+
+</body>
+</html>

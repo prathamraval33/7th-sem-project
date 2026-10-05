@@ -12,6 +12,7 @@ class QuestionType(str, enum.Enum):
     TECHNICAL = "technical"
     CODING = "coding"
     HR = "hr"
+    RESUME = "resume"
 
 
 class DifficultyLevel(str, enum.Enum):
@@ -33,6 +34,8 @@ class Question(Base):
         SAEnum(DifficultyLevel, name="difficulty_level_enum", values_callable=lambda obj: [e.value for e in obj]), nullable=False
     )
     order_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    interviewer_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    resume_reference: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     session: Mapped["InterviewSession"] = relationship(back_populates="questions")
     answer: Mapped["Answer"] = relationship(back_populates="question", uselist=False, cascade="all, delete-orphan")

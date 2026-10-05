@@ -18,7 +18,9 @@ export const resumeApi = {
   getHistory: () => axiosClient.get("/student/resumes"),
   setActive: (resumeId) => axiosClient.patch(`/student/resumes/${resumeId}/activate`),
 
-  analyze: (resumeId) => axiosClient.post(`/resume-analyzer/${resumeId}`),
+  analyze: (resumeId, department) =>
+    axiosClient.post(`/resume-analyzer/${resumeId}`, department ? { department } : {}),
+  getAnalysis: (resumeId) => axiosClient.get(`/resume-analyzer/${resumeId}`),
 
   enhancerStart: (resumeId) => axiosClient.post(`/resume-enhancer/start?resume_id=${resumeId}`),
   enhancerFinalize: (payload) => axiosClient.post("/resume-enhancer/finalize", payload),

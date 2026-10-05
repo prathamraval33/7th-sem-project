@@ -15,6 +15,7 @@ class InterviewMode(str, enum.Enum):
     CODING = "coding"
     HR = "hr"
     FULL = "full"
+    RESUME = "resume"
 
 
 class InterviewSessionStatus(str, enum.Enum):
@@ -37,6 +38,7 @@ class InterviewSession(Base):
     # array of skill/stack strings, mirroring profiles.skills.
     skills: Mapped[list | None] = mapped_column(JSON, nullable=True)
     mode: Mapped[InterviewMode] = mapped_column(SAEnum(InterviewMode, name="interview_mode_enum", values_callable=lambda obj: [e.value for e in obj]), nullable=False)
+    difficulty_level: Mapped[str] = mapped_column(String(20), default="fresher", server_default="fresher", nullable=False)
     overall_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     weak_areas: Mapped[list | None] = mapped_column(JSON, nullable=True)
     status: Mapped[InterviewSessionStatus] = mapped_column(
