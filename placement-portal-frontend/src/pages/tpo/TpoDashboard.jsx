@@ -44,7 +44,7 @@ export default function TpoDashboard() {
       </div>
 
       {/* Student Overview Section */}
-      <section className="space-y-4">
+      <section className="space-y-4 animate-slide-up stagger-1">
         <h2 className="text-lg font-bold text-slate-900 font-heading border-b border-slate-200 pb-2">Student Overview</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
@@ -52,30 +52,34 @@ export default function TpoDashboard() {
             value={stats.total_students ?? 0}
             icon={Users}
             accent="brand"
+            className="stagger-1"
           />
           <StatCard
             label="Fee Verified"
             value={stats.fee_verified_students ?? 0}
             icon={CheckCircle}
             accent="success"
+            className="stagger-2"
           />
           <StatCard
             label="Placed Students"
             value={stats.placed_students ?? 0}
             icon={CheckCircle2}
             accent="success"
+            className="stagger-3"
           />
           <StatCard
             label="Avg Readiness"
             value={`${Math.round(stats.average_readiness_score || 0)}%`}
             icon={Activity}
             accent="warning"
+            className="stagger-4"
           />
         </div>
       </section>
 
       {/* Drive Statistics Section */}
-      <section className="space-y-4">
+      <section className="space-y-4 animate-slide-up stagger-2">
         <h2 className="text-lg font-bold text-slate-900 font-heading border-b border-slate-200 pb-2">Placement Drives</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <StatCard
@@ -83,36 +87,42 @@ export default function TpoDashboard() {
             value={stats.total_drives ?? 0}
             icon={Briefcase}
             accent="brand"
+            className="stagger-1"
           />
           <StatCard
             label="Active Drives"
             value={stats.active_drives ?? 0}
             icon={Activity}
             accent="accent"
+            className="stagger-2"
           />
           <StatCard
             label="Total Applications"
             value={stats.total_applied ?? 0}
             icon={FileText}
             accent="accent"
+            className="stagger-3"
           />
           <StatCard
             label="Total Selected"
             value={stats.total_selected ?? 0}
             icon={FileCheck}
             accent="success"
+            className="stagger-4"
           />
           <StatCard
             label="Highest CTC (LPA)"
             value={stats.highest_ctc ? `₹${stats.highest_ctc}` : "N/A"}
             icon={TrendingUp}
             accent="warning"
+            className="stagger-5"
           />
         </div>
       </section>
 
       {/* Recent Drives Table */}
-      <Card>
+      <div className="animate-slide-up stagger-3">
+        <Card className="card-hover">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold text-slate-900 font-heading">Recent Drives</h2>
           <Link to="/tpo/drives" className="text-sm font-medium text-accent hover:underline">
@@ -169,6 +179,7 @@ export default function TpoDashboard() {
           </div>
         )}
       </Card>
+      </div>
     </div>
   );
 }

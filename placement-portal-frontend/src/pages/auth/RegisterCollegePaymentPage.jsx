@@ -160,8 +160,8 @@ export default function RegisterCollegePaymentPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans">
       {/* Header */}
-      <div className="sm:mx-auto sm:w-full sm:max-w-2xl text-center">
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-600 text-white shadow-md shadow-indigo-200 mb-4">
+      <div className="sm:mx-auto sm:w-full sm:max-w-2xl text-center animate-slide-up">
+        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-600 text-white shadow-md shadow-indigo-200 mb-4 animate-scale-in">
           <Sparkles className="w-8 h-8" />
         </div>
         <h2 className="text-3xl font-extrabold text-slate-900 font-heading tracking-tight">
@@ -196,8 +196,8 @@ export default function RegisterCollegePaymentPage() {
       </div>
 
       {/* Pricing Card */}
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-2xl">
-        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xl overflow-hidden">
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-2xl animate-slide-up stagger-1">
+        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xl overflow-hidden card-hover">
           {/* Plan Header Accent */}
           <div className="bg-gradient-to-r from-indigo-900 via-indigo-800 to-indigo-950 p-6 sm:p-8 text-white relative overflow-hidden">
             <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-indigo-500/20 rounded-full blur-2xl pointer-events-none" />

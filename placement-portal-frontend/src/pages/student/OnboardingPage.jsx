@@ -107,7 +107,7 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md animate-slide-up">
         <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-foreground font-heading">
           Complete Your Profile
         </h2>
@@ -116,8 +116,8 @@ export default function OnboardingPage() {
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-xl">
-        <div className="bg-card py-8 px-4 shadow sm:rounded-2xl sm:px-10 border border-border">
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-xl animate-slide-up stagger-1">
+        <div className="bg-card py-8 px-4 shadow sm:rounded-2xl sm:px-10 border border-border card-hover">
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             {submitError && (
               <div className="p-3 text-sm text-red-700 bg-red-50 rounded-lg">

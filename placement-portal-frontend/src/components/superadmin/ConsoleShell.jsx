@@ -111,7 +111,9 @@ export default function ConsoleShell() {
 
         {/* Content area */}
         <main className="cd-content">
-          <Outlet />
+          <div key={location.pathname} className="animate-slide-up min-w-0 flex-1">
+            <Outlet />
+          </div>
         </main>
       </div>
 

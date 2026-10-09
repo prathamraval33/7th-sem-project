@@ -123,7 +123,7 @@ export default function ProfileDropdown({ variant = "default" }) {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 z-50 mt-2 w-48 rounded-xl border border-border bg-card shadow-md">
+        <div className="absolute right-0 z-50 mt-2 w-48 rounded-xl border border-border bg-card shadow-md animate-scale-in">
           <Link
             to={profilePath}
             onClick={closeDropdown}

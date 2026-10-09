@@ -37,12 +37,12 @@ export default function ContactUsPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 font-sans">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-md animate-slide-up">
         <Link to="/" className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-slate-800 mb-6 transition-colors">
           <ArrowLeft className="w-4 h-4 mr-1" /> Back to Home
         </Link>
         
-        <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+        <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 card-hover">
           <h1 className="text-2xl font-bold text-slate-900 font-heading mb-2">Contact Us</h1>
           <p className="text-slate-600 text-sm mb-6">
             Have a question? Fill out the form below and we'll get back to you as soon as possible.
@@ -50,7 +50,7 @@ export default function ContactUsPage() {
 
           {isSuccess ? (
             <div className="text-center py-6">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-scale-in">
                 <CheckCircle2 className="w-8 h-8 text-green-600" />
               </div>
               <h3 className="text-lg font-semibold text-slate-900 mb-2">Message Sent!</h3>

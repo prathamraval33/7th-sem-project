@@ -100,8 +100,8 @@ export default function RegisterCollegeOtpPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
       {/* Header */}
-      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-600 text-white shadow-md shadow-indigo-200 mb-4">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center animate-slide-up">
+        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-600 text-white shadow-md shadow-indigo-200 mb-4 animate-scale-in">
           <KeyRound className="w-8 h-8" />
         </div>
         <h2 className="text-3xl font-extrabold text-slate-900 font-heading tracking-tight">
@@ -132,8 +132,8 @@ export default function RegisterCollegeOtpPage() {
       </div>
 
       {/* Main Form Box */}
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-6 sm:px-10 shadow-sm border border-slate-200 sm:rounded-2xl">
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md animate-slide-up stagger-1">
+        <div className="bg-white py-8 px-6 sm:px-10 shadow-sm border border-slate-200 sm:rounded-2xl card-hover">
           {submitError && (
             <div className="mb-6 p-3.5 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2.5 text-sm text-red-800">
               <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />

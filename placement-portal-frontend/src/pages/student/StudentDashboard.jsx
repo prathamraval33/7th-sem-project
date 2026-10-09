@@ -47,20 +47,23 @@ export default function StudentDashboard() {
           value={`${readinessScore}%`} 
           icon={BrainCircuit} 
           accent="accent"
+          className="stagger-1"
         />
         <StatCard 
           label="Active Applications" 
           value={activeApplications.toString()} 
           icon={Briefcase} 
           accent="brand"
+          className="stagger-2"
         />
         <StatCard 
           label="Tests Attempted" 
           value={testsAttempted.toString()} 
           icon={FileCheck} 
           accent="success"
+          className="stagger-3"
         />
-        <div className="md:col-span-1 bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 text-white shadow-sm flex flex-col justify-between">
+        <div className="md:col-span-1 bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 text-white shadow-sm flex flex-col justify-between card-hover animate-slide-up stagger-4">
           <div className="flex justify-between items-start">
             <h3 className="font-medium text-slate-200 text-sm">Learning</h3>
             <BookOpen className="w-5 h-5 text-slate-400" />
@@ -73,10 +76,14 @@ export default function StudentDashboard() {
         </div>
       </div>
 
-      <InsightsWidget />
+      <div className="animate-slide-up stagger-5">
+        <InsightsWidget />
+      </div>
 
       {/* Instant Tests & Self-Practice Section */}
-      <StudentTestsSection />
+      <div className="animate-slide-up stagger-6">
+        <StudentTestsSection />
+      </div>
     </div>
   );
 }
@@ -93,7 +100,7 @@ function StudentTestsSection() {
   const officialTests = testsData?.official_tests || [];
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+    <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4 card-hover">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3">
         <div>
           <h2 className="text-lg font-bold text-slate-900 font-heading">Proctored Instant Tests</h2>
@@ -131,8 +138,8 @@ function StudentTestsSection() {
           {practiceTests.length === 0 ? (
             <div className="p-6 text-center text-xs text-slate-400 col-span-2">No practice tests available right now.</div>
           ) : (
-            practiceTests.map((t) => (
-              <div key={t.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50 flex flex-col justify-between space-y-3">
+            practiceTests.map((t, idx) => (
+              <div key={t.id} className={`p-4 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50 flex flex-col justify-between space-y-3 card-hover animate-slide-up stagger-${Math.min(idx + 1, 8)}`}>
                 <div>
                   <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md uppercase">
                     Self Practice
@@ -158,8 +165,8 @@ function StudentTestsSection() {
           {officialTests.length === 0 ? (
             <div className="p-6 text-center text-xs text-slate-400 col-span-2">No official placement drive tests assigned yet.</div>
           ) : (
-            officialTests.map((t) => (
-              <div key={t.id} className="p-4 rounded-xl border border-slate-200 bg-amber-50/30 flex flex-col justify-between space-y-3">
+            officialTests.map((t, idx) => (
+              <div key={t.id} className={`p-4 rounded-xl border border-slate-200 bg-amber-50/30 flex flex-col justify-between space-y-3 card-hover animate-slide-up stagger-${Math.min(idx + 1, 8)}`}>
                 <div>
                   <span className="text-[10px] font-bold text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-md uppercase">
                     Official Assessment

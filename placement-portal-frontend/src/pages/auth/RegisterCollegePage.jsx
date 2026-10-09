@@ -74,8 +74,8 @@ export default function RegisterCollegePage() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
       {/* Header */}
-      <div className="sm:mx-auto sm:w-full sm:max-w-xl text-center">
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-600 text-white shadow-md shadow-indigo-200 mb-4">
+      <div className="sm:mx-auto sm:w-full sm:max-w-xl text-center animate-slide-up">
+        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-600 text-white shadow-md shadow-indigo-200 mb-4 animate-scale-in">
           <Building2 className="w-8 h-8" />
         </div>
         <h2 className="text-3xl font-extrabold text-slate-900 font-heading tracking-tight">
@@ -105,8 +105,8 @@ export default function RegisterCollegePage() {
       </div>
 
       {/* Main Form Box */}
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-xl">
-        <div className="bg-white py-8 px-6 sm:px-10 shadow-sm border border-slate-200 sm:rounded-2xl">
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-xl animate-slide-up stagger-1">
+        <div className="bg-white py-8 px-6 sm:px-10 shadow-sm border border-slate-200 sm:rounded-2xl card-hover">
           {/* Domain Collision Alert Banner */}
           {collisionError && (
             <div className="mb-6 p-4 bg-amber-50 border border-amber-300 rounded-xl flex items-start gap-3">

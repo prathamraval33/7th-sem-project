@@ -41,7 +41,7 @@ export default function ForgotPasswordOtpPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md animate-slide-up">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-900 font-heading">
           Enter Verification Code
         </h2>
@@ -50,8 +50,8 @@ export default function ForgotPasswordOtpPage() {
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow-sm border border-slate-200 sm:rounded-2xl sm:px-10">
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md animate-slide-up stagger-1">
+        <div className="bg-white py-8 px-4 shadow-sm border border-slate-200 sm:rounded-2xl sm:px-10 card-hover">
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             {submitError && (
               <div className="p-3 text-sm text-red-700 bg-red-50 rounded-lg">

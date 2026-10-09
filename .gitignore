@@ -27,3 +27,4 @@ dist/
 # Uploads
 placement-portal-backend/uploads/
 *.db
+*.mp4

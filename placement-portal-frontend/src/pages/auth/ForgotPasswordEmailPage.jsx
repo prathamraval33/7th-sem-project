@@ -32,7 +32,7 @@ export default function ForgotPasswordEmailPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md animate-slide-up">
         <Link to="/login" className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-slate-800 mb-6 transition-colors">
           <ArrowLeft className="w-4 h-4 mr-1" /> Back to login
         </Link>
@@ -44,8 +44,8 @@ export default function ForgotPasswordEmailPage() {
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow-sm border border-slate-200 sm:rounded-2xl sm:px-10">
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md animate-slide-up stagger-1">
+        <div className="bg-white py-8 px-4 shadow-sm border border-slate-200 sm:rounded-2xl sm:px-10 card-hover">
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             {submitError && (
               <div className="p-3 text-sm text-red-700 bg-red-50 rounded-lg">

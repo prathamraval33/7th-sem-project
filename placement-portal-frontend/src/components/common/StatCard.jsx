@@ -11,13 +11,13 @@ const ACCENT_CLASSES = {
   error: { bg: "bg-error-50", text: "text-error-600" },
 };
 
-export default function StatCard({ label, value, icon: Icon, accent = "brand" }) {
+export default function StatCard({ label, value, icon: Icon, accent = "brand", className = "" }) {
   const accentClasses = ACCENT_CLASSES[accent] ?? ACCENT_CLASSES.brand;
 
   return (
-    <Card className="flex items-center gap-4">
+    <Card className={`flex items-center gap-4 card-hover animate-slide-up ${className}`}>
       {Icon && (
-        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-md ${accentClasses.bg}`}>
+        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${accentClasses.bg} transition-transform duration-200 group-hover:scale-105`}>
           <Icon size={22} className={accentClasses.text} />
         </div>
       )}

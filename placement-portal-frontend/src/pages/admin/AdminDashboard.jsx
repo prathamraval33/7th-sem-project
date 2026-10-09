@@ -246,29 +246,33 @@ export default function AdminDashboard() {
               value={analytics.total_students?.toString() || "0"}
               icon={Users}
               accent="brand"
+              className="stagger-1"
             />
             <StatCard
               label="Placed Students"
               value={analytics.placed_students?.toString() || "0"}
               icon={CheckCircle2}
               accent="success"
+              className="stagger-2"
             />
             <StatCard
               label="Active Placement Drives"
               value={analytics.active_drives?.toString() || "0"}
               icon={Briefcase}
               accent="accent"
+              className="stagger-3"
             />
             <StatCard
               label="Average Readiness Score"
               value={`${Math.round(analytics.average_readiness_score || 0)}%`}
               icon={Activity}
               accent="warning"
+              className="stagger-4"
             />
           </div>
 
           {/* 2. CTC Package Statistics Panel */}
-          <Card className="p-0 overflow-hidden shadow-sm border-slate-200">
+          <Card className="p-0 overflow-hidden shadow-sm border-slate-200 card-hover animate-slide-up stagger-5">
             <div className="px-6 py-3.5 border-b border-border/80 bg-slate-50/70 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <TrendingUp size={16} className="text-accent" />
@@ -303,7 +307,7 @@ export default function AdminDashboard() {
           {/* 3. Department Analytics Section (Chart + Table) */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Chart: 7 cols */}
-            <Card className="lg:col-span-7 flex flex-col">
+            <Card className="lg:col-span-7 flex flex-col card-hover animate-slide-up stagger-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <BarChart3 size={16} className="text-accent" />
@@ -374,7 +378,7 @@ export default function AdminDashboard() {
             </Card>
 
             {/* Department Breakdown Table: 5 cols */}
-            <Card className="lg:col-span-5 p-0 overflow-hidden flex flex-col">
+            <Card className="lg:col-span-5 p-0 overflow-hidden flex flex-col card-hover animate-slide-up stagger-7">
               <div className="px-5 py-4 border-b border-border/80 bg-slate-50/50 flex items-center justify-between">
                 <h3 className="text-sm font-bold text-slate-900 font-heading">
                   Department Placement Ratios

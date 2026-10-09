@@ -130,7 +130,7 @@ export default function TpoCurriculumPage() {
       </div>
 
       {/* Filter Bar */}
-      <div className="rounded-xl border border-border bg-card p-4 shadow-sm flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
+      <div className="rounded-xl border border-border bg-card p-4 shadow-sm flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between card-hover animate-slide-up stagger-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mr-1 flex items-center gap-1">
             <Filter className="h-3.5 w-3.5" /> Branch:
@@ -183,7 +183,7 @@ export default function TpoCurriculumPage() {
           <Spinner size="lg" />
         </div>
       ) : subjects.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border p-12 text-center bg-card">
+        <div className="rounded-xl border border-dashed border-border p-12 text-center bg-card animate-slide-up stagger-2">
           <BookOpen className="mx-auto h-12 w-12 text-muted-foreground/50 mb-3" />
           <h3 className="text-base font-semibold text-foreground">No Curriculum Subjects Found</h3>
           <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
@@ -193,7 +193,7 @@ export default function TpoCurriculumPage() {
           </p>
         </div>
       ) : (
-        <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+        <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden card-hover animate-slide-up stagger-2">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-border bg-muted/40 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -287,7 +287,7 @@ export default function TpoCurriculumPage() {
       {/* Review Candidate Resources Modal */}
       {activeSubjectForReview && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-3xl max-h-[90vh] flex flex-col rounded-2xl border border-border bg-card shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="w-full max-w-3xl max-h-[90vh] flex flex-col rounded-2xl border border-border bg-card shadow-2xl overflow-hidden animate-scale-in">
             {/* Modal Header */}
             <div className="p-6 border-b border-border flex items-center justify-between">
               <div>
@@ -317,7 +317,7 @@ export default function TpoCurriculumPage() {
                   No resources curated for this subject yet. Click "Find AI Resources" to trigger search.
                 </p>
               ) : (
-                subjectResources.map((res) => {
+                subjectResources.map((res, idx) => {
                   const isApproved = res.approval_status === "approved";
                   const isRejected = res.approval_status === "rejected";
 
@@ -328,7 +328,7 @@ export default function TpoCurriculumPage() {
                   return (
                     <div
                       key={res.id}
-                      className={`p-4 rounded-xl border transition-all space-y-3 ${
+                      className={`p-4 rounded-xl border transition-all space-y-3 card-hover animate-slide-up stagger-${Math.min(idx + 1, 8)} ${
                         isApproved
                           ? "border-emerald-500/40 bg-emerald-50/20 dark:bg-emerald-950/10"
                           : isRejected

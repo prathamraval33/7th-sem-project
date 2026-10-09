@@ -123,7 +123,7 @@ export default function DrivesListPage() {
       </div>
 
       {displayedDrives.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center animate-slide-up card-hover">
           <Building2 className="w-12 h-12 text-slate-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-slate-900 mb-2">
             {activeTab === "upcoming" ? "No upcoming jobs available" : "No applied jobs yet"}
@@ -136,7 +136,7 @@ export default function DrivesListPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {displayedDrives.map((drive) => {
+          {displayedDrives.map((drive, idx) => {
             const app = applicationsMap.get(drive.id);
             const hasApplied = !!app;
             const canWithdraw = hasApplied && ["applied", "eligible", "not_eligible"].includes(app.status);
@@ -150,7 +150,7 @@ export default function DrivesListPage() {
                   : null;
 
             return (
-              <div key={drive.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 hover:shadow-md hover:border-slate-300 transition-all flex flex-col">
+              <div key={drive.id} className={`bg-white rounded-2xl shadow-sm border border-slate-200 card-hover animate-slide-up stagger-${Math.min(idx + 1, 8)} flex flex-col`}>
                 <div className="p-6 flex-1">
                   <div className="flex justify-between items-start mb-4">
                     <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center">

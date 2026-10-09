@@ -285,8 +285,8 @@ export default function NotificationBell({ variant = "default" }) {
         <div
           className={
             isCommandDeck
-              ? "absolute right-0 z-50 mt-2 w-96 rounded-xl border border-slate-200 bg-white shadow-xl ring-1 ring-black/5 overflow-hidden animate-in fade-in zoom-in-95 duration-100"
-              : "absolute right-0 z-50 mt-2 w-96 rounded-xl border border-gray-200 bg-white shadow-lg"
+              ? "absolute right-0 z-50 mt-2 w-96 rounded-xl border border-slate-200 bg-white shadow-xl ring-1 ring-black/5 overflow-hidden animate-scale-in"
+              : "absolute right-0 z-50 mt-2 w-96 rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden animate-scale-in"
           }
         >
           <div

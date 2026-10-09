@@ -27,7 +27,7 @@ export default function Modal({ isOpen, onClose, title, children, footer }) {
         onClick={onClose} 
         aria-hidden="true" 
       />
-      <div className="relative z-10 w-full max-w-lg rounded-2xl bg-white shadow-soft border border-neutral-200 overflow-hidden animate-in fade-in zoom-in-95">
+      <div className="relative z-10 w-full max-w-lg rounded-2xl bg-white shadow-soft border border-neutral-200 overflow-hidden animate-scale-in">
         <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
           <h3 className="font-heading text-lg font-semibold text-neutral-900">{title}</h3>
           <button

@@ -65,8 +65,8 @@ export default function ChangePasswordPage() {
   };
 
   return (
-    <div className="max-w-xl mx-auto p-6 font-sans">
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+    <div className="max-w-xl mx-auto p-6 font-sans animate-slide-up">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 card-hover">
         <div className="flex items-center space-x-3 mb-6 pb-6 border-b border-slate-100">
           <div className="p-2 bg-slate-100 rounded-lg">
             <KeyRound className="w-6 h-6 text-slate-700" />
@@ -158,7 +158,7 @@ export default function ChangePasswordPage() {
 
         {step === 4 && (
           <div className="text-center py-6">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-scale-in">
               <CheckCircle2 className="w-8 h-8 text-green-600" />
             </div>
             <h3 className="text-lg font-semibold text-slate-900 mb-2">Password Updated!</h3>

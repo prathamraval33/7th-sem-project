@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../../auth/useAuth";
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
 
 export default function DashboardLayout() {
   const { user } = useAuth();
+  const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -18,7 +19,9 @@ export default function DashboardLayout() {
           onCloseMobile={() => setMobileMenuOpen(false)} 
         />
         <main className="flex-1 min-w-0 p-4 md:p-6 overflow-x-clip">
-          <Outlet />
+          <div key={location.pathname} className="animate-slide-up min-w-0">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

@@ -39,21 +39,22 @@ export default function SuperAdminDashboard() {
 
       {/* KPI Cards */}
       <div className="cd-kpi-grid">
-        <KpiCard label="Total Colleges" value={totalColleges} trend={{ direction: "up", percentage: "+2 this quarter" }} />
-        <KpiCard label="Total Students" value={totalStudents} trend={{ direction: "up", percentage: "+12%" }} />
-        <KpiCard label="Total TPOs" value={totalTPOs} />
-        <KpiCard label="Total Drives" value={totalDrives} trend={{ direction: "up", percentage: "+8%" }} />
+        <KpiCard label="Total Colleges" value={totalColleges} trend={{ direction: "up", percentage: "+2 this quarter" }} className="stagger-1" />
+        <KpiCard label="Total Students" value={totalStudents} trend={{ direction: "up", percentage: "+12%" }} className="stagger-2" />
+        <KpiCard label="Total TPOs" value={totalTPOs} className="stagger-3" />
+        <KpiCard label="Total Drives" value={totalDrives} trend={{ direction: "up", percentage: "+8%" }} className="stagger-4" />
         <KpiCard
           label="Pending Requests"
           value={pendingRequests}
           warning
           onClick={() => navigate("/superadmin/features", { state: { tab: "requests" } })}
+          className="stagger-5"
         />
       </div>
 
       {/* Recent Activity */}
-      <div className="cd-mt-lg">
-        <div className="cd-panel">
+      <div className="cd-mt-lg animate-slide-up stagger-6">
+        <div className="cd-panel card-hover">
           <div className="cd-panel__header">Recent Activity</div>
           <div className="cd-panel__body">
             {activity.slice(0, 8).map((item) => {

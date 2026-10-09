@@ -9,11 +9,12 @@ export default function KpiCard({
   trend,          // { direction: "up" | "down", percentage: string }
   warning,        // if true, value rendered in amber
   onClick,        // if provided, card becomes clickable
+  className = "",
 }) {
   const clickable = Boolean(onClick);
   return (
     <div
-      className={`cd-kpi-card ${clickable ? "cd-kpi-card--clickable" : ""}`}
+      className={`cd-kpi-card card-hover animate-slide-up ${className} ${clickable ? "cd-kpi-card--clickable" : ""}`}
       onClick={onClick}
       role={clickable ? "button" : undefined}
       tabIndex={clickable ? 0 : undefined}

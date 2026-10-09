@@ -297,10 +297,10 @@ export default function ResourcesLibraryPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {filteredSubjectResources.map((res) => (
+                  {filteredSubjectResources.map((res, idx) => (
                     <div
                       key={res.id}
-                      className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between hover:shadow-md transition-shadow"
+                      className={`bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between card-hover animate-slide-up stagger-${Math.min(idx + 1, 8)}`}
                     >
                       <div>
                         <div className="flex items-center justify-between mb-2.5">
@@ -451,11 +451,11 @@ export default function ResourcesLibraryPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {filteredSubjects.map((subj) => (
+                  {filteredSubjects.map((subj, idx) => (
                     <div
                       key={subj.id}
                       onClick={() => setSelectedSubject(subj)}
-                      className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between hover:shadow-md hover:border-slate-300 transition-all cursor-pointer group"
+                      className={`bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between card-hover animate-slide-up stagger-${Math.min(idx + 1, 8)} cursor-pointer group`}
                     >
                       <div>
                         <div className="flex items-center justify-between mb-2">
@@ -573,10 +573,10 @@ export default function ResourcesLibraryPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredFlatResources.map((res) => (
+              {filteredFlatResources.map((res, idx) => (
                 <div
                   key={res.id}
-                  className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-all flex flex-col"
+                  className={`bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden card-hover animate-slide-up stagger-${Math.min(idx + 1, 8)} flex flex-col`}
                 >
                   <div className="p-5 flex-1">
                     <div className="flex items-start justify-between mb-3">
@@ -623,7 +623,7 @@ export default function ResourcesLibraryPage() {
       {/* Reader Modal for Flat Library Document/Blog */}
       {readingModalResource && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col animate-scale-in">
             <div className="p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50">
               <div>
                 <span className="text-xs font-semibold px-2 py-0.5 rounded bg-slate-200 text-slate-700 uppercase">

@@ -110,6 +110,29 @@ export default {
         accent: "0 4px 14px rgba(0,82,255,0.25)",
         "accent-lg": "0 8px 24px rgba(0,82,255,0.35)",
       },
+      keyframes: {
+        marquee: {
+          "0%": { transform: "translateX(0%)" },
+          "100%": { transform: "translateX(-50%)" },
+        },
+        shimmer: {
+          "100%": { transform: "translateX(100%)" },
+        },
+        float: {
+          "0%, 100%": { transform: "translateY(0px)" },
+          "50%": { transform: "translateY(-10px)" },
+        },
+        pulseGlow: {
+          "0%, 100%": { opacity: 0.4, transform: "scale(1)" },
+          "50%": { opacity: 0.8, transform: "scale(1.05)" },
+        },
+      },
+      animation: {
+        marquee: "marquee 28s linear infinite",
+        shimmer: "shimmer 2s infinite",
+        float: "float 5s ease-in-out infinite",
+        "pulse-glow": "pulseGlow 4s ease-in-out infinite",
+      },
     },
   },
   plugins: [],

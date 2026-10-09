@@ -133,7 +133,7 @@ export default function ProfilePage() {
       </div>
 
       {activeTab === "profile" ? (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden card-hover">
           <div className="p-6">
             <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
               <div className="flex items-center space-x-3">
