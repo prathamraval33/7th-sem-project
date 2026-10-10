@@ -14,6 +14,16 @@ import SubscriptionBannerCard from "../../components/admin/SubscriptionBannerCar
 import { showConfirm, showSuccess, showError, showToast } from "../../utils/swal";
 import { getAccessToken } from "../../utils/tokenStorage";
 import {
+  AnimatedWords,
+  LiveStatusBeacon,
+  InteractiveTabSwitcher,
+  RevealOnScroll,
+  StaggerGrid,
+  StaggerCard,
+  GlassCard,
+  AnimatedCounter,
+} from "../../components/admin/AdminMotion";
+import {
   Building2,
   Globe,
   Users,
@@ -48,11 +58,25 @@ export default function AdminSettingsPage() {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Tab State: ?tab=profile (default), ?tab=branches, ?tab=fees
-  const activeTab = searchParams.get("tab") || "profile";
+  // Tab State: ?tab=profile (default), ?tab=branches, ?tab=fees, ?tab=subscription
+  const rawTab = searchParams.get("tab");
+  const validTabs = ["profile", "branches", "fees", "subscription"];
+  const activeTab = validTabs.includes(rawTab) ? rawTab : "profile";
+
   const handleTabChange = (tabKey) => {
-    setSearchParams({ tab: tabKey });
+    if (!tabKey || tabKey === "undefined" || !validTabs.includes(tabKey)) {
+      setSearchParams({ tab: "profile" });
+    } else {
+      setSearchParams({ tab: tabKey });
+    }
   };
+
+  // Gracefully sanitize URL if ?tab=undefined or unknown tab is present
+  React.useEffect(() => {
+    if (rawTab === "undefined" || (rawTab && !validTabs.includes(rawTab))) {
+      setSearchParams({ tab: "profile" }, { replace: true });
+    }
+  }, [rawTab, setSearchParams]);
 
   // --- College Info & Domain State ---
   const [domainInput, setDomainInput] = useState("");
@@ -525,17 +549,20 @@ export default function AdminSettingsPage() {
       {/* ── Header Banner & Tab Switcher ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/80 pb-5">
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10 text-accent font-bold">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 text-accent font-bold ring-1 ring-accent/20">
             <Building2 className="h-6 w-6" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900 font-heading">
-                {college.name}
-              </h1>
-              <Badge variant={college.status === "active" ? "success" : "destructive"}>
-                {college.status}
-              </Badge>
+            <div className="flex items-center gap-2.5">
+              <AnimatedWords
+                text={college.name}
+                className="text-2xl font-bold tracking-tight text-slate-900 font-heading"
+              />
+              <LiveStatusBeacon
+                status={college.status === "active" ? "active" : "offline"}
+                label={college.status}
+                pulse
+              />
             </div>
             <p className="text-xs sm:text-sm text-slate-500">
               Institution Governance, Academic Branches, Curriculum & Fee Verification Settings
@@ -543,102 +570,94 @@ export default function AdminSettingsPage() {
           </div>
         </div>
 
-        {/* 3 Tabs */}
-        <div className="flex items-center bg-slate-100/80 p-1 rounded-xl border border-slate-200/80 shadow-inner self-start md:self-auto flex-wrap">
-          <button
-            onClick={() => handleTabChange("profile")}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all ${
-              activeTab === "profile"
-                ? "bg-white text-slate-900 shadow-sm font-bold"
-                : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
-            }`}
-          >
-            <Building2 size={15} className={activeTab === "profile" ? "text-accent" : "text-slate-400"} />
-            Profile & Domain
-          </button>
-          <button
-            onClick={() => handleTabChange("branches")}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all ${
-              activeTab === "branches"
-                ? "bg-white text-slate-900 shadow-sm font-bold"
-                : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
-            }`}
-          >
-            <GraduationCap size={15} className={activeTab === "branches" ? "text-accent" : "text-slate-400"} />
-            Branches & Curriculum
-            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-200 text-slate-700">
-              {branches.length}
-            </span>
-          </button>
-          <button
-            onClick={() => handleTabChange("fees")}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all ${
-              activeTab === "fees"
-                ? "bg-white text-slate-900 shadow-sm font-bold"
-                : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
-            }`}
-          >
-            <FileCheck size={15} className={activeTab === "fees" ? "text-accent" : "text-slate-400"} />
-            Fee OCR Templates
-            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-200 text-slate-700">
-              {feeTemplates.filter((t) => t.is_active).length}
-            </span>
-          </button>
-          <button
-            onClick={() => handleTabChange("subscription")}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all ${
-              activeTab === "subscription"
-                ? "bg-white text-slate-900 shadow-sm font-bold"
-                : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
-            }`}
-          >
-            <Sparkles size={15} className={activeTab === "subscription" ? "text-accent" : "text-slate-400"} />
-            License & Subscription
-            <span
-              className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                college?.is_subscription_expired
-                  ? "bg-rose-100 text-rose-700 font-bold"
-                  : "bg-emerald-100 text-emerald-800"
-              }`}
-            >
-              {college?.is_subscription_expired ? "Expired" : "Active"}
-            </span>
-          </button>
-        </div>
+        {/* Dynamic Motion Tab Switcher */}
+        <InteractiveTabSwitcher
+          tabs={[
+            { id: "profile", key: "profile", label: "Profile & Domain", icon: Building2 },
+            { id: "branches", key: "branches", label: "Branches & Curriculum", icon: GraduationCap, badge: branches.length },
+            { id: "fees", key: "fees", label: "Fee OCR Templates", icon: FileCheck, badge: feeTemplates.filter((t) => t.is_active).length },
+            {
+              id: "subscription",
+              key: "subscription",
+              label: "License & Subscription",
+              icon: Sparkles,
+              badge: college?.is_subscription_expired ? "Expired" : "Active",
+            },
+          ]}
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          layoutId="admin-settings-tab"
+        />
       </div>
 
       {/* ────────────────────────────────────────────────────────────────────────── */}
       {/* TAB 1: INSTITUTION PROFILE & DOMAIN */}
       {/* ────────────────────────────────────────────────────────────────────────── */}
       {activeTab === "profile" && (
-        <div className="space-y-6">
+        <RevealOnScroll className="space-y-6">
           {/* Overview Metrics */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard
-              label="Enrolled Students"
-              value={college.students?.toString() || "0"}
-              icon={Users}
-              accent="brand"
-            />
-            <StatCard
-              label="Placement Officers"
-              value={college.tpos?.toString() || "0"}
-              icon={ShieldCheck}
-              accent="accent"
-            />
-            <StatCard
-              label="Placement Drives"
-              value={college.drives?.toString() || "0"}
-              icon={Briefcase}
-              accent="success"
-            />
-            <StatCard
-              label="Drive Applications"
-              value={college.applications?.toString() || "0"}
-              icon={FileCheck}
-              accent="warning"
-            />
-          </div>
+          <StaggerGrid className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StaggerCard>
+              <GlassCard className="p-4.5 flex items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 ring-1 ring-indigo-200/50">
+                  <Users size={22} />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Enrolled Students</p>
+                  <AnimatedCounter
+                    target={college.students ?? 0}
+                    value={college.students ?? 0}
+                    className="font-heading text-2xl font-bold text-slate-900"
+                  />
+                </div>
+              </GlassCard>
+            </StaggerCard>
+            <StaggerCard>
+              <GlassCard className="p-4.5 flex items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-violet-50 text-violet-600 ring-1 ring-violet-200/50">
+                  <ShieldCheck size={22} />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Placement Officers</p>
+                  <AnimatedCounter
+                    target={college.tpos ?? 0}
+                    value={college.tpos ?? 0}
+                    className="font-heading text-2xl font-bold text-slate-900"
+                  />
+                </div>
+              </GlassCard>
+            </StaggerCard>
+            <StaggerCard>
+              <GlassCard className="p-4.5 flex items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200/50">
+                  <Briefcase size={22} />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Placement Drives</p>
+                  <AnimatedCounter
+                    target={college.drives ?? 0}
+                    value={college.drives ?? 0}
+                    className="font-heading text-2xl font-bold text-slate-900"
+                  />
+                </div>
+              </GlassCard>
+            </StaggerCard>
+            <StaggerCard>
+              <GlassCard className="p-4.5 flex items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 ring-1 ring-amber-200/50">
+                  <FileCheck size={22} />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Drive Applications</p>
+                  <AnimatedCounter
+                    target={college.applications ?? 0}
+                    value={college.applications ?? 0}
+                    className="font-heading text-2xl font-bold text-slate-900"
+                  />
+                </div>
+              </GlassCard>
+            </StaggerCard>
+          </StaggerGrid>
 
           {/* Missing Contact Attention Alert */}
           {!college.contact_name && (
@@ -867,14 +886,14 @@ export default function AdminSettingsPage() {
               </div>
             </dl>
           </div>
-        </div>
+        </RevealOnScroll>
       )}
 
       {/* ────────────────────────────────────────────────────────────────────────── */}
       {/* TAB 2: ACADEMIC BRANCHES & CURRICULUM */}
       {/* ────────────────────────────────────────────────────────────────────────── */}
       {activeTab === "branches" && (
-        <div className="space-y-8">
+        <RevealOnScroll className="space-y-8">
           {/* Section 1: Academic Branches Management */}
           <div className="bg-white rounded-xl shadow-sm border border-border p-6 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
@@ -956,7 +975,7 @@ export default function AdminSettingsPage() {
                       </Badge>
                     </div>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      Uploaded on {new Date(latestUpload.uploaded_at).toLocaleDateString()} &bull;{" "}
+                      Uploaded on {latestUpload.uploaded_at ? new Date(latestUpload.uploaded_at).toLocaleDateString() : "—"} &bull;{" "}
                       {latestUpload.extraction_status === "confirmed" ? "Active in student learning paths & quizzes" : "Draft ready for review"}
                     </p>
                   </div>
@@ -1180,14 +1199,14 @@ export default function AdminSettingsPage() {
               </div>
             )}
           </div>
-        </div>
+        </RevealOnScroll>
       )}
 
       {/* ────────────────────────────────────────────────────────────────────────── */}
       {/* TAB 3: FEE VERIFICATION & OCR TEMPLATES */}
       {/* ────────────────────────────────────────────────────────────────────────── */}
       {activeTab === "fees" && (
-        <div className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-6">
+        <RevealOnScroll className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600">
@@ -1292,10 +1311,12 @@ export default function AdminSettingsPage() {
             <div className="space-y-3">
               {feeTemplates.map((template) => {
                 const isExpanded = expandedOcrId === template.id;
-                const fileUrl = `http://localhost:8000/uploads/${template.file_path
-                  .replace("uploads/", "")
-                  .replace("uploads\\", "")
-                  .replace("\\", "/")}?token=${getAccessToken() || ""}`;
+                const fileUrl = template.file_path
+                  ? `http://localhost:8000/uploads/${template.file_path
+                      .replace("uploads/", "")
+                      .replace("uploads\\", "")
+                      .replace("\\", "/")}?token=${getAccessToken() || ""}`
+                  : "#";
 
                 return (
                   <div
@@ -1394,14 +1415,14 @@ export default function AdminSettingsPage() {
               })}
             </div>
           )}
-        </div>
+        </RevealOnScroll>
       )}
 
       {/* ────────────────────────────────────────────────────────────────────────── */}
       {/* TAB 4: CAMPUS LICENSE & SUBSCRIPTION */}
       {/* ────────────────────────────────────────────────────────────────────────── */}
       {activeTab === "subscription" && (
-        <div className="space-y-6">
+        <RevealOnScroll className="space-y-6">
           <SubscriptionBannerCard collegeData={college} />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1450,7 +1471,7 @@ export default function AdminSettingsPage() {
               </div>
             </Card>
           </div>
-        </div>
+        </RevealOnScroll>
       )}
 
       {/* Modal: Add Academic Branch */}

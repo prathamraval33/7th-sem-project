@@ -31,6 +31,11 @@ import {
 } from "lucide-react";
 import { showToast, showError } from "../../utils/swal";
 import { formatResumeLabel } from "../../utils/resumeFormatter";
+import {
+  AnimatedWords,
+  LiveStatusBeacon,
+  StudentTickerRibbon,
+} from "../../components/common/MotionKit";
 
 const DEPARTMENTS = [
   "Computer Engineering",
@@ -263,30 +268,34 @@ export default function ResumeEnhancerPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-8 pb-12">
       {/* ── Header ── */}
-      <div className="animate-slide-down">
-        <div className="flex items-center gap-2 text-xs font-medium text-slate-400 mb-1">
-          <Wand2 className="h-3.5 w-3.5 text-indigo-500" />
-          <span>Career Intelligence</span>
-          <ChevronRight className="h-3 w-3" />
-          <span className="text-slate-600">Resume Enhancer</span>
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="font-heading text-3xl font-extrabold tracking-tight text-slate-900">
-              AI Resume Enhancer
-            </h1>
-            <p className="mt-1.5 text-sm text-slate-500 max-w-2xl">
-              Target campus drives by transforming generic bullet points into Google X-Y-Z achievements with department-specific ATS terminology.
-            </p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/80 pb-6">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1.5">
+              <Wand2 size={13} className="text-emerald-600" />
+              <span>ATS Resume Studio</span>
+            </span>
+            <LiveStatusBeacon label="STUDIO ACTIVE" variant="active" />
           </div>
-          {currentStep > 0 && currentStep < 4 && (
-            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 shadow-sm text-xs font-semibold text-slate-700 animate-scale-in">
-              <Sparkles className="h-3.5 w-3.5 text-indigo-500 animate-pulse" />
-              <span>Step {currentStep} of 3</span>
-            </div>
-          )}
+
+          <h1 className="font-heading text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
+            <AnimatedWords text="AI Resume Enhancer & Optimizer" delay={0.05} />
+          </h1>
+          <p className="mt-1 text-xs sm:text-sm text-slate-500 max-w-2xl">
+            Target campus drives by transforming generic bullet points into Google X-Y-Z achievements with department-specific ATS terminology.
+          </p>
         </div>
+
+        {currentStep > 0 && currentStep < 4 && (
+          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 shadow-xs text-xs font-bold text-slate-700 animate-scale-in">
+            <Sparkles className="h-3.5 w-3.5 text-emerald-600 animate-pulse" />
+            <span>Step {currentStep} of 3</span>
+          </div>
+        )}
       </div>
+
+      {/* Student Live Ticker Ribbon */}
+      <StudentTickerRibbon />
 
       {/* ── Step 0: Resume Selection ── */}
       {currentStep === 0 && (

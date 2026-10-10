@@ -26,6 +26,11 @@ import {
 } from "lucide-react";
 import { showToast, showError } from "../../utils/swal";
 import { formatResumeLabel } from "../../utils/resumeFormatter";
+import {
+  AnimatedWords,
+  LiveStatusBeacon,
+  StudentTickerRibbon,
+} from "../../components/common/MotionKit";
 
 const DEPARTMENTS = [
   "Computer Engineering",
@@ -241,20 +246,27 @@ export default function ResumeAnalyzerPage() {
     <div className="mx-auto max-w-5xl space-y-8 pb-12">
 
       {/* ── Header ── */}
-      <div className="animate-slide-down">
-        <div className="flex items-center gap-2 text-xs font-medium text-slate-400 mb-1">
-          <FileSearch className="h-3.5 w-3.5" />
-          <span>Career Intelligence</span>
-          <ChevronRight className="h-3 w-3" />
-          <span className="text-slate-600">Resume Analyzer</span>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/80 pb-6">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1.5">
+              <Sparkles size={13} className="text-emerald-600" />
+              <span>ATS Screening Diagnostics</span>
+            </span>
+            <LiveStatusBeacon label="RUBRIC ACTIVE" variant="active" />
+          </div>
+
+          <h1 className="font-heading text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
+            <AnimatedWords text="AI Resume ATS Analyzer" delay={0.05} />
+          </h1>
+          <p className="mt-1 text-xs sm:text-sm text-slate-500 max-w-2xl">
+            Objective 100-point calibrated rubric across Impact, Domain Depth, ATS Structure, and Placement Relevance — calibrated for any engineering discipline.
+          </p>
         </div>
-        <h1 className="font-heading text-3xl font-extrabold tracking-tight text-slate-900">
-          AI Resume Analyzer
-        </h1>
-        <p className="mt-1.5 text-sm text-slate-500 max-w-2xl">
-          Objective 100-point calibrated rubric across Impact, Domain Depth, ATS Structure, and Placement Relevance — tuned for any engineering discipline.
-        </p>
       </div>
+
+      {/* Student Live Ticker Ribbon */}
+      <StudentTickerRibbon />
 
       {/* ── Config Card ── */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm animate-slide-up stagger-1 card-hover">

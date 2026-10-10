@@ -111,14 +111,14 @@ export default function Sidebar({ role, mobileOpen, onCloseMobile }) {
               if (isMobile) onCloseMobile?.();
             }}
             className={({ isActive }) =>
-              `flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-150 ${
+              `group flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-150 ${
                 isActive
-                  ? "bg-accent/10 text-accent font-semibold shadow-2xs"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                  ? "bg-accent/10 text-accent font-semibold shadow-2xs border border-accent/20 translate-x-0.5"
+                  : "text-slate-600 hover:bg-slate-100/90 hover:text-slate-900 hover:translate-x-0.5"
               }`
             }
           >
-            <Icon size={17} strokeWidth={1.75} />
+            <Icon size={17} strokeWidth={1.75} className="transition-transform duration-200 group-hover:scale-110" />
             <span className="truncate">{label}</span>
           </NavLink>
         );
@@ -129,7 +129,7 @@ export default function Sidebar({ role, mobileOpen, onCloseMobile }) {
   return (
     <>
       {/* Desktop Persistent Sidebar */}
-      <aside className="sticky top-16 z-20 self-start hidden w-56 md:w-60 shrink-0 border-r border-border bg-card p-3 md:p-4 md:block shadow-xs select-none h-[calc(100vh-4rem)] overflow-y-auto">
+      <aside className="sticky top-16 z-20 self-start hidden w-56 md:w-60 shrink-0 border-r border-slate-200/80 bg-white/70 backdrop-blur-md p-3 md:p-4 md:block shadow-2xs select-none h-[calc(100vh-4rem)] overflow-y-auto">
         {renderNavLinks(false)}
       </aside>
 

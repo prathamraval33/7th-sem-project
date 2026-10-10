@@ -22,6 +22,12 @@ import { useSuperAdminStore } from "./superAdminStore";
 import KpiCard from "../../components/superadmin/KpiCard";
 import DataTable from "../../components/superadmin/DataTable";
 import StatusPill from "../../components/superadmin/StatusPill";
+import {
+  AnimatedWords,
+  LiveStatusBeacon,
+  SuperAdminTickerRibbon,
+  InteractiveSearchBox,
+} from "../../components/common/MotionKit";
 
 function formatDate(dateStr) {
   if (!dateStr) return "—";
@@ -356,9 +362,19 @@ export default function SubscriptionsPage() {
       {/* ---- Topbar ---- */}
       <div className="cd-topbar">
         <div>
-          <h1 className="cd-topbar__title">Subscriptions & Licensing</h1>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-indigo-100 text-indigo-800 border border-indigo-200 flex items-center gap-1.5">
+              <CreditCard size={13} className="text-indigo-600" />
+              <span>Multi-Tenant Licensing Desk</span>
+            </span>
+            <LiveStatusBeacon label="BILLING GATEWAY ACTIVE" variant="active" />
+          </div>
+
+          <h1 className="cd-topbar__title text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            <AnimatedWords text="Subscriptions & Licensing" delay={0.05} />
+          </h1>
           <p className="mt-1 text-xs text-slate-500">
-            Tenant subscription oversight, recurring billing cycles, payment deadlines, and audit trail.
+            Tenant subscription oversight, recurring billing cycles, payment deadlines, and institutional audit trail.
           </p>
         </div>
 
@@ -383,6 +399,9 @@ export default function SubscriptionsPage() {
           </button>
         </div>
       </div>
+
+      {/* SuperAdmin Telemetry Ticker Ribbon */}
+      <SuperAdminTickerRibbon className="mb-6" />
 
       {/* ---- KPI Row (4 Cards) ---- */}
       <div className="cd-kpi-grid">
@@ -465,66 +484,54 @@ export default function SubscriptionsPage() {
       )}
 
       {/* ---- Search & Filter Bar ---- */}
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
-        <div className="flex flex-1 flex-wrap items-center gap-2 min-w-[280px]">
-          {/* Text Search */}
-          <div className="relative flex-1 min-w-[200px]">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search college, feature, or code..."
-              value={query}
-              onChange={(e) => updateParam("q", e.target.value)}
-              className="w-full rounded-lg border border-slate-200 bg-slate-50/50 py-1.5 pl-9 pr-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none"
-            />
-          </div>
+      <div className="mb-6 rounded-2xl border border-slate-200 bg-white/90 backdrop-blur-md p-5 shadow-xs space-y-3">
+        <InteractiveSearchBox
+          value={query}
+          onChange={(val) => updateParam("q", val)}
+          placeholder="Search subscriptions by college name, feature title, or feature code..."
+          chips={[
+            { id: "all", label: "All Statuses" },
+            { id: "active", label: "Active", count: summary.active_count },
+            { id: "approved_awaiting_payment", label: "Awaiting Payment", count: summary.pending_payment_count },
+            { id: "expired", label: "Expired", count: summary.expired_count },
+            { id: "payment_failed", label: "Payment Failed" },
+            { id: "pending_review", label: "Pending Review" },
+          ]}
+          activeChip={statusFilter}
+          onChipClick={(chipId) => updateParam("status", chipId)}
+        />
 
-          {/* Status Filter */}
-          <div className="flex items-center gap-1.5">
-            <Filter size={13} className="text-slate-400" />
-            <select
-              value={statusFilter}
-              onChange={(e) => updateParam("status", e.target.value)}
-              className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 focus:border-blue-500 focus:outline-none"
-            >
-              <option value="all">All Statuses</option>
-              <option value="active">Active</option>
-              <option value="approved_awaiting_payment">Awaiting Payment</option>
-              <option value="payment_failed">Payment Failed</option>
-              <option value="expired">Expired</option>
-              <option value="approval_expired">Approval Expired</option>
-              <option value="pending_review">Pending Review</option>
-              <option value="rejected">Rejected</option>
-            </select>
-          </div>
-
-          {/* Billing Type Filter */}
-          <div className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-slate-100 text-xs">
+          <div className="flex items-center gap-3">
+            <span className="font-semibold text-slate-600 flex items-center gap-1">
+              <Filter size={13} className="text-slate-400" />
+              <span>Billing Model:</span>
+            </span>
             <select
               value={billingFilter}
               onChange={(e) => updateParam("billing", e.target.value)}
-              className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 focus:border-blue-500 focus:outline-none"
+              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 focus:border-indigo-500 focus:outline-none"
             >
               <option value="all">All Billing Types</option>
-              <option value="one_time">One-Time</option>
-              <option value="monthly">Monthly</option>
-              <option value="annual">Annual</option>
+              <option value="one_time">One-Time License</option>
+              <option value="monthly">Monthly Cycle</option>
+              <option value="annual">Annual Cycle</option>
             </select>
+
+            {(query || statusFilter !== "all" || billingFilter !== "all") && (
+              <button
+                type="button"
+                onClick={handleClearFilters}
+                className="flex items-center gap-1 text-xs font-bold text-rose-600 hover:text-rose-700 px-2 py-1 rounded hover:bg-rose-50 transition-colors"
+              >
+                <X size={12} /> Clear Filters
+              </button>
+            )}
           </div>
 
-          {(query || statusFilter !== "all" || billingFilter !== "all") && (
-            <button
-              type="button"
-              onClick={handleClearFilters}
-              className="flex items-center gap-1 text-xs font-semibold text-rose-600 hover:text-rose-700 px-2 py-1.5"
-            >
-              <X size={12} /> Clear Filters
-            </button>
-          )}
-        </div>
-
-        <div className="text-xs text-slate-500">
-          Showing <span className="font-bold text-slate-900">{filteredSubs.length}</span> of {subscriptions.length} records
+          <div className="text-slate-500">
+            Showing <span className="font-bold text-slate-900">{filteredSubs.length}</span> of {subscriptions.length} institutional subscriptions
+          </div>
         </div>
       </div>
 

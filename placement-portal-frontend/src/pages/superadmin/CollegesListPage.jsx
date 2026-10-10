@@ -1,13 +1,28 @@
-// CollegesListPage — All colleges table with search, status filter,
-// inline Suspend/Reactivate, and Add College button (§5.2).
-import { useState } from "react";
+// CollegesListPage — Institutional Tenants & Multi-Campus Registry
+import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Building2, Trash2 } from "lucide-react";
+import {
+  Building2,
+  Trash2,
+  Plus,
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+  ShieldCheck,
+  Search,
+  ExternalLink,
+} from "lucide-react";
 import { format } from "date-fns";
 import { useSuperAdminStore } from "./superAdminStore";
 import DataTable from "../../components/superadmin/DataTable";
 import StatusPill from "../../components/superadmin/StatusPill";
 import AddCollegeModal from "../../components/superadmin/AddCollegeModal";
+import {
+  AnimatedWords,
+  LiveStatusBeacon,
+  InteractiveSearchBox,
+  RevealOnScroll,
+} from "../../components/common/MotionKit";
 
 export default function CollegesListPage() {
   const colleges = useSuperAdminStore((s) => s.colleges);
@@ -22,46 +37,89 @@ export default function CollegesListPage() {
   const navigate = useNavigate();
 
   // Filter
-  let filtered = colleges;
-  if (search.trim()) {
-    const q = search.toLowerCase();
-    filtered = filtered.filter((c) => c.name.toLowerCase().includes(q) || c.domain.toLowerCase().includes(q));
-  }
-  if (statusFilter !== "all") {
-    filtered = filtered.filter((c) => c.status === statusFilter);
-  }
+  const filtered = useMemo(() => {
+    let result = colleges;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        (c) =>
+          c.name.toLowerCase().includes(q) ||
+          c.domain.toLowerCase().includes(q)
+      );
+    }
+    if (statusFilter !== "all") {
+      result = result.filter((c) => c.status === statusFilter);
+    }
+    return result;
+  }, [colleges, search, statusFilter]);
+
+  const filterChips = [
+    { id: "all", label: "All Institutions", count: colleges.length },
+    {
+      id: "active",
+      label: "Active",
+      count: colleges.filter((c) => c.status === "active").length,
+    },
+    {
+      id: "ready_for_review",
+      label: "Review Pending",
+      count: colleges.filter((c) => c.status === "ready_for_review").length,
+    },
+    {
+      id: "pending_setup",
+      label: "Setup Incomplete",
+      count: colleges.filter((c) => c.status === "pending_setup").length,
+    },
+    {
+      id: "suspended",
+      label: "Suspended",
+      count: colleges.filter((c) => c.status === "suspended").length,
+    },
+  ];
 
   const columns = [
     {
       key: "name",
-      header: "College Name",
+      header: "College Name & Domain",
       className: "cd-table__cell--bold",
-      render: (row) => row.name,
-    },
-    {
-      key: "domain",
-      header: "Domain",
-      className: "cd-table__cell--secondary",
-      render: (row) => row.domain,
+      render: (row) => (
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 ring-1 ring-blue-200/60 flex items-center justify-center shrink-0 font-bold text-xs">
+            {row.name ? row.name.substring(0, 2).toUpperCase() : "CL"}
+          </div>
+          <div className="min-w-0">
+            <p className="font-bold text-slate-900 text-sm truncate">{row.name}</p>
+            <p className="font-mono text-[11px] text-slate-400 truncate">{row.domain}</p>
+          </div>
+        </div>
+      ),
     },
     {
       key: "students",
       header: "Students",
-      render: (row) => (row.students || 0).toLocaleString(),
+      render: (row) => (
+        <span className="font-mono text-slate-700 font-semibold text-xs">
+          {(row.students || 0).toLocaleString()}
+        </span>
+      ),
     },
     {
       key: "tpos",
       header: "TPOs",
-      render: (row) => row.tpos || 0,
+      render: (row) => (
+        <span className="font-mono text-slate-700 text-xs">
+          {row.tpos || 0}
+        </span>
+      ),
     },
     {
       key: "status",
       header: "Status",
       render: (row) => (
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <div className="flex flex-col gap-1">
           <StatusPill status={row.status} />
           {row.status === "pending_setup" && (
-            <span style={{ fontSize: "10px", color: "var(--cd-text-muted)" }}>
+            <span className="text-[10px] text-slate-400 font-mono">
               {row.setupProgressPercentage || 0}% setup
             </span>
           )}
@@ -72,7 +130,11 @@ export default function CollegesListPage() {
       key: "joinedAt",
       header: "Joined",
       className: "cd-table__cell--meta",
-      render: (row) => format(new Date(row.joinedAt), "MMM d, yyyy"),
+      render: (row) => (
+        <span className="text-slate-500 font-mono text-xs">
+          {row.joinedAt ? format(new Date(row.joinedAt), "MMM d, yyyy") : "—"}
+        </span>
+      ),
     },
     {
       key: "actions",
@@ -81,10 +143,10 @@ export default function CollegesListPage() {
       render: (row) => {
         if (confirmDeleteId === row.id) {
           return (
-            <div className="cd-confirm-inline" style={{ justifyContent: "flex-end" }}>
-              <span>Delete?</span>
+            <div className="flex items-center gap-1.5 justify-end">
+              <span className="text-xs text-rose-600 font-bold">Confirm delete?</span>
               <button
-                className="cd-btn cd-btn--compact cd-btn--danger"
+                className="px-2 py-1 rounded bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 cursor-pointer"
                 onClick={(e) => {
                   e.stopPropagation();
                   deleteCollege(row.id);
@@ -94,7 +156,7 @@ export default function CollegesListPage() {
                 Yes
               </button>
               <button
-                className="cd-btn cd-btn--compact cd-btn--secondary"
+                className="px-2 py-1 rounded bg-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-300 cursor-pointer"
                 onClick={(e) => {
                   e.stopPropagation();
                   setConfirmDeleteId(null);
@@ -106,13 +168,11 @@ export default function CollegesListPage() {
           );
         }
 
-        // Ready for review: Quick Approve / Reject actions
         if (row.status === "ready_for_review") {
           return (
-            <div style={{ display: "flex", gap: 6, justifyContent: "flex-end", alignItems: "center" }}>
+            <div className="flex items-center gap-1.5 justify-end">
               <button
-                className="cd-btn cd-btn--compact cd-btn--success"
-                title="Approve College and unlock student signups"
+                className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-2xs cursor-pointer"
                 onClick={async (e) => {
                   e.stopPropagation();
                   await approveCollege(row.id);
@@ -121,11 +181,10 @@ export default function CollegesListPage() {
                 Approve
               </button>
               <button
-                className="cd-btn cd-btn--compact cd-btn--danger"
-                title="Reject Onboarding"
+                className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition-all cursor-pointer"
                 onClick={async (e) => {
                   e.stopPropagation();
-                  const reason = prompt("Enter rejection reason (optional):");
+                  const reason = window.prompt("Reason for rejection:");
                   if (reason !== null) {
                     await rejectCollege(row.id, reason.trim() || "Application does not meet onboarding criteria.");
                   }
@@ -138,10 +197,14 @@ export default function CollegesListPage() {
         }
 
         return (
-          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", alignItems: "center" }}>
+          <div className="flex items-center gap-1.5 justify-end">
             {row.status === "active" || row.status === "suspended" ? (
               <button
-                className={`cd-btn cd-btn--compact ${row.status === "active" ? "cd-btn--danger" : "cd-btn--success"}`}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  row.status === "active"
+                    ? "bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100"
+                    : "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
+                }`}
                 onClick={(e) => {
                   e.stopPropagation();
                   toggleCollegeStatus(row.id);
@@ -151,15 +214,14 @@ export default function CollegesListPage() {
               </button>
             ) : null}
             <button
-              className="cd-btn cd-btn--compact cd-btn--ghost"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
               title="Delete College"
-              style={{ color: "var(--cd-danger)" }}
               onClick={(e) => {
                 e.stopPropagation();
                 setConfirmDeleteId(row.id);
               }}
             >
-              <Trash2 size={16} />
+              <Trash2 size={15} />
             </button>
           </div>
         );
@@ -168,56 +230,74 @@ export default function CollegesListPage() {
   ];
 
   return (
-    <>
-      {/* Top bar */}
-      <div className="cd-topbar">
-        <h1 className="cd-topbar__title">Colleges</h1>
-        <div className="cd-topbar__actions">
-          <button className="cd-btn cd-btn--primary" onClick={() => setShowModal(true)}>
-            + Add College
+    <div className="space-y-6 w-full pb-10">
+      {/* ── Top Header Bar ── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/80 pb-5">
+        <div>
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 ring-1 ring-blue-200 font-bold">
+              <Building2 size={22} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2.5">
+                <AnimatedWords
+                  text="Institutions & Campus Tenants"
+                  className="text-2xl font-bold tracking-tight text-slate-900 font-heading"
+                />
+                <LiveStatusBeacon label={`${colleges.length} REGISTERED`} color="blue" />
+              </div>
+              <p className="text-xs sm:text-sm text-slate-500">
+                Manage registered college domains, review pending admissions, and configure institutional licenses.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <button
+            className="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
+            onClick={() => setShowModal(true)}
+          >
+            <Plus size={15} /> Add Institution
           </button>
         </div>
       </div>
 
-      {/* Search + Filter */}
-      <div className="cd-search-bar">
-        <input
-          className="cd-input"
-          type="text"
-          placeholder="Search by name or domain…"
+      {/* ── Search & Filter Toolbar ── */}
+      <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-3">
+        <InteractiveSearchBox
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={setSearch}
+          onClear={() => setSearch("")}
+          placeholder="Search colleges by name or domain (e.g. bvmengineering.ac.in)..."
+          totalCount={colleges.length}
+          filteredCount={filtered.length}
+          filters={filterChips}
+          activeFilter={statusFilter}
+          onFilterChange={setStatusFilter}
         />
-        <select
-          className="cd-select"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="all">All Statuses</option>
-          <option value="ready_for_review">Ready for Review</option>
-          <option value="pending_setup">Pending Setup</option>
-          <option value="active">Active</option>
-          <option value="suspended">Suspended</option>
-          <option value="rejected">Rejected</option>
-        </select>
       </div>
 
-      {/* Table */}
-      <DataTable
-        columns={columns}
-        data={filtered}
-        onRowClick={(row) => navigate(`/superadmin/colleges/${row.id}`)}
-        emptyState={{
-          icon: Building2,
-          title: "No colleges yet",
-          text: "Add your first college to start onboarding students and TPOs.",
-          actionLabel: "+ Add College",
-          onAction: () => setShowModal(true),
-        }}
-      />
+      {/* ── Colleges Table ── */}
+      <RevealOnScroll delay={0.1}>
+        <div className="rounded-2xl border border-slate-200/90 bg-white overflow-hidden shadow-xs">
+          <DataTable
+            columns={columns}
+            data={filtered}
+            onRowClick={(row) => navigate(`/superadmin/colleges/${row.id}`)}
+            emptyState={{
+              icon: Building2,
+              title: "No colleges match your search",
+              text: "Try clearing search filters or add a new institutional tenant.",
+              actionLabel: "+ Add College",
+              onAction: () => setShowModal(true),
+            }}
+          />
+        </div>
+      </RevealOnScroll>
 
       {/* Add College Modal */}
       {showModal && <AddCollegeModal onClose={() => setShowModal(false)} />}
-    </>
+    </div>
   );
 }

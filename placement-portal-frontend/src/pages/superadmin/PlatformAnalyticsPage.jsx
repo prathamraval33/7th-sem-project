@@ -15,6 +15,12 @@ import {
 import { useSuperAdminStore } from "./superAdminStore";
 import { superadminApi } from "../../api/superadmin.api";
 import KpiCard from "../../components/superadmin/KpiCard";
+import {
+  AnimatedWords,
+  LiveStatusBeacon,
+  SuperAdminTickerRibbon,
+} from "../../components/common/MotionKit";
+import { BarChart3 } from "lucide-react";
 
 export default function PlatformAnalyticsPage() {
   const colleges = useSuperAdminStore((s) => s.colleges);
@@ -48,8 +54,26 @@ export default function PlatformAnalyticsPage() {
     <>
       {/* Top bar */}
       <div className="cd-topbar">
-        <h1 className="cd-topbar__title">Platform Analytics & Revenue</h1>
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-indigo-100 text-indigo-800 border border-indigo-200 flex items-center gap-1.5">
+              <BarChart3 size={13} className="text-indigo-600" />
+              <span>Federation Intelligence</span>
+            </span>
+            <LiveStatusBeacon label="DATA TELEMETRY NOMINAL" variant="active" />
+          </div>
+
+          <h1 className="cd-topbar__title text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            <AnimatedWords text="Platform Analytics & Revenue Stream" delay={0.05} />
+          </h1>
+          <p className="mt-1 text-xs text-slate-500">
+            Cross-institutional growth telemetry, feature adoption density, and net transaction revenues.
+          </p>
+        </div>
       </div>
+
+      {/* SuperAdmin Telemetry Ticker Ribbon */}
+      <SuperAdminTickerRibbon className="mb-6" />
 
       {/* KPI Row */}
       <div className="cd-kpi-grid">

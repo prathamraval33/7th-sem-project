@@ -7,6 +7,15 @@ import Card from "../../components/ui/Card";
 import Badge from "../../components/ui/Badge";
 import Spinner from "../../components/ui/Spinner";
 import {
+  AnimatedWords,
+  RevealOnScroll,
+  StaggerGrid,
+  StaggerCard,
+  AnimatedCounter,
+  LiveStatusBeacon,
+  GlassCard,
+} from "../../components/admin/AdminMotion";
+import {
   CreditCard,
   ShieldCheck,
   Clock,
@@ -52,18 +61,16 @@ export default function AdminBillingPage() {
 
   return (
     <div className="space-y-6 pb-12 font-sans">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
+      {/* Top Header with Kinetic Typography */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/80 pb-5">
         <div className="max-w-2xl">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-heading tracking-tight">
-              Billing & Subscription
+              <AnimatedWords text="Billing & Subscription" />
             </h1>
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
-              <CreditCard className="w-3.5 h-3.5" /> Institutional Account
-            </span>
+            <LiveStatusBeacon label="ACTIVE LICENSE" color="emerald" />
           </div>
-          <p className="mt-1 text-sm text-slate-500 leading-relaxed">
+          <p className="mt-1 text-xs sm:text-sm text-slate-500 leading-relaxed">
             Manage your campus license, 30-day billing cycle, renewal payments, and transaction history for{" "}
             <span className="font-semibold text-slate-800">{college?.name || "your institution"}</span>.
           </p>

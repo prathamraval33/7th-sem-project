@@ -7,6 +7,17 @@ import Badge from "../../components/ui/Badge";
 import Button from "../../components/common/Button";
 import Input from "../../components/common/Input";
 import {
+  AnimatedWords,
+  RevealOnScroll,
+  StaggerGrid,
+  StaggerCard,
+  AnimatedCounter,
+  InteractiveSearchBox,
+  LiveStatusBeacon,
+  InteractiveTabSwitcher,
+  GlassCard,
+} from "../../components/admin/AdminMotion";
+import {
   Sparkles,
   Search,
   CheckCircle2,
@@ -373,29 +384,34 @@ export default function AdminFeaturesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200">
+      {/* Page Header with Kinetic Typography */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/80">
         <div>
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-2xs">
               <Sparkles className="w-5 h-5" />
             </div>
-            <h1 className="text-2xl font-bold text-slate-900 font-heading">
-              Modules & Add-ons Store
-            </h1>
+            <div>
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-heading tracking-tight">
+                  <AnimatedWords text="Modules & Add-ons Store" />
+                </h1>
+                <LiveStatusBeacon label="STORE ACTIVE" color="indigo" />
+              </div>
+              <p className="text-slate-500 mt-1 text-xs sm:text-sm">
+                Browse optional departmental capabilities, request add-on features, or submit custom proposals to the engineering team.
+              </p>
+            </div>
           </div>
-          <p className="text-slate-600 mt-1 text-sm">
-            Browse optional departmental capabilities, request add-on features, or submit custom proposals to the SuperAdmin engineering team.
-          </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 self-start sm:self-center">
           {activeMainTab === "catalog" ? (
             <Button
               variant="outline"
               size="sm"
               onClick={() => refetchCatalog()}
-              className="flex items-center gap-2 text-slate-600 hover:text-slate-900"
+              className="flex items-center gap-2 text-slate-600 hover:text-slate-900 rounded-xl"
             >
               <RefreshCw className="w-4 h-4" />
               Refresh Catalog
@@ -406,7 +422,7 @@ export default function AdminFeaturesPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => refetchProposals()}
-                className="flex items-center gap-2 text-slate-600 hover:text-slate-900"
+                className="flex items-center gap-2 text-slate-600 hover:text-slate-900 rounded-xl"
               >
                 <RefreshCw className="w-4 h-4" />
                 Refresh
@@ -414,7 +430,7 @@ export default function AdminFeaturesPage() {
               <Button
                 size="sm"
                 onClick={() => setShowProposalModal(true)}
-                className="flex items-center gap-1.5 shadow-xs"
+                className="flex items-center gap-1.5 shadow-xs rounded-xl"
               >
                 <Plus className="w-4 h-4" />
                 Propose New Feature
@@ -425,7 +441,7 @@ export default function AdminFeaturesPage() {
       </div>
 
       {/* Core Institutional License Banner Linking to Billing */}
-      <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-900 via-indigo-800 to-indigo-950 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-900 via-indigo-800 to-indigo-950 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm border border-indigo-900/40">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-white/10 text-indigo-200 border border-white/10 flex-shrink-0">
             <CreditCard className="w-5 h-5" />
@@ -454,40 +470,16 @@ export default function AdminFeaturesPage() {
         </Link>
       </div>
 
-      {/* Main Tab Switcher */}
-      <div className="flex border-b border-slate-200">
-        <button
-          type="button"
-          onClick={() => handleMainTabChange("catalog")}
-          className={`flex items-center gap-2 px-5 py-3 border-b-2 font-medium text-sm transition-colors ${
-            activeMainTab === "catalog"
-              ? "border-accent text-accent font-semibold"
-              : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
-          }`}
-        >
-          <Layers className="h-4 w-4" />
-          <span>Catalog Modules</span>
-          <span className="ml-1.5 px-2 py-0.5 text-xs rounded-full bg-slate-100 text-slate-600 font-normal">
-            {features.length}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleMainTabChange("proposals")}
-          className={`flex items-center gap-2 px-5 py-3 border-b-2 font-medium text-sm transition-colors ${
-            activeMainTab === "proposals"
-              ? "border-accent text-accent font-semibold"
-              : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
-          }`}
-        >
-          <Lightbulb className="h-4 w-4" />
-          <span>Custom Feature Proposals</span>
-          <span className="ml-1.5 px-2 py-0.5 text-xs rounded-full bg-blue-50 text-blue-700 border border-blue-200 font-medium">
-            {customProposals.length}
-          </span>
-        </button>
-      </div>
+      {/* Main Tab Switcher with Gliding Motion Pill */}
+      <InteractiveTabSwitcher
+        tabs={[
+          { id: "catalog", label: "Catalog Modules", icon: Layers, badge: features.length },
+          { id: "proposals", label: "Custom Feature Proposals", icon: Lightbulb, badge: customProposals.length },
+        ]}
+        activeTab={activeMainTab}
+        onTabChange={handleMainTabChange}
+        layoutId="adminFeaturesTabs"
+      />
 
       {/* ------------------------------------------------------------- */}
       {/* TAB 1: CATALOG MODULES */}
@@ -495,47 +487,38 @@ export default function AdminFeaturesPage() {
       {activeMainTab === "catalog" && (
         <div className="space-y-6">
           {/* Info Banner */}
-          <div className="p-4 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 flex items-start gap-3">
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-blue-100/90 flex items-start gap-3">
             <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
             <div className="text-xs text-blue-900 leading-relaxed">
               <span className="font-semibold">How feature lifecycle works:</span> Select any catalog feature to submit an institutional request. Once approved by SuperAdmin, paid features unlock a direct <span className="font-semibold">Pay Now</span> button powered by Razorpay test checkout. Free features are activated automatically upon approval.
             </div>
           </div>
 
-          {/* Search & Sub-filters */}
-          <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
-            <div className="relative flex-1 max-w-md">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search catalog by name, category, or role..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400 shadow-sm"
-              />
-            </div>
-
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
-              {[
-                { id: "all", label: "All Modules" },
-                { id: "active", label: "Active" },
-                { id: "payment", label: "Needs Payment" },
-                { id: "pending", label: "Pending Review" },
-                { id: "available", label: "Not Requested" },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setFilterTab(tab.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
-                    filterTab === tab.id
-                      ? "bg-blue-600 text-white shadow-sm"
-                      : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+          {/* Interactive Search & Sub-filters */}
+          <div className="bg-white/90 backdrop-blur-md p-4 rounded-2xl border border-slate-200/90 shadow-xs">
+            <InteractiveSearchBox
+              value={searchTerm}
+              onChange={setSearchTerm}
+              placeholder="Search catalog by module name, category, or role..."
+              totalCount={features.length}
+              filteredCount={filteredCatalogFeatures.length}
+              filters={[
+                { id: "all", label: "All Modules", count: features.length },
+                { id: "active", label: "Active", count: features.filter((f) => f.status === "active").length },
+                {
+                  id: "payment",
+                  label: "Needs Payment",
+                  count: features.filter(
+                    (f) => f.status === "approved_awaiting_payment" || f.status === "payment_failed"
+                  ).length,
+                },
+                { id: "pending", label: "Pending Review", count: features.filter((f) => f.status === "pending_review").length },
+                { id: "available", label: "Not Requested", count: features.filter((f) => f.status === "not_requested").length },
+              ]}
+              activeFilter={filterTab}
+              onFilterChange={setFilterTab}
+              shortcutKey="/"
+            />
           </div>
 
           {/* Catalog Grid */}
@@ -552,7 +535,7 @@ export default function AdminFeaturesPage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <StaggerGrid className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" staggerDelay={0.05}>
               {filteredCatalogFeatures.map((feature) => {
                 const statusInfo = getCatalogStatusDisplay(feature.status);
                 const StatusIcon = statusInfo.icon;
@@ -560,10 +543,10 @@ export default function AdminFeaturesPage() {
                 const isFree = !feature.price || feature.price <= 0;
 
                 return (
-                  <div
-                    key={feature.id}
-                    className="flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden group"
-                  >
+                  <StaggerCard key={feature.id}>
+                    <div
+                      className="flex flex-col bg-white rounded-2xl border border-slate-200 shadow-xs hover:border-indigo-300 transition-all duration-200 overflow-hidden group h-full"
+                    >
                     {/* Card Header */}
                     <div className="p-5 border-b border-slate-100 flex-1 flex flex-col">
                       <div className="flex items-start justify-between gap-3 mb-2.5">
@@ -673,9 +656,10 @@ export default function AdminFeaturesPage() {
                       )}
                     </div>
                   </div>
-                );
+                </StaggerCard>
+              );
               })}
-            </div>
+            </StaggerGrid>
           )}
         </div>
       )}
@@ -693,42 +677,27 @@ export default function AdminFeaturesPage() {
             </div>
           </div>
 
-          {/* Search & Filters Toolbar */}
-          <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
-            <div className="relative flex-1 max-w-md">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search proposals by title, category, or keyword..."
-                value={proposalSearch}
-                onChange={(e) => setProposalSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400 shadow-sm"
-              />
-            </div>
-
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
-              {[
-                { id: "all", label: "All Proposals" },
-                { id: "pending", label: "Pending" },
-                { id: "under_review", label: "Under Review" },
-                { id: "planned", label: "Planned" },
-                { id: "in_progress", label: "In Progress" },
-                { id: "completed", label: "Completed" },
-                { id: "declined", label: "Declined" },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setProposalStatusFilter(tab.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
-                    proposalStatusFilter === tab.id
-                      ? "bg-purple-600 text-white shadow-sm"
-                      : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+          {/* Interactive Search & Filters Toolbar */}
+          <div className="bg-white/90 backdrop-blur-md p-4 rounded-2xl border border-slate-200/90 shadow-xs">
+            <InteractiveSearchBox
+              value={proposalSearch}
+              onChange={setProposalSearch}
+              placeholder="Search proposals by title, category, or keyword..."
+              totalCount={customProposals.length}
+              filteredCount={filteredCustomProposals.length}
+              filters={[
+                { id: "all", label: "All Proposals", count: customProposals.length },
+                { id: "pending", label: "Pending", count: customProposals.filter((p) => p.status === "pending").length },
+                { id: "under_review", label: "Under Review", count: customProposals.filter((p) => p.status === "under_review").length },
+                { id: "planned", label: "Planned", count: customProposals.filter((p) => p.status === "planned").length },
+                { id: "in_progress", label: "In Progress", count: customProposals.filter((p) => p.status === "in_progress").length },
+                { id: "completed", label: "Completed", count: customProposals.filter((p) => p.status === "completed").length },
+                { id: "declined", label: "Declined", count: customProposals.filter((p) => p.status === "declined").length },
+              ]}
+              activeFilter={proposalStatusFilter}
+              onFilterChange={setProposalStatusFilter}
+              shortcutKey="/"
+            />
           </div>
 
           {/* Proposals Directory */}

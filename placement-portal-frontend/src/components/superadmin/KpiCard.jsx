@@ -2,6 +2,7 @@
 // Displays an uppercase label, a large Fira Code number,
 // and an optional trend percentage with directional arrow.
 import { TrendingUp, TrendingDown } from "lucide-react";
+import { AnimatedCounter } from "../common/MotionKit";
 
 export default function KpiCard({
   label,
@@ -22,7 +23,7 @@ export default function KpiCard({
     >
       <div className="cd-kpi-card__label">{label}</div>
       <div className={`cd-kpi-card__value ${warning ? "cd-kpi-card__value--warning" : ""}`}>
-        {typeof value === "number" ? value.toLocaleString() : value}
+        {typeof value === "number" ? <AnimatedCounter target={value} /> : value}
       </div>
       {trend && (
         <div className={`cd-kpi-card__trend ${trend.direction === "up" ? "cd-kpi-card__trend--up" : "cd-kpi-card__trend--down"}`}>

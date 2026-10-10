@@ -10,6 +10,14 @@ import Input from "../../components/common/Input";
 import Card from "../../components/ui/Card";
 import { showConfirm, showSuccess, showError, showToast } from "../../utils/swal";
 import {
+  AnimatedWords,
+  RevealOnScroll,
+  InteractiveSearchBox,
+  LiveStatusBeacon,
+  InteractiveTabSwitcher,
+  GlassCard,
+} from "../../components/admin/AdminMotion";
+import {
   Users,
   UserCheck,
   ShieldAlert,
@@ -212,79 +220,66 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="space-y-5 w-full">
-      {/* ── Page Header & Tabs ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-border/80 pb-4">
+    <div className="space-y-6 w-full">
+      {/* ── Page Header & Tabs with Kinetic Typography ── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/80 pb-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 font-heading">
-            User Account Management
-          </h1>
-          <p className="text-slate-500 text-xs sm:text-sm mt-0.5">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 font-heading">
+              <AnimatedWords text="User Account Management" />
+            </h1>
+            <LiveStatusBeacon label="RBAC SECURED" color="indigo" />
+          </div>
+          <p className="text-slate-500 text-xs sm:text-sm mt-1">
             Directory and administrative control for students, placement officers, and portal administrators.
           </p>
         </div>
 
-        {/* Tab Switcher */}
-        <div className="flex items-center bg-slate-100/80 p-1 rounded-xl border border-slate-200/80 shadow-inner self-start md:self-auto shrink-0">
-          <button
-            onClick={() => handleTabChange("students")}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              activeTab === "students"
-                ? "bg-white text-slate-900 shadow-sm font-bold"
-                : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
-            }`}
-          >
-            <GraduationCap size={15} className={activeTab === "students" ? "text-accent" : "text-slate-400"} />
-            Students Roster
-            <span className="ml-1 text-[11px] px-1.5 py-0.2 rounded-full bg-slate-200 text-slate-700 font-normal">
-              {studentsList.length}
-            </span>
-          </button>
-          <button
-            onClick={() => handleTabChange("staff")}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              activeTab === "staff"
-                ? "bg-white text-slate-900 shadow-sm font-bold"
-                : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
-            }`}
-          >
-            <Shield size={15} className={activeTab === "staff" ? "text-accent" : "text-slate-400"} />
-            Officers & Staff
-            <span className="ml-1 text-[11px] px-1.5 py-0.2 rounded-full bg-slate-200 text-slate-700 font-normal">
-              {staffList.length}
-            </span>
-          </button>
-        </div>
+        {/* Tab Switcher with Gliding Motion Pill */}
+        <InteractiveTabSwitcher
+          tabs={[
+            { id: "students", label: "Students Roster", icon: GraduationCap, badge: studentsList.length },
+            { id: "staff", label: "Officers & Staff", icon: Shield, badge: staffList.length },
+          ]}
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          layoutId="adminUsersTabs"
+        />
       </div>
 
       {/* ────────────────────────────────────────────────────────────────────────── */}
       {/* TAB 1: STUDENTS */}
       {/* ────────────────────────────────────────────────────────────────────────── */}
       {activeTab === "students" && (
-        <div className="space-y-3.5">
-          {/* Action & Filter Toolbar */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-border shadow-2xs">
-            {/* Search Input */}
-            <div className="relative w-full md:w-72 lg:w-80">
-              <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search by student name or email..."
+        <div className="space-y-4">
+          {/* Action & Filter Toolbar with InteractiveSearchBox */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-white/90 backdrop-blur-md p-4 rounded-2xl border border-slate-200/90 shadow-xs">
+            <div className="flex-1 max-w-xl">
+              <InteractiveSearchBox
                 value={studentSearch}
-                onChange={(e) => setStudentSearch(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-accent bg-slate-50 focus:bg-white transition-all"
+                onChange={setStudentSearch}
+                placeholder="Search by student name, email, roll number or branch..."
+                totalCount={studentsList.length}
+                filteredCount={filteredStudents.length}
+                filters={[
+                  { id: "all", label: "All Statuses", count: studentsList.length },
+                  { id: "placed", label: "Placed", count: studentsList.filter((s) => s.is_placed).length },
+                  { id: "unplaced", label: "Unplaced", count: studentsList.filter((s) => !s.is_placed).length },
+                ]}
+                activeFilter={placementFilter}
+                onFilterChange={setPlacementFilter}
+                shortcutKey="/"
               />
             </div>
 
-            {/* Filter Dropdowns + Add Button */}
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Branch filter */}
+            {/* Branch dropdown + Add Student Button */}
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0 self-start lg:self-auto">
               <select
                 value={branchFilter}
                 onChange={(e) => setBranchFilter(e.target.value)}
-                className="px-2.5 py-1.5 text-xs font-medium rounded-lg border border-border bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-accent"
+                className="px-3 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all"
               >
-                <option value="all">All Branches</option>
+                <option value="all">All Academic Branches</option>
                 {branches.map((b) => (
                   <option key={b.id} value={b.code}>
                     {b.code} ({b.name})
@@ -292,20 +287,11 @@ export default function AdminUsersPage() {
                 ))}
               </select>
 
-              {/* Status filter */}
-              <select
-                value={placementFilter}
-                onChange={(e) => setPlacementFilter(e.target.value)}
-                className="px-2.5 py-1.5 text-xs font-medium rounded-lg border border-border bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-accent"
+              <Button
+                onClick={() => openAddUser("student")}
+                className="flex items-center gap-1.5 text-xs py-2 px-4 rounded-xl shadow-xs hover:shadow-sm"
               >
-                <option value="all">All Statuses</option>
-                <option value="placed">Placed Only</option>
-                <option value="unplaced">Unplaced Only</option>
-              </select>
-
-              {/* Add Student Button */}
-              <Button onClick={() => openAddUser("student")} className="flex items-center gap-1.5 text-xs py-1.5 px-3">
-                <UserPlus size={13} /> Add Student
+                <UserPlus size={14} /> Add Student
               </Button>
             </div>
           </div>
@@ -457,33 +443,33 @@ export default function AdminUsersPage() {
       {/* TAB 2: STAFF & OFFICERS */}
       {/* ────────────────────────────────────────────────────────────────────────── */}
       {activeTab === "staff" && (
-        <div className="space-y-3.5">
-          {/* Action & Filter Toolbar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-border shadow-2xs">
-            <div className="relative w-full sm:w-72 lg:w-80">
-              <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search staff by email..."
+        <div className="space-y-4">
+          {/* Action & Filter Toolbar with InteractiveSearchBox */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/90 backdrop-blur-md p-4 rounded-2xl border border-slate-200/90 shadow-xs">
+            <div className="flex-1 max-w-xl">
+              <InteractiveSearchBox
                 value={staffSearch}
-                onChange={(e) => setStaffSearch(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-accent bg-slate-50 focus:bg-white transition-all"
+                onChange={setStaffSearch}
+                placeholder="Search staff accounts by email address..."
+                totalCount={staffList.length}
+                filteredCount={filteredStaff.length}
+                filters={[
+                  { id: "all", label: "All Roles", count: staffList.length },
+                  { id: "tpo", label: "TPO Officers", count: staffList.filter((u) => u.user_type === "tpo").length },
+                  { id: "admin", label: "Admins", count: staffList.filter((u) => u.user_type === "admin").length },
+                ]}
+                activeFilter={roleFilter}
+                onFilterChange={setRoleFilter}
+                shortcutKey="/"
               />
             </div>
 
-            <div className="flex items-center gap-2">
-              <select
-                value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value)}
-                className="px-2.5 py-1.5 text-xs font-medium rounded-lg border border-border bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-accent"
+            <div className="flex items-center gap-2.5 shrink-0 self-start sm:self-auto">
+              <Button
+                onClick={() => openAddUser("tpo")}
+                className="flex items-center gap-1.5 text-xs py-2 px-4 rounded-xl shadow-xs hover:shadow-sm"
               >
-                <option value="all">All Roles</option>
-                <option value="tpo">TPO Officers</option>
-                <option value="admin">Administrators</option>
-              </select>
-
-              <Button onClick={() => openAddUser("tpo")} className="flex items-center gap-1.5 text-xs py-1.5 px-3">
-                <UserPlus size={13} /> Add Staff Account
+                <UserPlus size={14} /> Add Staff Account
               </Button>
             </div>
           </div>

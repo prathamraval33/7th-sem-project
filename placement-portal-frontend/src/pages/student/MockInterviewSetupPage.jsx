@@ -20,6 +20,11 @@ import {
 } from "lucide-react";
 import { showToast, showError } from "../../utils/swal";
 import { formatResumeLabel } from "../../utils/resumeFormatter";
+import {
+  AnimatedWords,
+  LiveStatusBeacon,
+  StudentTickerRibbon,
+} from "../../components/common/MotionKit";
 
 const DIFFICULTY_OPTIONS = [
   {
@@ -212,22 +217,26 @@ export default function MockInterviewSetupPage() {
   );
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8 pb-12">
+    <div className="mx-auto max-w-4xl space-y-6 pb-12">
       {/* ── Header ── */}
-      <div className="animate-slide-down">
-        <div className="flex items-center gap-2 text-xs font-medium text-slate-400 mb-1">
-          <BrainCircuit className="h-3.5 w-3.5 text-indigo-500" />
-          <span>Placement Practice</span>
-          <ChevronRight className="h-3 w-3" />
-          <span className="text-slate-600">Mock Interview Setup</span>
+      <div className="border-b border-slate-200/80 pb-6">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-indigo-100 text-indigo-800 border border-indigo-200 flex items-center gap-1.5">
+            <BrainCircuit size={13} className="text-indigo-600" />
+            <span>AI Practice Simulator</span>
+          </span>
+          <LiveStatusBeacon label="VOICE ENGINE READY" variant="active" />
         </div>
         <h1 className="font-heading text-3xl font-extrabold tracking-tight text-slate-900">
-          AI Mock Interview Setup
+          <AnimatedWords text="AI Mock Interview Setup" delay={0.05} />
         </h1>
-        <p className="mt-1.5 text-sm text-slate-500 max-w-2xl">
+        <p className="mt-1.5 text-sm text-slate-600 max-w-2xl">
           Prepare for real campus placements with technical & HR rounds calibrated to your target company and experience level.
         </p>
       </div>
+
+      {/* Marquee Ticker */}
+      <StudentTickerRibbon />
 
       {/* ── Tab Switcher (Segmented Control) ── */}
       <div className="flex rounded-xl bg-slate-100 p-1 border border-slate-200 max-w-md animate-slide-up stagger-1">

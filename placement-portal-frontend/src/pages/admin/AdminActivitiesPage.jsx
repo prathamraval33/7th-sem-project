@@ -7,33 +7,35 @@ import {
   Mail,
   ShieldCheck,
   Send,
-  Search,
-  Filter,
   Download,
   CheckCircle2,
   AlertTriangle,
   Info,
-  Clock,
   User,
   Users,
-  Building2,
   Briefcase,
   ExternalLink,
-  ChevronRight,
   Phone,
   RefreshCw,
   X,
-  FileText,
   Copy,
   Check,
   Radio,
-  SlidersHorizontal,
 } from "lucide-react";
-import Card from "../../components/ui/Card";
-import Badge from "../../components/ui/Badge";
 import Button from "../../components/ui/Button";
 import Spinner from "../../components/ui/Spinner";
 import { showToast, showSuccess, showError } from "../../utils/swal";
+import {
+  AnimatedWords,
+  RevealOnScroll,
+  StaggerGrid,
+  StaggerCard,
+  AnimatedCounter,
+  InteractiveSearchBox,
+  LiveStatusBeacon,
+  InteractiveTabSwitcher,
+  GlassCard,
+} from "../../components/admin/AdminMotion";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 function formatDate(iso) {
@@ -292,59 +294,48 @@ export default function AdminActivitiesPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* ── Page Header & Window Switcher ── */}
+      {/* ── Page Header & Window Switcher with Kinetic Typography ── */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b border-border/80 pb-5">
         <div>
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent ring-1 ring-accent/20">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 ring-1 ring-indigo-200/60 shadow-2xs">
               <Activity size={22} />
             </div>
             <div>
-              <h1 className="font-heading text-2xl font-bold text-slate-900">
-                Institutional Activities & Communications
-              </h1>
-              <p className="text-sm text-slate-500">
-                Unified messaging hub (WhatsApp & Mail) alongside full-scope institutional audit trail.
+              <div className="flex items-center gap-3">
+                <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                  <AnimatedWords text="Activities & Communications Hub" />
+                </h1>
+                <LiveStatusBeacon label="AUDIT ACTIVE" color="emerald" />
+              </div>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                Unified messaging hub (WhatsApp & Portal Mail) alongside full-scope institutional audit trail.
               </p>
             </div>
           </div>
         </div>
 
-        {/* Dual-Window Tab Navigation */}
-        <div className="flex items-center gap-3">
-          <div className="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200/80 shadow-xs">
-            <button
-              onClick={() => setActiveWindow("messages")}
-              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold transition-all ${
-                activeWindow === "messages"
-                  ? "bg-white text-slate-900 shadow-sm"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              <MessageSquare size={16} className={activeWindow === "messages" ? "text-emerald-600" : ""} />
-              <span>Messages Hub</span>
-              {unreadCount > 0 && (
-                <span className="rounded-full bg-emerald-500 px-1.5 py-0.2 text-[10px] font-bold text-white">
-                  {unreadCount}
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => setActiveWindow("audit")}
-              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold transition-all ${
-                activeWindow === "audit"
-                  ? "bg-white text-slate-900 shadow-sm"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              <ShieldCheck size={16} className={activeWindow === "audit" ? "text-accent" : ""} />
-              <span>Audit Logs</span>
-              <span className="rounded-full bg-slate-200 px-1.5 py-0.2 text-[10px] font-bold text-slate-700">
-                {activityLogs.length}
-              </span>
-            </button>
-          </div>
+        {/* Dual-Window Tab Navigation with Gliding Motion Pill */}
+        <div className="flex flex-wrap items-center gap-3">
+          <InteractiveTabSwitcher
+            tabs={[
+              {
+                id: "messages",
+                label: "Messages Hub",
+                icon: MessageSquare,
+                badge: unreadCount > 0 ? `${unreadCount} new` : undefined,
+              },
+              {
+                id: "audit",
+                label: "Audit Logs",
+                icon: ShieldCheck,
+                badge: activityLogs.length,
+              },
+            ]}
+            activeTab={activeWindow}
+            onTabChange={setActiveWindow}
+            layoutId="adminActivityTabs"
+          />
 
           {activeWindow === "messages" ? (
             <Button
@@ -374,7 +365,7 @@ export default function AdminActivitiesPage() {
       {/* WINDOW 1: MESSAGES HUB (MAIL & WHATSAPP INTERFACE)                    */}
       {/* ══════════════════════════════════════════════════════════════════════ */}
       {activeWindow === "messages" && (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <RevealOnScroll className="grid grid-cols-1 gap-6 lg:grid-cols-12">
           {/* Left Column: Messages List (38% on desktop) */}
           <div className="lg:col-span-5 flex flex-col h-[750px] rounded-2xl border border-border bg-card shadow-xs overflow-hidden">
             {/* List Header & Search */}
@@ -395,48 +386,24 @@ export default function AdminActivitiesPage() {
                 </button>
               </div>
 
-              {/* Search Bar */}
-              <div className="relative">
-                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search sender, message, subject..."
-                  value={msgSearch}
-                  onChange={(e) => setMsgSearch(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white py-1.5 pl-9 pr-8 text-xs text-slate-800 placeholder-slate-400 focus:border-accent focus:ring-1 focus:ring-accent outline-none"
-                />
-                {msgSearch && (
-                  <button
-                    onClick={() => setMsgSearch("")}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  >
-                    <X size={13} />
-                  </button>
-                )}
-              </div>
-
-              {/* Category Filter Pills */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 text-[11px] scrollbar-none">
-                {[
-                  { id: "all", label: "All" },
-                  { id: "inquiry", label: "Inquiries" },
-                  { id: "broadcast", label: "Broadcasts" },
-                  { id: "warning", label: "Warnings" },
-                  { id: "notice", label: "Notices" },
-                ].map((pill) => (
-                  <button
-                    key={pill.id}
-                    onClick={() => setMsgFilter(pill.id)}
-                    className={`rounded-lg px-2.5 py-1 font-medium whitespace-nowrap transition-all ${
-                      msgFilter === pill.id
-                        ? "bg-slate-900 text-white shadow-2xs"
-                        : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100"
-                    }`}
-                  >
-                    {pill.label}
-                  </button>
-                ))}
-              </div>
+              {/* Interactive Search Box with category filters and shortcut key */}
+              <InteractiveSearchBox
+                value={msgSearch}
+                onChange={setMsgSearch}
+                placeholder="Search sender, message, subject..."
+                totalCount={messages.length}
+                filteredCount={filteredMessages.length}
+                filters={[
+                  { id: "all", label: "All", count: messages.length },
+                  { id: "inquiry", label: "Inquiries", count: messages.filter((m) => m.category === "inquiry").length },
+                  { id: "broadcast", label: "Broadcasts", count: messages.filter((m) => m.category === "broadcast").length },
+                  { id: "warning", label: "Warnings", count: messages.filter((m) => m.category === "warning").length },
+                  { id: "notice", label: "Notices", count: messages.filter((m) => m.category === "notice").length },
+                ]}
+                activeFilter={msgFilter}
+                onFilterChange={setMsgFilter}
+                shortcutKey="/"
+              />
             </div>
 
             {/* List Body */}
@@ -781,112 +748,109 @@ export default function AdminActivitiesPage() {
               </div>
             )}
           </div>
-        </div>
+        </RevealOnScroll>
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════ */}
       {/* WINDOW 2: AUDIT LOGS ("ALL AUDIT MESSAGES")                           */}
       {/* ══════════════════════════════════════════════════════════════════════ */}
       {activeWindow === "audit" && (
-        <div className="space-y-6">
-          {/* Top 4 KPI Metrics */}
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <Card className="p-4 bg-white border border-border/80 shadow-xs">
-              <div className="flex items-center justify-between text-slate-500 mb-1">
-                <span className="text-xs font-semibold">Total Audits</span>
-                <ShieldCheck size={16} className="text-accent" />
-              </div>
-              <div className="text-2xl font-bold font-heading text-slate-900">{auditMetrics.total}</div>
-              <p className="text-[11px] text-slate-400 mt-0.5">Tracked institutional events</p>
-            </Card>
+        <RevealOnScroll className="space-y-6">
+          {/* Top 4 KPI Metrics with StaggerGrid & AnimatedCounter */}
+          <StaggerGrid className="grid grid-cols-2 gap-4 sm:grid-cols-4" staggerDelay={0.06}>
+            <StaggerCard>
+              <GlassCard className="p-4">
+                <div className="flex items-center justify-between text-slate-500 mb-1">
+                  <span className="text-xs font-semibold">Total Audits</span>
+                  <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600">
+                    <ShieldCheck size={16} />
+                  </div>
+                </div>
+                <div className="text-2xl font-bold font-heading text-slate-900">
+                  <AnimatedCounter target={auditMetrics.total} />
+                </div>
+                <p className="text-[11px] text-slate-400 mt-0.5">Tracked institutional events</p>
+              </GlassCard>
+            </StaggerCard>
 
-            <Card className="p-4 bg-white border border-border/80 shadow-xs">
-              <div className="flex items-center justify-between text-slate-500 mb-1">
-                <span className="text-xs font-semibold">Placement Drives</span>
-                <Briefcase size={16} className="text-blue-600" />
-              </div>
-              <div className="text-2xl font-bold font-heading text-slate-900">{auditMetrics.drives}</div>
-              <p className="text-[11px] text-slate-400 mt-0.5">Drive creations & updates</p>
-            </Card>
+            <StaggerCard>
+              <GlassCard className="p-4">
+                <div className="flex items-center justify-between text-slate-500 mb-1">
+                  <span className="text-xs font-semibold">Placement Drives</span>
+                  <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+                    <Briefcase size={16} />
+                  </div>
+                </div>
+                <div className="text-2xl font-bold font-heading text-blue-600">
+                  <AnimatedCounter target={auditMetrics.drives} />
+                </div>
+                <p className="text-[11px] text-slate-400 mt-0.5">Drive creations & updates</p>
+              </GlassCard>
+            </StaggerCard>
 
-            <Card className="p-4 bg-white border border-border/80 shadow-xs">
-              <div className="flex items-center justify-between text-slate-500 mb-1">
-                <span className="text-xs font-semibold">Applications</span>
-                <Users size={16} className="text-emerald-600" />
-              </div>
-              <div className="text-2xl font-bold font-heading text-slate-900">{auditMetrics.applications}</div>
-              <p className="text-[11px] text-slate-400 mt-0.5">Student submissions & status</p>
-            </Card>
+            <StaggerCard>
+              <GlassCard className="p-4">
+                <div className="flex items-center justify-between text-slate-500 mb-1">
+                  <span className="text-xs font-semibold">Applications</span>
+                  <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600">
+                    <Users size={16} />
+                  </div>
+                </div>
+                <div className="text-2xl font-bold font-heading text-emerald-600">
+                  <AnimatedCounter target={auditMetrics.applications} />
+                </div>
+                <p className="text-[11px] text-slate-400 mt-0.5">Student submissions & status</p>
+              </GlassCard>
+            </StaggerCard>
 
-            <Card className="p-4 bg-white border border-border/80 shadow-xs">
-              <div className="flex items-center justify-between text-slate-500 mb-1">
-                <span className="text-xs font-semibold">Warnings & Alerts</span>
-                <AlertTriangle size={16} className="text-rose-600" />
-              </div>
-              <div className="text-2xl font-bold font-heading text-slate-900">{auditMetrics.warnings}</div>
-              <p className="text-[11px] text-slate-400 mt-0.5">Disciplinary notices issued</p>
-            </Card>
-          </div>
+            <StaggerCard>
+              <GlassCard className="p-4">
+                <div className="flex items-center justify-between text-slate-500 mb-1">
+                  <span className="text-xs font-semibold">Warnings & Alerts</span>
+                  <div className="p-1.5 rounded-lg bg-rose-50 text-rose-600">
+                    <AlertTriangle size={16} />
+                  </div>
+                </div>
+                <div className="text-2xl font-bold font-heading text-rose-600">
+                  <AnimatedCounter target={auditMetrics.warnings} />
+                </div>
+                <p className="text-[11px] text-slate-400 mt-0.5">Disciplinary notices issued</p>
+              </GlassCard>
+            </StaggerCard>
+          </StaggerGrid>
 
-          {/* Audit Controls & Filters */}
-          <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-xs">
+          {/* Audit Controls & Interactive Search Box */}
+          <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/90 bg-white/90 backdrop-blur-md p-4 shadow-xs">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-              {/* Search */}
-              <div className="relative flex-1">
-                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search by action, actor, target entity, or details..."
+              <div className="flex-1">
+                <InteractiveSearchBox
                   value={auditSearch}
-                  onChange={(e) => setAuditSearch(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-8 text-xs text-slate-800 placeholder-slate-400 focus:border-accent focus:ring-1 focus:ring-accent outline-none"
+                  onChange={setAuditSearch}
+                  placeholder="Search by action, actor, target entity, or details..."
+                  totalCount={activityLogs.length}
+                  filteredCount={filteredAuditLogs.length}
+                  filters={[
+                    { id: "all", label: "All Events", count: activityLogs.length },
+                    { id: "drives", label: "Drives", count: activityLogs.filter((l) => l.category === "drives").length },
+                    { id: "applications", label: "Applications", count: activityLogs.filter((l) => l.category === "applications").length },
+                    { id: "warnings", label: "Warnings", count: activityLogs.filter((l) => l.category === "warnings" || l.severity === "warning").length },
+                    { id: "audit", label: "Platform Audits", count: activityLogs.filter((l) => l.category === "audit").length },
+                  ]}
+                  activeFilter={auditCategoryFilter}
+                  onFilterChange={setAuditCategoryFilter}
+                  shortcutKey="/"
                 />
-                {auditSearch && (
-                  <button
-                    onClick={() => setAuditSearch("")}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  >
-                    <X size={13} />
-                  </button>
-                )}
               </div>
 
-              {/* Refresh */}
+              {/* Refresh Button */}
               <button
                 onClick={() => refetchActivity()}
-                className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 shadow-2xs"
+                className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-2xs self-start md:self-auto shrink-0 transition-all"
               >
-                <RefreshCw size={13} />
+                <RefreshCw size={14} />
                 <span>Refresh Logs</span>
               </button>
             </div>
-
-            {/* Category & Severity Filter Pills */}
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100">
-              <div className="flex items-center gap-1.5 overflow-x-auto text-xs">
-                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mr-1">
-                  Category:
-                </span>
-                {[
-                  { id: "all", label: "All Events" },
-                  { id: "drives", label: "Drives" },
-                  { id: "applications", label: "Applications" },
-                  { id: "warnings", label: "Warnings" },
-                  { id: "audit", label: "Platform Audits" },
-                ].map((c) => (
-                  <button
-                    key={c.id}
-                    onClick={() => setAuditCategoryFilter(c.id)}
-                    className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-all ${
-                      auditCategoryFilter === c.id
-                        ? "bg-slate-900 text-white shadow-2xs"
-                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                    }`}
-                  >
-                    {c.label}
-                  </button>
-                ))}
-              </div>
 
               <div className="flex items-center gap-1.5 text-xs">
                 <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mr-1">
@@ -907,7 +871,6 @@ export default function AdminActivitiesPage() {
                 ))}
               </div>
             </div>
-          </div>
 
           {/* Audit Logs Table / Stream */}
           <div className="rounded-2xl border border-border bg-card shadow-xs overflow-hidden">
@@ -1002,7 +965,7 @@ export default function AdminActivitiesPage() {
               </div>
             )}
           </div>
-        </div>
+        </RevealOnScroll>
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════ */}

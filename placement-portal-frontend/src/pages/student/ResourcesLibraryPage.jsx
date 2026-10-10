@@ -20,6 +20,12 @@ import {
 } from "lucide-react";
 import { useActiveFeatures } from "../../hooks/useActiveFeatures";
 import { Button } from "../../components/ui/Button";
+import {
+  AnimatedWords,
+  LiveStatusBeacon,
+  StudentTickerRibbon,
+  InteractiveTabSwitcher,
+} from "../../components/common/MotionKit";
 
 export default function ResourcesLibraryPage() {
   const { isFeatureActive } = useActiveFeatures();
@@ -167,43 +173,40 @@ export default function ResourcesLibraryPage() {
   return (
     <div className="space-y-6 font-sans">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 font-heading">Resource Center</h1>
-        <p className="text-slate-600 mt-1">
-          Curriculum-aligned textbooks, curated articles, and interview preparation materials.
-        </p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/80 pb-6">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1.5">
+              <BookOpen size={13} className="text-emerald-600" />
+              <span>Institutional Curriculum Library</span>
+            </span>
+            <LiveStatusBeacon label="REPOSITORY SYNCED" variant="active" />
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight font-heading">
+            <AnimatedWords text="Curriculum & Study Resource Center" delay={0.05} />
+          </h1>
+          <p className="text-sm text-slate-600 mt-1 max-w-2xl">
+            Curriculum-aligned textbooks, curated articles, and interview preparation materials.
+          </p>
+        </div>
       </div>
 
-      {/* Top Organization Tabs (§6.2) */}
-      <div className="flex border-b border-slate-200">
-        <button
-          onClick={() => {
-            setActiveTab("curriculum");
+      {/* Marquee Ticker */}
+      <StudentTickerRibbon />
+
+      {/* Top Organization Tabs */}
+      <div className="flex justify-start">
+        <InteractiveTabSwitcher
+          tabs={[
+            { id: "curriculum", label: "By Subject (Curriculum)", icon: GraduationCap },
+            { id: "flat", label: "Study Materials Library", icon: BookOpen },
+          ]}
+          activeTab={activeTab}
+          onTabChange={(id) => {
+            setActiveTab(id);
             setSelectedSubject(null);
           }}
-          className={`flex items-center gap-2 pb-3 px-4 text-sm font-semibold border-b-2 transition-colors ${
-            activeTab === "curriculum"
-              ? "border-accent text-accent"
-              : "border-transparent text-slate-500 hover:text-slate-800"
-          }`}
-        >
-          <GraduationCap size={18} />
-          By Subject (Curriculum)
-        </button>
-        <button
-          onClick={() => {
-            setActiveTab("flat");
-            setSelectedSubject(null);
-          }}
-          className={`flex items-center gap-2 pb-3 px-4 text-sm font-semibold border-b-2 transition-colors ${
-            activeTab === "flat"
-              ? "border-accent text-accent"
-              : "border-transparent text-slate-500 hover:text-slate-800"
-          }`}
-        >
-          <BookOpen size={18} />
-          Study Materials Library
-        </button>
+        />
       </div>
 
       {/* ========================================================================= */}

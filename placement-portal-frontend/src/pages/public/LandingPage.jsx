@@ -398,27 +398,131 @@ function RotatingHeroBadge() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   CAMPUS BENCHMARK & READINESS KNOWLEDGE BASE
+   ═══════════════════════════════════════════════════════════════════════════ */
+const COLLEGE_DATABASE = {
+  "bvmengineering.ac.in": {
+    domain: "bvmengineering.ac.in",
+    name: "Birla Vishvakarma Mahavidyalaya (BVM)",
+    badge: "✓ NAAC A+ • NBA ACCREDITED",
+    students: "1,420 Eligible Candidates",
+    readiness: 88,
+    activeDrives: 26,
+    recruiters: 18,
+    avgPackage: "₹8.4 LPA",
+    highestPackage: "₹18.0 LPA",
+    topRoles: [
+      { role: "Software Engineer (SDE I)", ctc: "₹18 LPA", diff: "16", intent: "Eligible (88% Match)", color: "text-emerald-600 bg-emerald-50 border-emerald-200" },
+      { role: "DevOps & Cloud Engineer", ctc: "₹14 LPA", diff: "24", intent: "Eligible (84% Match)", color: "text-emerald-600 bg-emerald-50 border-emerald-200" },
+      { role: "Data Platform Architect", ctc: "₹22 LPA", diff: "18", intent: "Dream Tier", color: "text-blue-600 bg-blue-50 border-blue-200" },
+    ],
+    insights: "88% core curriculum alignment with top 18 active tech recruiters.",
+  },
+  "iitb.ac.in": {
+    domain: "iitb.ac.in",
+    name: "IIT Bombay",
+    badge: "✓ TIER-1 • INSTITUTE OF EMINENCE",
+    students: "2,850 Eligible Candidates",
+    readiness: 96,
+    activeDrives: 64,
+    recruiters: 42,
+    avgPackage: "₹22.8 LPA",
+    highestPackage: "₹54.0 LPA",
+    topRoles: [
+      { role: "AI Research Scientist", ctc: "₹42 LPA", diff: "8", intent: "Eligible (96% Match)", color: "text-emerald-600 bg-emerald-50 border-emerald-200" },
+      { role: "Quantitative Strategist", ctc: "₹38 LPA", diff: "10", intent: "Eligible (94% Match)", color: "text-emerald-600 bg-emerald-50 border-emerald-200" },
+      { role: "Distributed Systems SDE", ctc: "₹28 LPA", diff: "12", intent: "Dream Tier", color: "text-blue-600 bg-blue-50 border-blue-200" },
+    ],
+    insights: "96% competitive coding readiness across global tech product firms.",
+  },
+  "coep.ac.in": {
+    domain: "coep.ac.in",
+    name: "COEP Technological University",
+    badge: "✓ STATE AUTONOMOUS • NIRF TOP 50",
+    students: "1,680 Eligible Candidates",
+    readiness: 91,
+    activeDrives: 38,
+    recruiters: 28,
+    avgPackage: "₹11.2 LPA",
+    highestPackage: "₹32.0 LPA",
+    topRoles: [
+      { role: "Systems Engineer (Core)", ctc: "₹16 LPA", diff: "14", intent: "Eligible (91% Match)", color: "text-emerald-600 bg-emerald-50 border-emerald-200" },
+      { role: "Cloud Platform SDE", ctc: "₹14 LPA", diff: "18", intent: "Eligible (89% Match)", color: "text-emerald-600 bg-emerald-50 border-emerald-200" },
+      { role: "Automotive Embedded SDE", ctc: "₹12 LPA", diff: "20", intent: "Direct Gate", color: "text-blue-600 bg-blue-50 border-blue-200" },
+    ],
+    insights: "91% core systems & embedded engineering readiness with 28 recruiters.",
+  },
+  "vjti.ac.in": {
+    domain: "vjti.ac.in",
+    name: "VJTI Mumbai",
+    badge: "✓ MUMBAI UNIVERSITY • CENTURY OLD",
+    students: "1,510 Eligible Candidates",
+    readiness: 89,
+    activeDrives: 32,
+    recruiters: 24,
+    avgPackage: "₹10.6 LPA",
+    highestPackage: "₹28.0 LPA",
+    topRoles: [
+      { role: "FinTech Analyst (SDE)", ctc: "₹18 LPA", diff: "15", intent: "Eligible (89% Match)", color: "text-emerald-600 bg-emerald-50 border-emerald-200" },
+      { role: "Full Stack Engineer", ctc: "₹12 LPA", diff: "22", intent: "Eligible (86% Match)", color: "text-emerald-600 bg-emerald-50 border-emerald-200" },
+      { role: "Data Science Associate", ctc: "₹15 LPA", diff: "17", intent: "Dream Tier", color: "text-blue-600 bg-blue-50 border-blue-200" },
+    ],
+    insights: "89% readiness across Mumbai financial tech & banking campus drives.",
+  },
+};
+
+function getCollegeProfile(inputDomain) {
+  const clean = (inputDomain || "").trim().toLowerCase();
+  if (COLLEGE_DATABASE[clean]) return COLLEGE_DATABASE[clean];
+
+  for (const [key, data] of Object.entries(COLLEGE_DATABASE)) {
+    if (clean.includes(key.split(".")[0])) return data;
+  }
+
+  let hash = 0;
+  for (let i = 0; i < clean.length; i++) hash = (hash << 5) - hash + clean.charCodeAt(i);
+  const absHash = Math.abs(hash);
+
+  const prefix = clean.split(".")[0] || "campus";
+  const formattedName = prefix.charAt(0).toUpperCase() + prefix.slice(1) + " Engineering Institute";
+  const readiness = 82 + (absHash % 12);
+  const activeDrives = 20 + (absHash % 24);
+  const recruiters = 14 + (absHash % 16);
+  const avgPkg = (7.2 + (absHash % 70) / 10).toFixed(1);
+
+  return {
+    domain: clean || "campus.edu",
+    name: formattedName,
+    badge: "✓ VERIFIED ACCREDITED DOMAIN",
+    students: `${(1000 + (absHash % 1200)).toLocaleString()} Eligible Candidates`,
+    readiness,
+    activeDrives,
+    recruiters,
+    avgPackage: `₹${avgPkg} LPA`,
+    highestPackage: `₹${(parseFloat(avgPkg) * 2.2).toFixed(1)} LPA`,
+    topRoles: [
+      { role: "Software Engineer (SDE I)", ctc: `₹${(parseFloat(avgPkg) * 1.8).toFixed(0)} LPA`, diff: "16", intent: `Eligible (${readiness}% Match)`, color: "text-emerald-600 bg-emerald-50 border-emerald-200" },
+      { role: "Cloud & DevOps SDE", ctc: `₹${(parseFloat(avgPkg) * 1.4).toFixed(0)} LPA`, diff: "22", intent: `Eligible (${readiness - 4}% Match)`, color: "text-emerald-600 bg-emerald-50 border-emerald-200" },
+      { role: "Full Stack Engineer", ctc: `₹${avgPkg} LPA`, diff: "14", intent: "Direct Gate", color: "text-blue-600 bg-blue-50 border-blue-200" },
+    ],
+    insights: `${readiness}% curriculum readiness alignment across ${activeDrives} active campus drives.`,
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    MAIN COMPONENT: INTERNBRIDGE
    ═══════════════════════════════════════════════════════════════════════════ */
 export default function LandingPage() {
   const { user } = useAuth();
   const { scrollYProgress } = useScroll();
 
-  // Milestone Position & Rank Meter
-  const [activeRank, setActiveRank] = useState({ pos: 87, page: 9 });
   const [activeNav, setActiveNav] = useState("how-it-works");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Hero Domain Scanner State
   const [collegeQuery, setCollegeQuery] = useState("bvmengineering.ac.in");
   const [isScanning, setIsScanning] = useState(false);
-  const [scanResult, setScanResult] = useState({
-    name: "BVM Engineering College",
-    students: "1,420 Eligible",
-    readiness: 88,
-    activeDrives: 26,
-    avgPackage: "₹8.4 LPA",
-  });
+  const [scanResult, setScanResult] = useState(COLLEGE_DATABASE["bvmengineering.ac.in"]);
 
   // Active selected node in Hero Network Topology
   const [activeGraphNode, setActiveGraphNode] = useState("campus");
@@ -629,7 +733,6 @@ export default function LandingPage() {
             newNav = "pricing";
           }
 
-          setActiveRank((prev) => (prev.pos !== newRank.pos ? newRank : prev));
           setActiveNav((prev) => (prev !== newNav ? newNav : prev));
 
           ticking = false;
@@ -642,21 +745,18 @@ export default function LandingPage() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Handle Domain Scanner
-  const handleScanCollege = () => {
+  // Handle Domain Scanner & Readiness Analysis
+  const handleScanCollege = (targetDomain) => {
+    const domain = targetDomain !== undefined ? targetDomain : collegeQuery;
+    if (targetDomain !== undefined) {
+      setCollegeQuery(targetDomain);
+    }
     setIsScanning(true);
     setTimeout(() => {
       setIsScanning(false);
-      const isBvm = collegeQuery.toLowerCase().includes("bvm");
-      const isIit = collegeQuery.toLowerCase().includes("iit");
-      setScanResult({
-        name: isIit ? "Indian Institute of Technology" : isBvm ? "BVM Engineering College" : "Accredited Campus Network",
-        students: isIit ? "2,250 Candidates" : "1,420 Eligible",
-        readiness: isIit ? 97 : isBvm ? 89 : 85,
-        activeDrives: isIit ? 52 : 26,
-        avgPackage: isIit ? "₹19.4 LPA" : "₹8.4 LPA",
-      });
-    }, 550);
+      const profile = getCollegeProfile(domain);
+      setScanResult(profile);
+    }, 450);
   };
 
   // Run AI Evaluation simulator with progressive telemetry steps
@@ -770,8 +870,8 @@ export default function LandingPage() {
       {/* ───────────────────────────────────────────────────────────────────────
           FIXED NAVBAR WITH CLEAN SPACING, SEGMENTED TICK METER & MOBILE DRAWER
          ─────────────────────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/95 border-b border-slate-200/80 shadow-2xs transition-all">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 lg:gap-3 flex-nowrap">
+      <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/95 border-b border-slate-200/80 shadow-2xs transition-all w-full">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 shrink-0 group">
             <motion.div
@@ -818,44 +918,26 @@ export default function LandingPage() {
             })}
           </nav>
 
-          {/* Signature Position & Page Rank Meter (Segmented Ticks from Video) */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200/90 text-xs font-mono shadow-2xs whitespace-nowrap shrink-0">
-              <span className="text-slate-400 text-[10px] uppercase tracking-wider font-bold">POSITION</span>
-              <span className="text-blue-600 font-black text-xs sm:text-sm tracking-tight">#{activeRank.pos}</span>
-              <span className="text-slate-300">|</span>
-              <span className="text-slate-500 text-[11px] font-medium">page {activeRank.page}</span>
-              
-              {/* Segmented 9-Tick Indicator (Exact visual from video) */}
-              <div className="flex items-center gap-[3px] pl-1">
-                {[9, 8, 7, 6, 5, 4, 3, 2, 1].map((p) => (
-                  <motion.div
-                    key={p}
-                    animate={{
-                      scaleY: activeRank.page <= p ? [1, 1.25, 1] : 1,
-                    }}
-                    transition={{ duration: 0.3 }}
-                    className={`w-[3px] h-3.5 rounded-full transition-all duration-300 ${
-                      activeRank.page <= p
-                        ? "bg-gradient-to-t from-blue-600 to-indigo-600 shadow-xs"
-                        : "bg-slate-200"
-                    }`}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Auth Actions */}
+          {/* Auth Actions & Mobile Trigger */}
+          <div className="flex items-center gap-2 xl:gap-3 shrink-0">
             <Link
               to="/login"
-              className="text-xs xl:text-sm font-bold text-slate-700 hover:text-slate-900 px-2.5 py-1.5 transition-colors whitespace-nowrap shrink-0"
+              className="text-xs xl:text-sm font-bold text-slate-700 hover:text-slate-900 px-2 sm:px-2.5 py-1.5 transition-colors whitespace-nowrap"
             >
               Log In
             </Link>
+
+            <Link
+              to="/signup/email"
+              className="hidden sm:inline-flex items-center gap-1 text-xs xl:text-sm font-semibold text-blue-600 hover:text-blue-700 px-2.5 xl:px-3 py-1.5 rounded-full border border-blue-200 bg-blue-50/70 hover:bg-blue-100 transition-all whitespace-nowrap"
+            >
+              Student Register
+            </Link>
+
             <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }} className="shrink-0">
               <Link
-                to="/signup"
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs xl:text-sm font-bold transition-all shadow-md shadow-blue-600/20 whitespace-nowrap"
+                to="/register-college"
+                className="inline-flex items-center gap-1.5 px-3.5 xl:px-4 py-1.5 xl:py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs xl:text-sm font-bold transition-all shadow-md shadow-blue-600/20 whitespace-nowrap"
               >
                 Start Free <ArrowRight className="w-3.5 h-3.5" />
               </Link>
@@ -896,9 +978,30 @@ export default function LandingPage() {
                   {link.label}
                 </a>
               ))}
-              <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs font-mono text-slate-500">
-                <span>Current position: <strong className="text-blue-600">#{activeRank.pos}</strong></span>
-                <span>Page {activeRank.page} of 9</span>
+              <div className="pt-3 border-t border-slate-100 flex flex-col gap-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <Link
+                    to="/login"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="py-2 text-center rounded-xl border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 text-xs"
+                  >
+                    Log In
+                  </Link>
+                  <Link
+                    to="/signup/email"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="py-2 text-center rounded-xl border border-blue-200 bg-blue-50 text-blue-700 font-bold hover:bg-blue-100 text-xs"
+                  >
+                    Student Register
+                  </Link>
+                </div>
+                <Link
+                  to="/register-college"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full py-2.5 text-center rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-sm text-xs flex items-center justify-center gap-1.5"
+                >
+                  Start Free (College Onboarding) <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
               </div>
             </motion.div>
           )}
@@ -936,7 +1039,13 @@ export default function LandingPage() {
             {/* Interactive Domain / Campus Scanner Bar */}
             <RevealOnScroll delay={0.35}>
               <div className="p-2 sm:p-2.5 rounded-2xl bg-white border border-slate-200/90 shadow-xl shadow-slate-200/40 backdrop-blur-md max-w-xl">
-                <div className="flex flex-col sm:flex-row gap-2">
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleScanCollege();
+                  }}
+                  className="flex flex-col sm:flex-row gap-2"
+                >
                   <div className="relative flex-1">
                     <Globe className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
@@ -948,9 +1057,9 @@ export default function LandingPage() {
                     />
                   </div>
                   <motion.button
+                    type="submit"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.96 }}
-                    onClick={handleScanCollege}
                     disabled={isScanning}
                     className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-md shadow-blue-600/20 shrink-0 cursor-pointer"
                   >
@@ -965,7 +1074,7 @@ export default function LandingPage() {
                       </>
                     )}
                   </motion.button>
-                </div>
+                </form>
 
                 {/* Sample college domain chips */}
                 <div className="mt-2.5 pt-2 border-t border-slate-100 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
@@ -973,16 +1082,39 @@ export default function LandingPage() {
                   {["bvmengineering.ac.in", "iitb.ac.in", "coep.ac.in", "vjti.ac.in"].map((chip) => (
                     <button
                       key={chip}
-                      onClick={() => {
-                        setCollegeQuery(chip);
-                        handleScanCollege();
-                      }}
-                      className="text-blue-600 hover:text-blue-800 underline font-mono font-medium cursor-pointer"
+                      type="button"
+                      onClick={() => handleScanCollege(chip)}
+                      className={`underline font-mono font-medium cursor-pointer transition-colors ${
+                        collegeQuery.toLowerCase() === chip ? "text-blue-700 font-bold" : "text-blue-600 hover:text-blue-800"
+                      }`}
                     >
                       {chip}
                     </button>
                   ))}
                 </div>
+
+                {/* Analysis Quick Verdict Banner */}
+                {scanResult && (
+                  <motion.div
+                    key={scanResult.domain}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-2.5 p-2.5 rounded-xl bg-blue-50/90 border border-blue-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs text-blue-900"
+                  >
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>
+                        <strong>{scanResult.name}</strong>: <span className="font-bold text-blue-700">{scanResult.readiness}% Readiness Index</span> • {scanResult.students}
+                      </span>
+                    </div>
+                    <a
+                      href="#readiness"
+                      className="inline-flex items-center gap-1 font-bold text-blue-600 hover:text-blue-800 hover:underline shrink-0 text-[11px]"
+                    >
+                      View Cutoff Map &darr;
+                    </a>
+                  </motion.div>
+                )}
               </div>
             </RevealOnScroll>
 
@@ -1002,18 +1134,27 @@ export default function LandingPage() {
                 {/* Card top banner */}
                 <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                    <span className="font-mono text-xs font-bold text-slate-700">
-                      campus analysis: <span className="text-blue-600">{collegeQuery}</span>
+                    <span className={`w-2 h-2 rounded-full ${isScanning ? "bg-amber-500 animate-ping" : "bg-emerald-500 animate-pulse"}`} />
+                    <span className="font-mono text-xs font-bold text-slate-700 truncate max-w-[200px]">
+                      campus analysis: <span className="text-blue-600">{scanResult.domain || collegeQuery}</span>
                     </span>
                   </div>
-                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    ✓ VERIFIED ACCREDITED
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                    {scanResult.badge || "✓ VERIFIED ACCREDITED"}
                   </span>
                 </div>
 
                 {/* Interactive Node Graph Map Canvas with Animated Data Pulses */}
                 <div className="h-44 sm:h-52 relative my-4 flex items-center justify-center bg-slate-50/70 rounded-2xl border border-slate-200/60 p-3 overflow-hidden">
+                  {isScanning && (
+                    <div className="absolute inset-0 bg-blue-600/10 backdrop-blur-[1px] flex items-center justify-center rounded-2xl z-20">
+                      <div className="bg-white/95 px-3.5 py-1.5 rounded-full border border-blue-200 shadow-md flex items-center gap-2 font-mono text-xs text-blue-700 font-bold">
+                        <div className="w-3.5 h-3.5 border-2 border-blue-600/30 border-t-blue-600 rounded-full animate-spin" />
+                        Evaluating {collegeQuery}...
+                      </div>
+                    </div>
+                  )}
+
                   <svg className="w-full h-full" viewBox="0 0 400 200">
                     {/* Animated Data Packets Flowing Lines */}
                     <g className="opacity-60">
@@ -1093,7 +1234,7 @@ export default function LandingPage() {
                     <p className="text-[10px] text-slate-500">Readiness</p>
                   </div>
                   <div>
-                    <p className="text-base font-extrabold text-emerald-600">18</p>
+                    <p className="text-base font-extrabold text-emerald-600">{scanResult.recruiters}</p>
                     <p className="text-[10px] text-slate-500">Recruiters</p>
                   </div>
                   <div>
@@ -1110,13 +1251,12 @@ export default function LandingPage() {
                     <span>DIFFICULTY</span>
                     <span>STATUS</span>
                   </div>
-                  {[
-                    { role: "Software Engineer (SDE I)", ctc: "₹18 LPA", diff: "16", intent: "Eligible", color: "text-emerald-600 bg-emerald-50 border-emerald-200" },
-                    { role: "DevOps & Cloud Engineer", ctc: "₹14 LPA", diff: "24", intent: "Eligible", color: "text-emerald-600 bg-emerald-50 border-emerald-200" },
-                    { role: "Data Platform Architect", ctc: "₹22 LPA", diff: "18", intent: "Dream Tier", color: "text-blue-600 bg-blue-50 border-blue-200" },
-                  ].map((row, i) => (
+                  {(scanResult.topRoles || []).map((row, i) => (
                     <motion.div
-                      key={i}
+                      key={`${scanResult.domain}-${i}`}
+                      initial={{ opacity: 0, x: -4 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.05 }}
                       whileHover={{ x: 3 }}
                       className="flex justify-between items-center py-1 border-b border-slate-50 text-slate-700 transition-transform"
                     >
@@ -1128,6 +1268,14 @@ export default function LandingPage() {
                       </span>
                     </motion.div>
                   ))}
+                </div>
+
+                {/* Insights Summary Banner */}
+                <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] font-mono text-slate-500">
+                  <span className="truncate max-w-[280px]">{scanResult.insights}</span>
+                  <a href="#readiness" className="text-blue-600 hover:text-blue-800 font-bold shrink-0 ml-2 hover:underline">
+                    Details &rarr;
+                  </a>
                 </div>
               </div>
             </RevealOnScroll>
@@ -2483,7 +2631,7 @@ export default function LandingPage() {
             </div>
 
             <Link
-              to="/signup"
+              to="/signup/email"
               className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 text-xs font-bold font-mono text-center block transition-colors"
             >
               Start Free as Student &rarr;
@@ -2662,18 +2810,18 @@ export default function LandingPage() {
           <RevealOnScroll delay={0.3} className="pt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
             <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
               <Link
-                to="/signup"
-                className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-all shadow-lg shadow-blue-600/25 block"
+                to="/register-college"
+                className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-all shadow-lg shadow-blue-600/25 block text-center"
               >
-                Start Free as Student &rarr;
+                Start Free for Colleges &rarr;
               </Link>
             </motion.div>
             <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
               <Link
-                to="/register-college"
-                className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-white hover:bg-slate-50 text-slate-900 border border-slate-300 font-bold text-sm transition-all shadow-2xs block"
+                to="/signup/email"
+                className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-white hover:bg-slate-50 text-slate-900 border border-slate-300 font-bold text-sm transition-all shadow-2xs block text-center"
               >
-                Register College License
+                Student Register Free
               </Link>
             </motion.div>
           </RevealOnScroll>
@@ -2733,7 +2881,8 @@ export default function LandingPage() {
           <div className="space-y-2">
             <h4 className="text-slate-900 font-bold uppercase tracking-wider text-[11px]">GET STARTED</h4>
             <div className="space-y-1.5 text-slate-600">
-              <p><Link to="/signup" className="hover:text-blue-600 transition-colors">Student Signup Free</Link></p>
+              <p><Link to="/register-college" className="hover:text-blue-600 transition-colors">Start Free (College Onboarding)</Link></p>
+              <p><Link to="/signup/email" className="hover:text-blue-600 transition-colors">Student Register</Link></p>
               <p><Link to="/login" className="hover:text-blue-600 transition-colors">Log in</Link></p>
               <p><Link to="/contact" className="hover:text-blue-600 transition-colors">Contact & Support</Link></p>
             </div>

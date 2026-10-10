@@ -1,10 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { tpoApi } from "../../api/tpo.api";
 import Spinner from "../../components/ui/Spinner";
 import Button from "../../components/common/Button";
 import Badge from "../../components/ui/Badge";
-import Input from "../../components/common/Input";
 import { showConfirm, showSuccess, showError } from "../../utils/swal";
 import { getAccessToken } from "../../utils/tokenStorage";
 import {
@@ -23,18 +22,30 @@ import {
   Sparkles,
   ArrowRight,
   Info,
+  ShieldCheck,
+  Zap
 } from "lucide-react";
 import { format } from "date-fns";
+import {
+  AnimatedWords,
+  LiveStatusBeacon,
+  StaggerGrid,
+  GlassCard,
+  AnimatedCounter,
+  InteractiveSearchBox,
+  RevealOnScroll
+} from "../../components/common/MotionKit";
 
 export default function TpoFeeReviewPage() {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterMode, setFilterMode] = useState("all");
   const [selectedReceipt, setSelectedReceipt] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectModal, setShowRejectModal] = useState(false);
 
   // Fetch pending review receipts
-  const { data: receipts = [], isLoading, isError } = useQuery({
+  const { data: receipts = [], isLoading, isError, error } = useQuery({
     queryKey: ["tpoPendingFeeReceipts"],
     queryFn: () => tpoApi.getPendingFeeReceipts().then((res) => res.data),
   });
@@ -65,15 +76,38 @@ export default function TpoFeeReviewPage() {
     },
   });
 
-  const filteredReceipts = receipts.filter((item) => {
-    const query = searchQuery.toLowerCase();
-    return (
-      item.student_name?.toLowerCase().includes(query) ||
-      item.student_email?.toLowerCase().includes(query) ||
-      item.roll_number?.toLowerCase().includes(query) ||
-      item.branch?.toLowerCase().includes(query)
-    );
-  });
+  // KPI telemetry calculations
+  const totalPending = receipts.length;
+  const highConfidenceCount = receipts.filter(r => (r.ai_confidence || 0) >= 0.8).length;
+  const lowConfidenceCount = receipts.filter(r => (r.ai_confidence || 0) < 0.8).length;
+  const deviationCount = receipts.filter(r => r.structural_match_result && !r.structural_match_result.matched).length;
+
+  const filterChips = [
+    { id: "all", label: "All Submissions", count: totalPending },
+    { id: "high_confidence", label: "High AI Confidence (≥80%)", count: highConfidenceCount },
+    { id: "audit_flagged", label: "Low AI Score (<80%)", count: lowConfidenceCount },
+    { id: "deviations", label: "Structural Deviations", count: deviationCount },
+  ];
+
+  const filteredReceipts = useMemo(() => {
+    return receipts.filter((item) => {
+      const query = searchQuery.toLowerCase();
+      const matchesSearch =
+        (item.student_name || "").toLowerCase().includes(query) ||
+        (item.student_email || "").toLowerCase().includes(query) ||
+        (item.roll_number || "").toLowerCase().includes(query) ||
+        (item.branch || "").toLowerCase().includes(query);
+
+      if (!matchesSearch) return false;
+
+      const conf = item.ai_confidence || 0;
+      if (filterMode === "high_confidence") return conf >= 0.8;
+      if (filterMode === "audit_flagged") return conf < 0.8;
+      if (filterMode === "deviations") return item.structural_match_result && !item.structural_match_result.matched;
+
+      return true;
+    });
+  }, [receipts, searchQuery, filterMode]);
 
   const handleApprove = async (receipt) => {
     const confirmed = await showConfirm(
@@ -116,56 +150,123 @@ export default function TpoFeeReviewPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-5">
+    <div className="space-y-8 max-w-7xl mx-auto pb-16">
+      {/* ════════════ TOPBAR & KINETIC HEADER ════════════ */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/80 pb-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground font-heading flex items-center gap-2.5">
-            <FileCheck2 className="h-7 w-7 text-primary" /> Placement Fee Verification Queue
+          <div className="flex items-center gap-2 mb-2">
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-blue-100 text-blue-800 border border-blue-200 flex items-center gap-1.5">
+              <Sparkles size={13} className="text-blue-600" />
+              <span>AI Vision & OCR Audit Pipeline</span>
+            </span>
+            <LiveStatusBeacon label="QUEUE ACTIVE" variant="active" />
+          </div>
+
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight font-heading">
+            <AnimatedWords text="Placement Fee Verification Queue" delay={0.05} />
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Review student fee receipts flagged by AI due to low confidence or structural deviations from the college template.
+          <p className="text-sm text-slate-600 mt-1 max-w-2xl">
+            Audit student fee payments flagged by AI OCR heuristics due to low confidence scores or structural deviations from college templates.
           </p>
         </div>
+
         <div className="flex items-center gap-3">
-          <Badge variant="brand" className="text-sm px-3 py-1 font-medium">
-            {receipts.length} Pending {receipts.length === 1 ? "Review" : "Reviews"}
-          </Badge>
+          <span className="px-3.5 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-xs font-bold font-mono">
+            {receipts.length} PENDING REVIEW
+          </span>
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-card p-4 rounded-xl border border-border shadow-xs">
-        <div className="relative w-full sm:w-96">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by student name, roll no, or branch..."
-            className="w-full pl-9 pr-4 py-2 text-sm bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
-          />
-        </div>
-        <span className="text-xs text-muted-foreground">
-          Showing {filteredReceipts.length} of {receipts.length} submissions
-        </span>
-      </div>
-
-      {/* Pending Items Grid / Empty State */}
-      {filteredReceipts.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-card p-12 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 mb-4">
-            <CheckCircle2 className="h-8 w-8" />
+      {/* ════════════ KPI SUMMARY CARDS ════════════ */}
+      <StaggerGrid columns="grid-cols-2 lg:grid-cols-4" gap="gap-4">
+        <GlassCard className="p-5 border-l-4 border-l-blue-600">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Pending Review</span>
+            <span className="p-2 rounded-xl bg-blue-50 text-blue-600">
+              <FileCheck2 size={18} />
+            </span>
           </div>
-          <h3 className="text-lg font-bold text-foreground">No Pending Verifications</h3>
-          <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
+          <div className="mt-3 text-3xl font-extrabold text-slate-900 font-mono">
+            <AnimatedCounter target={totalPending} />
+          </div>
+          <p className="text-xs text-slate-500 mt-1">Receipts in triage queue</p>
+        </GlassCard>
+
+        <GlassCard className="p-5 border-l-4 border-l-emerald-600">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">High Confidence</span>
+            <span className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
+              <ShieldCheck size={18} />
+            </span>
+          </div>
+          <div className="mt-3 text-3xl font-extrabold text-emerald-600 font-mono">
+            <AnimatedCounter target={highConfidenceCount} />
+          </div>
+          <p className="text-xs text-slate-500 mt-1">AI score ≥ 80%</p>
+        </GlassCard>
+
+        <GlassCard className="p-5 border-l-4 border-l-amber-500">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Requires Audit</span>
+            <span className="p-2 rounded-xl bg-amber-50 text-amber-600">
+              <AlertCircle size={18} />
+            </span>
+          </div>
+          <div className="mt-3 text-3xl font-extrabold text-amber-600 font-mono">
+            <AnimatedCounter target={lowConfidenceCount} />
+          </div>
+          <p className="text-xs text-slate-500 mt-1">AI score &lt; 80%</p>
+        </GlassCard>
+
+        <GlassCard className="p-5 border-l-4 border-l-rose-500">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Deviations Flagged</span>
+            <span className="p-2 rounded-xl bg-rose-50 text-rose-600">
+              <ShieldAlert size={18} />
+            </span>
+          </div>
+          <div className="mt-3 text-3xl font-extrabold text-rose-600 font-mono">
+            <AnimatedCounter target={deviationCount} />
+          </div>
+          <p className="text-xs text-slate-500 mt-1">Template mismatches</p>
+        </GlassCard>
+      </StaggerGrid>
+
+      {/* ════════════ SEARCH & FILTER BAR ════════════ */}
+      <RevealOnScroll direction="up" delay={0.05}>
+        <div className="bg-white/80 backdrop-blur-md p-4 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
+          <InteractiveSearchBox
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search by student name, roll number, email, or department branch..."
+            chips={filterChips}
+            activeChip={filterMode}
+            onChipClick={setFilterMode}
+          />
+          <div className="flex items-center justify-between text-xs text-slate-500 px-1">
+            <span>
+              Showing <strong>{filteredReceipts.length}</strong> of {receipts.length} submissions
+            </span>
+            <span>Click &ldquo;Compare &amp; Review&rdquo; to audit against official template</span>
+          </div>
+        </div>
+      </RevealOnScroll>
+
+      {/* ════════════ RECEIPT CARDS GRID / EMPTY STATE ════════════ */}
+      {filteredReceipts.length === 0 ? (
+        <div className="rounded-3xl border border-dashed border-slate-300 bg-white/70 p-16 text-center shadow-xs">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 mb-4 border border-emerald-200">
+            <CheckCircle2 size={32} />
+          </div>
+          <h3 className="text-xl font-bold text-slate-900 font-heading">No Pending Verifications</h3>
+          <p className="text-sm text-slate-600 mt-2 max-w-md mx-auto">
             {searchQuery
-              ? "No student receipts match your search filter."
-              : "All submitted placement fee receipts have been verified or resolved. Great job!"}
+              ? "No student receipts match your search filter criteria."
+              : "All submitted placement fee receipts have been verified or resolved. Your verification triage is clear!"}
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredReceipts.map((item) => {
             const confidencePct = Math.round((item.ai_confidence || 0) * 100);
             const isTemplateMatched = !!item.matched_against_template_id;
@@ -173,36 +274,46 @@ export default function TpoFeeReviewPage() {
             return (
               <div
                 key={item.id}
-                className="rounded-xl border border-border bg-card p-5 shadow-sm hover:border-primary/40 transition-all flex flex-col justify-between"
+                className="rounded-2xl border border-slate-200/90 bg-white/90 backdrop-blur-md p-6 shadow-sm hover:shadow-md hover:border-blue-400 transition-all flex flex-col justify-between group"
               >
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {/* Student Info Header */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h3 className="font-bold text-foreground text-base leading-snug">{item.student_name}</h3>
-                      <p className="text-xs text-muted-foreground">{item.student_email}</p>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-slate-900 text-base leading-snug group-hover:text-blue-700 transition-colors truncate">
+                        {item.student_name}
+                      </h3>
+                      <p className="text-xs text-slate-500 truncate mt-0.5">{item.student_email}</p>
                       {item.roll_number && (
-                        <p className="text-xs font-mono font-medium text-primary mt-0.5">
+                        <p className="text-xs font-mono font-bold text-blue-600 mt-1">
                           Roll: {item.roll_number}
                         </p>
                       )}
                     </div>
-                    <Badge variant={confidencePct >= 70 ? "warning" : "destructive"}>
+                    <span
+                      className={`px-2.5 py-1 rounded-full text-xs font-bold font-mono shrink-0 ${
+                        confidencePct >= 80
+                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                          : confidencePct >= 60
+                          ? "bg-amber-50 text-amber-700 border border-amber-200"
+                          : "bg-rose-50 text-rose-700 border border-rose-200"
+                      }`}
+                    >
                       AI: {confidencePct}%
-                    </Badge>
+                    </span>
                   </div>
 
                   {item.branch && (
-                    <div className="inline-block bg-muted/60 text-muted-foreground text-xs px-2.5 py-1 rounded-md font-medium">
+                    <div className="inline-block bg-slate-100 text-slate-700 text-xs px-2.5 py-1 rounded-lg font-semibold border border-slate-200/60">
                       {item.branch}
                     </div>
                   )}
 
-                  {/* AI Diagnostic Summary */}
-                  <div className="p-3 bg-muted/40 rounded-lg text-xs space-y-1.5">
-                    <div className="flex items-center justify-between text-muted-foreground">
+                  {/* AI Diagnostic Summary Box */}
+                  <div className="p-3.5 bg-slate-50 rounded-xl text-xs space-y-2 border border-slate-200/60">
+                    <div className="flex items-center justify-between text-slate-500">
                       <span>Verification Mode:</span>
-                      <span className="font-medium text-foreground truncate max-w-[180px]">
+                      <span className="font-semibold text-slate-800 truncate max-w-[170px]">
                         {isTemplateMatched
                           ? (item.template_name ? `Matched: ${item.template_name}` : "Template-Matched (Path B)")
                           : "General Heuristics (Path A)"}
@@ -211,56 +322,57 @@ export default function TpoFeeReviewPage() {
 
                     {item.structural_match_result && (
                       <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Structural Template:</span>
+                        <span className="text-slate-500">Structural Template:</span>
                         <span
-                          className={`font-semibold ${
+                          className={`font-bold ${
                             item.structural_match_result.matched ? "text-emerald-600" : "text-amber-600"
                           }`}
                         >
-                          {item.structural_match_result.matched ? "Matched" : "Deviation Flagged"}
+                          {item.structural_match_result.matched ? "Matched Structure" : "Deviation Flagged"}
                         </span>
                       </div>
                     )}
 
                     {item.ai_reason && (
-                      <p className="text-muted-foreground italic text-xs pt-1 line-clamp-2 border-t border-border/60">
+                      <p className="text-slate-600 italic text-xs pt-1 line-clamp-2 border-t border-slate-200">
                         &ldquo;{item.ai_reason}&rdquo;
                       </p>
                     )}
                   </div>
 
-                  <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                    <Clock className="h-3 w-3" /> Submitted on{" "}
-                    {item.created_at ? format(new Date(item.created_at), "PPP p") : "Recently"}
+                  <p className="text-[11px] text-slate-500 flex items-center gap-1.5">
+                    <Clock size={12} className="text-slate-400" />
+                    <span>
+                      Submitted {item.created_at ? format(new Date(item.created_at), "PPP p") : "recently"}
+                    </span>
                   </p>
                 </div>
 
                 {/* Card Action Buttons */}
-                <div className="pt-4 mt-4 border-t border-border flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 text-xs"
+                <div className="pt-4 mt-5 border-t border-slate-100 flex items-center gap-2">
+                  <button
+                    type="button"
+                    className="flex-1 py-2 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 active:scale-95"
                     onClick={() => setSelectedReceipt(item)}
                   >
-                    <Eye className="h-3.5 w-3.5 mr-1" /> Compare & Review
-                  </Button>
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3"
+                    <Eye size={14} className="text-blue-600" />
+                    <span>Compare</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="py-2 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1 active:scale-95"
                     onClick={() => handleApprove(item)}
                   >
-                    Approve
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="text-xs px-2.5"
+                    <CheckCircle2 size={14} />
+                    <span>Approve</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="py-2 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-xs font-bold transition-all shadow-xs active:scale-95"
                     onClick={() => openRejectModal(item)}
                   >
                     Reject
-                  </Button>
+                  </button>
                 </div>
               </div>
             );
@@ -268,108 +380,108 @@ export default function TpoFeeReviewPage() {
         </div>
       )}
 
-      {/* Side-by-Side Review & Comparison Modal */}
+      {/* ════════════ SIDE-BY-SIDE REVIEW MODAL ════════════ */}
       {selectedReceipt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="bg-card border border-border rounded-2xl w-full max-w-6xl shadow-2xl overflow-hidden my-6 flex flex-col max-h-[92vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-6xl shadow-2xl overflow-hidden my-6 flex flex-col max-h-[92vh]">
             {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-border flex justify-between items-center bg-muted/30 shrink-0">
+            <div className="px-6 py-5 border-b border-slate-200 flex justify-between items-center bg-gradient-to-r from-slate-900 to-blue-950 text-white shrink-0">
               <div>
-                <h2 className="text-lg font-bold text-foreground font-heading flex items-center gap-2">
-                  <FileCheck2 className="text-primary" size={20} /> Review Fee Receipt: {selectedReceipt.student_name}
+                <h2 className="text-lg font-bold font-heading flex items-center gap-2.5">
+                  <FileCheck2 className="text-blue-400" size={22} />
+                  <span>Review Fee Receipt: {selectedReceipt.student_name}</span>
                 </h2>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-blue-200/80 mt-0.5">
                   {selectedReceipt.student_email} • Roll: {selectedReceipt.roll_number || "N/A"} • Branch:{" "}
-                  {selectedReceipt.branch || "N/A"}
+                  {selectedReceipt.branch || "General"}
                 </p>
               </div>
               <button
                 onClick={() => setSelectedReceipt(null)}
-                className="text-muted-foreground hover:text-foreground text-2xl font-bold p-1 leading-none"
+                className="text-white/70 hover:text-white text-2xl font-bold p-1 rounded-lg"
               >
                 &times;
               </button>
             </div>
 
             {/* Modal Body - Scrollable Content */}
-            <div className="p-6 overflow-y-auto space-y-6 flex-1">
+            <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-slate-50/50">
               {/* AI Structured Diagnostic Card */}
-              <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-primary/10 pb-3">
+              <div className="rounded-2xl border border-blue-200 bg-blue-50/60 p-5 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-blue-200/70 pb-3">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-primary" />
-                    <h3 className="font-semibold text-foreground text-sm">Groq AI Verification Verdict</h3>
+                    <Sparkles className="h-5 w-5 text-blue-600" />
+                    <h3 className="font-bold text-slate-900 text-sm">Groq Vision &amp; OCR Verification Verdict</h3>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-xs text-muted-foreground font-medium">Confidence Score:</span>
-                    <Badge
-                      variant={
-                        (selectedReceipt.ai_confidence || 0) >= 0.85
-                          ? "success"
+                    <span className="text-xs text-slate-600 font-semibold">Confidence Score:</span>
+                    <span
+                      className={`text-xs px-3 py-1 rounded-full font-bold font-mono ${
+                        (selectedReceipt.ai_confidence || 0) >= 0.8
+                          ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
                           : (selectedReceipt.ai_confidence || 0) >= 0.6
-                          ? "warning"
-                          : "destructive"
-                      }
-                      className="text-xs px-2.5 py-0.5"
+                          ? "bg-amber-100 text-amber-800 border border-amber-300"
+                          : "bg-rose-100 text-rose-800 border border-rose-300"
+                      }`}
                     >
                       {Math.round((selectedReceipt.ai_confidence || 0) * 100)}%
-                    </Badge>
+                    </span>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                   {/* Structural Match Evaluation */}
-                  <div className="p-3 bg-background rounded-lg border border-border space-y-1">
+                  <div className="p-4 bg-white rounded-xl border border-slate-200 space-y-1.5 shadow-2xs">
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-foreground">1. Structural / Template Match</span>
+                      <span className="font-bold text-slate-800">1. Structural / Template Match</span>
                       {selectedReceipt.structural_match_result ? (
                         <span
                           className={`font-bold px-2 py-0.5 rounded text-[11px] ${
                             selectedReceipt.structural_match_result.matched
-                              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                              : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                              ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                              : "bg-amber-100 text-amber-800 border border-amber-200"
                           }`}
                         >
                           {selectedReceipt.structural_match_result.matched ? "Matched" : "Deviation Found"}
                         </span>
                       ) : (
-                        <span className="text-muted-foreground font-medium">Path A (No Template)</span>
+                        <span className="text-slate-500 font-semibold">Path A (No Template)</span>
                       )}
                     </div>
-                    <p className="text-muted-foreground pt-1 leading-relaxed">
+                    <p className="text-slate-600 pt-1 leading-relaxed">
                       {selectedReceipt.structural_match_result?.details ||
                         "No college reference template was configured when this receipt was submitted; verified via general heuristic plausibility."}
                     </p>
                   </div>
 
                   {/* Content Validity Evaluation */}
-                  <div className="p-3 bg-background rounded-lg border border-border space-y-1">
+                  <div className="p-4 bg-white rounded-xl border border-slate-200 space-y-1.5 shadow-2xs">
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-foreground">2. Content & Payment Validity</span>
+                      <span className="font-bold text-slate-800">2. Content &amp; Payment Validity</span>
                       {selectedReceipt.content_valid_result ? (
                         <span
                           className={`font-bold px-2 py-0.5 rounded text-[11px] ${
                             selectedReceipt.content_valid_result.valid
-                              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                              : "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300"
+                              ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                              : "bg-rose-100 text-rose-800 border border-rose-200"
                           }`}
                         >
                           {selectedReceipt.content_valid_result.valid ? "Valid Details" : "Incomplete/Questionable"}
                         </span>
                       ) : (
-                        <span className="text-muted-foreground font-medium">Standard Check</span>
+                        <span className="text-slate-500 font-semibold">Standard Check</span>
                       )}
                     </div>
-                    <p className="text-muted-foreground pt-1 leading-relaxed">
+                    <p className="text-slate-600 pt-1 leading-relaxed">
                       {selectedReceipt.content_valid_result?.details ||
-                        "Standard OCR integrity analysis: checked for payment amount, transaction ID, and timestamp."}
+                        "Standard OCR integrity analysis: checked for payment amount, transaction reference ID, and date."}
                     </p>
                   </div>
                 </div>
 
                 {selectedReceipt.ai_reason && (
-                  <div className="pt-2 text-xs text-muted-foreground">
-                    <span className="font-semibold text-foreground">Stated Reasoning: </span>
+                  <div className="pt-2 text-xs text-slate-700 bg-white/70 p-3 rounded-xl border border-blue-200/60">
+                    <span className="font-bold text-slate-900">AI Diagnostic Commentary: </span>
                     <span>{selectedReceipt.ai_reason}</span>
                   </div>
                 )}
@@ -380,32 +492,34 @@ export default function TpoFeeReviewPage() {
                 {/* Left Panel: Student Uploaded Receipt */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-bold text-foreground flex items-center gap-1.5">
-                      <FileText className="h-4 w-4 text-primary" /> Student&apos;s Submitted Receipt
+                    <h4 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                      <FileText className="h-4 w-4 text-blue-600" />
+                      <span>Student&apos;s Submitted Receipt</span>
                     </h4>
                     {getMediaUrl(selectedReceipt.file_path) && (
                       <a
                         href={getMediaUrl(selectedReceipt.file_path)}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-xs text-primary hover:underline flex items-center gap-1"
+                        className="text-xs text-blue-600 hover:underline flex items-center gap-1 font-semibold"
                       >
-                        <ExternalLink className="h-3 w-3" /> Open in Full Window
+                        <ExternalLink size={12} />
+                        <span>Open in New Tab</span>
                       </a>
                     )}
                   </div>
-                  <div className="rounded-xl border border-border bg-slate-950/5 dark:bg-slate-900/50 p-2 h-[420px] flex items-center justify-center overflow-hidden">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-3 h-[420px] flex items-center justify-center overflow-hidden shadow-xs">
                     {selectedReceipt.file_path.toLowerCase().endsWith(".pdf") ? (
                       <iframe
                         src={getMediaUrl(selectedReceipt.file_path)}
                         title="Student Receipt PDF"
-                        className="w-full h-full rounded-lg border-0 bg-white"
+                        className="w-full h-full rounded-xl border-0 bg-white"
                       />
                     ) : (
                       <img
                         src={getMediaUrl(selectedReceipt.file_path)}
                         alt="Student Receipt"
-                        className="max-h-full max-w-full object-contain rounded-lg shadow-xs"
+                        className="max-h-full max-w-full object-contain rounded-xl shadow-xs"
                       />
                     )}
                   </div>
@@ -414,44 +528,47 @@ export default function TpoFeeReviewPage() {
                 {/* Right Panel: Official College Reference Template */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-bold text-foreground flex items-center gap-1.5 truncate">
+                    <h4 className="text-sm font-bold text-slate-900 flex items-center gap-1.5 truncate">
                       <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                      {selectedReceipt.template_name
-                        ? `Reference: ${selectedReceipt.template_name}`
-                        : "College Official Reference Template"}
+                      <span className="truncate">
+                        {selectedReceipt.template_name
+                          ? `Official Reference: ${selectedReceipt.template_name}`
+                          : "Official College Reference Template"}
+                      </span>
                     </h4>
                     {selectedReceipt.template_file_path && (
                       <a
                         href={getMediaUrl(selectedReceipt.template_file_path)}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-xs text-primary hover:underline flex items-center gap-1"
+                        className="text-xs text-blue-600 hover:underline flex items-center gap-1 font-semibold"
                       >
-                        <ExternalLink className="h-3 w-3" /> Open in Full Window
+                        <ExternalLink size={12} />
+                        <span>Open in New Tab</span>
                       </a>
                     )}
                   </div>
 
-                  <div className="rounded-xl border border-border bg-slate-950/5 dark:bg-slate-900/50 p-2 h-[420px] flex items-center justify-center overflow-hidden">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-3 h-[420px] flex items-center justify-center overflow-hidden shadow-xs">
                     {selectedReceipt.template_file_path ? (
                       selectedReceipt.template_file_path.toLowerCase().endsWith(".pdf") ? (
                         <iframe
                           src={getMediaUrl(selectedReceipt.template_file_path)}
                           title="Reference Template PDF"
-                          className="w-full h-full rounded-lg border-0 bg-white"
+                          className="w-full h-full rounded-xl border-0 bg-white"
                         />
                       ) : (
                         <img
                           src={getMediaUrl(selectedReceipt.template_file_path)}
                           alt="College Reference Template"
-                          className="max-h-full max-w-full object-contain rounded-lg shadow-xs"
+                          className="max-h-full max-w-full object-contain rounded-xl shadow-xs"
                         />
                       )
                     ) : (
-                      <div className="text-center p-6 text-muted-foreground space-y-2">
-                        <Info className="h-8 w-8 text-muted-foreground/60 mx-auto" />
-                        <p className="font-medium text-sm text-foreground">No Reference Template Attached</p>
-                        <p className="text-xs max-w-xs leading-relaxed">
+                      <div className="text-center p-6 text-slate-500 space-y-2">
+                        <Info className="h-10 w-10 text-slate-400 mx-auto" />
+                        <p className="font-bold text-sm text-slate-800">No Reference Template Attached</p>
+                        <p className="text-xs max-w-xs leading-relaxed text-slate-500">
                           This receipt was verified under Path A because no active template had been uploaded by your
                           college admin at the time of submission.
                         </p>
@@ -463,9 +580,9 @@ export default function TpoFeeReviewPage() {
             </div>
 
             {/* Modal Footer Actions */}
-            <div className="px-6 py-4 border-t border-border bg-muted/20 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
-              <p className="text-xs text-muted-foreground">
-                Approving this receipt will immediately unblock the student to apply for active drives.
+            <div className="px-6 py-4 border-t border-slate-200 bg-white flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+              <p className="text-xs text-slate-500">
+                Approving this receipt immediately clears the student for all campus recruitment drives.
               </p>
               <div className="flex items-center gap-3 w-full sm:w-auto">
                 <Button
@@ -480,15 +597,17 @@ export default function TpoFeeReviewPage() {
                   onClick={() => openRejectModal(selectedReceipt)}
                   className="w-full sm:w-auto"
                 >
-                  <XCircle className="h-4 w-4 mr-1.5" /> Reject Submission
+                  <XCircle className="h-4 w-4 mr-1.5" />
+                  <span>Reject Submission</span>
                 </Button>
                 <Button
                   variant="default"
                   onClick={() => handleApprove(selectedReceipt)}
                   isLoading={approveMutation.isPending}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white w-full sm:w-auto"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white w-full sm:w-auto font-bold"
                 >
-                  <CheckCircle2 className="h-4 w-4 mr-1.5" /> Approve Receipt
+                  <CheckCircle2 className="h-4 w-4 mr-1.5" />
+                  <span>Approve Receipt</span>
                 </Button>
               </div>
             </div>
@@ -496,34 +615,33 @@ export default function TpoFeeReviewPage() {
         </div>
       )}
 
-      {/* Reject Feedback Reason Modal */}
+      {/* ════════════ REJECT FEEDBACK MODAL ════════════ */}
       {showRejectModal && selectedReceipt && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-          <div className="bg-card border border-border rounded-2xl w-full max-w-md shadow-2xl p-6 space-y-4">
-            <div className="flex items-center gap-3 border-b border-border pb-3">
-              <div className="p-2 bg-destructive/10 text-destructive rounded-lg">
-                <XCircle className="h-5 w-5" />
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md shadow-2xl p-6 space-y-4">
+            <div className="flex items-center gap-3 border-b border-slate-200 pb-3">
+              <div className="p-2.5 bg-rose-50 text-rose-600 rounded-xl border border-rose-200">
+                <XCircle size={20} />
               </div>
               <div>
-                <h3 className="text-base font-bold text-foreground">Reject Fee Receipt</h3>
-                <p className="text-xs text-muted-foreground">For student: {selectedReceipt.student_name}</p>
+                <h3 className="text-base font-bold text-slate-900 font-heading">Reject Placement Fee Receipt</h3>
+                <p className="text-xs text-slate-500">Student: {selectedReceipt.student_name}</p>
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="block text-xs font-semibold text-foreground">
-                Feedback for Student (Explaining Rejection Reason)
+              <label className="block text-xs font-bold text-slate-800">
+                Feedback for Student (Rejection Explanation)
               </label>
               <textarea
                 rows={3}
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
-                placeholder="e.g. Receipt image is too dark to read transaction reference number."
-                className="w-full p-2.5 text-sm bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-destructive/20 leading-relaxed"
+                placeholder="e.g. Receipt image is too blurry to read transaction reference number or date..."
+                className="w-full p-3 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500 leading-relaxed"
               />
-              <p className="text-[11px] text-muted-foreground">
-                This feedback message will be dispatched to the student&apos;s notification feed so they can re-upload
-                a compliant receipt.
+              <p className="text-[11px] text-slate-500">
+                This notice will be immediately dispatched to the student so they can rectify and upload a valid receipt.
               </p>
             </div>
 

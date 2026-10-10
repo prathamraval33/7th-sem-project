@@ -10,6 +10,13 @@ import { useSuperAdminStore } from "./superAdminStore";
 import StatusPill from "../../components/superadmin/StatusPill";
 import EmptyState from "../../components/superadmin/EmptyState";
 import DataTable from "../../components/superadmin/DataTable";
+import {
+  AnimatedWords,
+  LiveStatusBeacon,
+  SuperAdminTickerRibbon,
+  InteractiveTabSwitcher,
+  InteractiveSearchBox,
+} from "../../components/common/MotionKit";
 
 const ROLE_OPTIONS = [
   { id: "Student", label: "Student", desc: "For students & job applicants" },
@@ -684,19 +691,32 @@ function CustomProposalsTab() {
   const fetchCustomFeatureRequests = useSuperAdminStore((s) => s.fetchCustomFeatureRequests);
   const [selectedProposal, setSelectedProposal] = useState(null);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   useEffect(() => {
     fetchCustomFeatureRequests();
   }, [fetchCustomFeatureRequests]);
 
+  const proposalChips = [
+    { id: "all", label: "All Proposals", count: customFeatureRequests.length },
+    { id: "pending", label: "Pending", count: customFeatureRequests.filter((p) => p.status === "pending").length },
+    { id: "under_review", label: "Under Review", count: customFeatureRequests.filter((p) => p.status === "under_review").length },
+    { id: "planned", label: "Roadmap Planned", count: customFeatureRequests.filter((p) => p.status === "planned").length },
+    { id: "completed", label: "Completed", count: customFeatureRequests.filter((p) => p.status === "completed").length },
+  ];
+
   const filteredProposals = customFeatureRequests.filter((p) => {
     const term = search.toLowerCase();
-    return (
+    const matchesSearch =
       (p.title || "").toLowerCase().includes(term) ||
       (p.college_name || "").toLowerCase().includes(term) ||
       (p.category || "").toLowerCase().includes(term) ||
-      (p.description || "").toLowerCase().includes(term)
-    );
+      (p.description || "").toLowerCase().includes(term);
+
+    if (!matchesSearch) return false;
+    if (statusFilter !== "all" && p.status !== statusFilter) return false;
+
+    return true;
   });
 
   const columns = [
@@ -757,13 +777,14 @@ function CustomProposalsTab() {
 
   return (
     <>
-      <div className="cd-search-bar" style={{ marginBottom: "var(--cd-gap-md)" }}>
-        <input
-          className="cd-input"
-          type="text"
-          placeholder="Search proposals by title, college, or category…"
+      <div className="mb-4 bg-white/90 backdrop-blur-md p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+        <InteractiveSearchBox
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={setSearch}
+          placeholder="Search proposals by title, college name, description, or category…"
+          chips={proposalChips}
+          activeChip={statusFilter}
+          onChipClick={setStatusFilter}
         />
       </div>
 
@@ -803,6 +824,17 @@ export default function FeatureManagementPage() {
   const [editingFeature, setEditingFeature] = useState(null);
   const [highlightRequestId, setHighlightRequestId] = useState(null);
 
+  const featureRequests = useSuperAdminStore((s) => s.featureRequests);
+  const customFeatureRequests = useSuperAdminStore((s) => s.customFeatureRequests);
+  const pendingRequestsCount = featureRequests.filter((r) => r.status === "pending" || r.status === "pending_review").length;
+  const pendingProposalsCount = customFeatureRequests.filter((p) => p.status === "pending").length;
+
+  const tabs = [
+    { id: "catalog", label: "Feature Catalog" },
+    { id: "requests", label: "Subscription Requests", count: pendingRequestsCount },
+    { id: "proposals", label: "Custom Proposals", count: pendingProposalsCount },
+  ];
+
   const handleGoToRequests = (requestId) => {
     setSelectedFeatureId(null);
     setHighlightRequestId(requestId || null);
@@ -812,7 +844,23 @@ export default function FeatureManagementPage() {
   return (
     <>
       <div className="cd-topbar">
-        <h1 className="cd-topbar__title">Feature Management</h1>
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-indigo-100 text-indigo-800 border border-indigo-200 flex items-center gap-1.5">
+              <Rocket size={13} className="text-indigo-600" />
+              <span>Platform Capabilities</span>
+            </span>
+            <LiveStatusBeacon label="CATALOG SYNCHRONIZED" variant="active" />
+          </div>
+
+          <h1 className="cd-topbar__title text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            <AnimatedWords text="Feature Management & Capabilities" delay={0.05} />
+          </h1>
+          <p className="mt-1 text-xs text-slate-500">
+            Provision feature bundles, manage tenant licensing requests, and review custom feature proposals.
+          </p>
+        </div>
+
         <div className="cd-topbar__actions">
           <button className="cd-btn cd-btn--primary" onClick={() => setShowAddModal(true)}>
             + Add Feature
@@ -820,25 +868,15 @@ export default function FeatureManagementPage() {
         </div>
       </div>
 
-      <div className="cd-tabs">
-        <button
-          className={`cd-tabs__item ${activeTab === "catalog" ? "cd-tabs__item--active" : ""}`}
-          onClick={() => { setActiveTab("catalog"); setSelectedFeatureId(null); }}
-        >
-          Catalog
-        </button>
-        <button
-          className={`cd-tabs__item ${activeTab === "requests" ? "cd-tabs__item--active" : ""}`}
-          onClick={() => setActiveTab("requests")}
-        >
-          Subscription Requests
-        </button>
-        <button
-          className={`cd-tabs__item ${activeTab === "proposals" ? "cd-tabs__item--active" : ""}`}
-          onClick={() => setActiveTab("proposals")}
-        >
-          Custom Proposals
-        </button>
+      <div className="mb-6 flex justify-start">
+        <InteractiveTabSwitcher
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabChange={(tabId) => {
+            setActiveTab(tabId);
+            if (tabId === "catalog") setSelectedFeatureId(null);
+          }}
+        />
       </div>
 
       {activeTab === "catalog" && (

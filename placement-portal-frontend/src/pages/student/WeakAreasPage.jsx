@@ -19,6 +19,11 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { showError } from "../../utils/swal";
+import {
+  AnimatedWords,
+  LiveStatusBeacon,
+  StudentTickerRibbon,
+} from "../../components/common/MotionKit";
 
 export default function WeakAreasPage() {
   const navigate = useNavigate();
@@ -66,18 +71,20 @@ export default function WeakAreasPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       {/* Header Banner */}
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-gradient-to-r from-rose-900 via-rose-800 to-indigo-900 p-6 text-white shadow-md">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl bg-gradient-to-r from-rose-950 via-slate-900 to-indigo-950 p-7 text-white shadow-xl border border-slate-800">
         <div>
-          <div className="flex items-center gap-2 text-xs font-medium text-rose-200">
-            <span>Placement Performance Tracking</span>
-            <span>•</span>
-            <span>Skill Diagnostics</span>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center gap-1.5">
+              <TrendingDown size={13} className="text-rose-400" />
+              <span>Skill Diagnostics &amp; Deficit Remediation</span>
+            </span>
+            <LiveStatusBeacon label="DIAGNOSTICS ACTIVE" variant="active" />
           </div>
-          <h1 className="mt-1 font-heading text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-            <TrendingDown className="h-7 w-7 text-rose-300" />
-            Weak Areas & Skill Gaps
+
+          <h1 className="mt-1 font-heading text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2">
+            <AnimatedWords text="Weak Areas & Skill Diagnostics" delay={0.05} />
           </h1>
-          <p className="mt-1 text-xs text-rose-100">
+          <p className="mt-1 text-xs sm:text-sm text-slate-300 max-w-xl">
             Identified weaknesses aggregated from your AI Mock Interviews and Practice Test attempts. Focus on recurring gaps to boost readiness.
           </p>
         </div>
@@ -85,12 +92,15 @@ export default function WeakAreasPage() {
         <Button
           onClick={fetchWeakAreas}
           variant="outline"
-          className="border-rose-300/40 text-white hover:bg-white/10"
+          className="border-white/20 text-white hover:bg-white/10 rounded-xl font-bold text-xs"
         >
           <RotateCcw className="mr-2 h-4 w-4" />
           Refresh Analysis
         </Button>
       </div>
+
+      {/* Student Live Ticker Ribbon */}
+      <StudentTickerRibbon />
 
       {/* Encouraging Empty State */}
       {isEmpty ? (

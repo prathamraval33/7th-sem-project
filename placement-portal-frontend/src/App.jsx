@@ -105,6 +105,7 @@ export default function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/contact" element={<ContactUsPage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<Navigate to="/signup/email" replace />} />
             <Route path="/signup/email" element={<SignupEmailPage />} />
             <Route path="/signup/otp" element={<SignupOtpPage />} />
             <Route path="/signup/password" element={<SignupPasswordPage />} />

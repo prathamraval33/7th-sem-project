@@ -10,6 +10,14 @@ import Badge from "../../components/ui/Badge";
 import Input from "../../components/common/Input";
 import Spinner from "../../components/ui/Spinner";
 import { showError, showToast } from "../../utils/swal";
+import {
+  AnimatedWords,
+  LiveStatusBeacon,
+  InteractiveSearchBox,
+  StaggerGrid,
+  StaggerCard,
+  RevealOnScroll,
+} from "../../components/common/MotionKit";
 
 export default function ManageDrivesPage() {
   const queryClient = useQueryClient();
@@ -17,6 +25,8 @@ export default function ManageDrivesPage() {
   const [showCompanyModal, setShowCompanyModal] = useState(false);
   const [selectedCompanyId, setSelectedCompanyId] = useState("");
   const [selectedDepts, setSelectedDepts] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const { data: drives, isLoading, error } = useQuery({
     queryKey: ["tpo-drives"],
@@ -143,83 +153,164 @@ export default function ManageDrivesPage() {
     createDriveMutation.mutate(newDrive);
   };
 
-  if (isLoading) return <div className="flex justify-center p-8"><Spinner size="lg" /></div>;
-  if (error) return <div className="p-4 text-red-500">Error: {error.message}</div>;
+  // Filtered drives
+  const filteredDrives = (drives || []).filter((d) => {
+    const matchedCompany = companies?.find((c) => c.id === d.company_id);
+    const companyName = matchedCompany?.name || d.company_name || "";
+    const matchesSearch =
+      (d.role || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      companyName.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus =
+      statusFilter === "all" ||
+      (statusFilter === "open" && (d.status === "open" || d.is_active)) ||
+      (statusFilter === "closed" && d.status !== "open" && !d.is_active);
+    return matchesSearch && matchesStatus;
+  });
+
+  const filterChips = [
+    { id: "all", label: "All Drives", count: (drives || []).length },
+    {
+      id: "open",
+      label: "Active / Open",
+      count: (drives || []).filter((d) => d.status === "open" || d.is_active).length,
+    },
+    {
+      id: "closed",
+      label: "Closed Tracks",
+      count: (drives || []).filter((d) => d.status !== "open" && !d.is_active).length,
+    },
+  ];
+
+  if (isLoading) return <div className="flex justify-center p-12"><Spinner size="lg" /></div>;
+  if (error) return <div className="p-4 text-red-500 rounded-xl bg-red-50 border border-red-200">Error: {error.message}</div>;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+    <div className="space-y-6 w-full pb-10">
+      {/* ── Top Header Banner with Kinetic Words & Live Status ── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/80 pb-5">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 font-heading">Manage Drives</h1>
-          <p className="text-slate-600 mt-1">Create and manage placement drives and partner companies.</p>
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 ring-1 ring-blue-200 font-bold">
+              <Briefcase size={22} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2.5">
+                <AnimatedWords
+                  text="Campus Recruitment Drives"
+                  className="text-2xl font-bold tracking-tight text-slate-900 font-heading"
+                />
+                <LiveStatusBeacon label={`${(drives || []).filter(d => d.status === "open" || d.is_active).length} ACTIVE DRIVES`} color="emerald" />
+              </div>
+              <p className="text-xs sm:text-sm text-slate-500">
+                Configure hiring rounds, multi-tier CTC brackets, and eligibility thresholds for corporate recruiters.
+              </p>
+            </div>
+          </div>
         </div>
+
         <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={() => setShowCompanyModal(true)} className="flex items-center gap-2">
-            <Building2 size={16} /> Add Company
+          <Button variant="outline" onClick={() => setShowCompanyModal(true)} className="flex items-center gap-2 text-xs sm:text-sm">
+            <Building2 size={15} /> Add Company
           </Button>
-          <Button onClick={() => setShowCreateModal(true)} className="flex items-center gap-2">
-            <Plus size={16} /> New Drive
+          <Button onClick={() => setShowCreateModal(true)} className="flex items-center gap-2 text-xs sm:text-sm bg-blue-600 hover:bg-blue-700">
+            <Plus size={15} /> New Drive
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {drives?.length === 0 ? (
-          <div className="col-span-full py-12 text-center text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-            No drives created yet. Click "New Drive" to get started.
+      {/* ── Search & Filter Toolbar ── */}
+      <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-3">
+        <InteractiveSearchBox
+          value={searchQuery}
+          onChange={setSearchQuery}
+          onClear={() => setSearchQuery("")}
+          placeholder="Search drives by corporate partner, role (e.g. SDE, Data Engineer)..."
+          totalCount={(drives || []).length}
+          filteredCount={filteredDrives.length}
+          filters={filterChips}
+          activeFilter={statusFilter}
+          onFilterChange={setStatusFilter}
+        />
+      </div>
+
+      {/* ── Drives Grid with Stagger & Glass Cards ── */}
+      <StaggerGrid className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {filteredDrives.length === 0 ? (
+          <div className="col-span-full py-16 text-center text-slate-400 bg-white rounded-2xl border border-dashed border-slate-200">
+            <Briefcase size={40} className="mx-auto text-slate-300 mb-2" />
+            <p className="text-sm font-semibold text-slate-700">No recruitment drives found</p>
+            <p className="text-xs text-slate-400 mt-1">Try adjusting your filters or click "New Drive" to post a placement drive.</p>
           </div>
         ) : (
-          drives?.map((drive) => {
-            const matchedCompany = companies?.find(c => c.id === drive.company_id);
-            const ctcDisplay = drive.min_ctc && drive.max_ctc 
-              ? `₹${drive.min_ctc} - ₹${drive.max_ctc} LPA`
-              : drive.min_ctc 
+          filteredDrives.map((drive) => {
+            const matchedCompany = companies?.find((c) => c.id === drive.company_id);
+            const companyName = matchedCompany ? matchedCompany.name : `Company ID: ${drive.company_id}`;
+            const ctcDisplay =
+              drive.min_ctc && drive.max_ctc
+                ? `₹${drive.min_ctc} - ₹${drive.max_ctc} LPA`
+                : drive.min_ctc
                 ? `₹${drive.min_ctc} LPA`
-                : drive.max_ctc 
-                  ? `Up to ₹${drive.max_ctc} LPA`
-                  : null;
+                : drive.max_ctc
+                ? `Up to ₹${drive.max_ctc} LPA`
+                : null;
+            const isOpen = drive.status === "open" || drive.is_active;
 
             return (
-              <Card key={drive.id} className="flex flex-col h-full hover:shadow-md transition-shadow">
-                <div className="flex justify-between items-start mb-3">
-                  <Badge variant={drive.status === "open" ? "success" : "neutral"}>
-                    {drive.status.toUpperCase()}
-                  </Badge>
-                  {drive.placement_type && (
-                    <span className="px-2 py-0.5 bg-accent/10 text-accent font-semibold rounded-full text-xs">
-                      {drive.placement_type}
-                    </span>
-                  )}
-                </div>
-                <h3 className="text-lg font-semibold text-slate-900 font-heading line-clamp-1">{drive.role}</h3>
-                <p className="text-sm text-slate-600 font-medium mb-1 flex items-center gap-2">
-                  <Building2 size={14} className="text-slate-400" /> {matchedCompany ? matchedCompany.name : `Company ID: ${drive.company_id}`}
-                </p>
-                {matchedCompany?.industry_type && (
-                  <p className="text-xs text-slate-500 mb-3 flex items-center gap-1.5">
-                    <Tag size={12} className="text-slate-400" /> {matchedCompany.industry_type}
-                  </p>
-                )}
+              <StaggerCard key={drive.id}>
+                <div className="flex flex-col h-full rounded-2xl bg-white border border-slate-200/90 hover:border-blue-400 hover:shadow-lg transition-all p-5 relative overflow-hidden group">
+                  <div className="flex justify-between items-start mb-3">
+                    <Badge variant={isOpen ? "success" : "neutral"} className="text-[10px]">
+                      {isOpen ? "Active Track" : "Closed"}
+                    </Badge>
+                    {drive.placement_type && (
+                      <span className="px-2.5 py-0.5 bg-blue-50 text-blue-700 font-semibold rounded-full text-xs border border-blue-200/60">
+                        {drive.placement_type}
+                      </span>
+                    )}
+                  </div>
 
-                {ctcDisplay && (
-                  <p className="text-sm font-semibold text-emerald-600 mb-4 flex items-center gap-1.5 bg-emerald-50 w-fit px-2.5 py-1 rounded-lg border border-emerald-100">
-                    <DollarSign size={14} /> Offered CTC: {ctcDisplay}
+                  <h3 className="text-base font-bold text-slate-900 font-heading line-clamp-1 group-hover:text-blue-600 transition-colors">
+                    {drive.role}
+                  </h3>
+
+                  <p className="text-xs text-slate-600 font-medium mt-1 mb-1 flex items-center gap-2">
+                    <Building2 size={13} className="text-slate-400 shrink-0" />
+                    <span className="truncate">{companyName}</span>
                   </p>
-                )}
-                
-                <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-1 text-slate-500 text-xs">
-                    <Calendar size={14} /> Last Date: {new Date(drive.deadline).toLocaleDateString()}
-                  </span>
-                  <Link to={`/tpo/drives/${drive.id}`} className="flex items-center text-accent font-medium hover:underline">
-                    Details <ChevronRight size={16} />
-                  </Link>
+
+                  {matchedCompany?.industry_type && (
+                    <p className="text-[11px] text-slate-400 mb-3 flex items-center gap-1.5">
+                      <Tag size={11} className="text-slate-400 shrink-0" />
+                      <span className="truncate">{matchedCompany.industry_type}</span>
+                    </p>
+                  )}
+
+                  {ctcDisplay && (
+                    <div className="my-2 p-2 rounded-xl bg-emerald-50/80 border border-emerald-200/60 text-xs font-semibold text-emerald-800 flex items-center gap-1.5 w-fit">
+                      <DollarSign size={13} className="text-emerald-600 shrink-0" />
+                      <span>{ctcDisplay}</span>
+                    </div>
+                  )}
+
+                  <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-1 text-slate-500 font-mono">
+                      <Calendar size={13} className="text-slate-400 shrink-0" />
+                      <span>{drive.deadline ? new Date(drive.deadline).toLocaleDateString() : "Rolling"}</span>
+                    </span>
+                    <Link
+                      to={`/tpo/drives/${drive.id}`}
+                      className="inline-flex items-center gap-1 text-blue-600 font-bold hover:text-blue-800 group-hover:translate-x-0.5 transition-transform"
+                    >
+                      <span>Manage</span>
+                      <ChevronRight size={14} />
+                    </Link>
+                  </div>
                 </div>
-              </Card>
+              </StaggerCard>
             );
           })
         )}
-      </div>
+      </StaggerGrid>
 
       {/* Add Company Modal */}
       {showCompanyModal && (

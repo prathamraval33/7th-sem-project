@@ -16,6 +16,7 @@ import {
 import { useSuperAdminStore } from "../../pages/superadmin/superAdminStore";
 import NotificationBell from "../layout/NotificationBell";
 import ProfileDropdown from "../layout/ProfileDropdown";
+import { LiveStatusBeacon } from "../common/MotionKit";
 import "../../styles/commandDeck.css";
 
 const NAV_ITEMS = [
@@ -96,13 +97,16 @@ export default function ConsoleShell() {
       <div className="cd-main-area">
         {/* Persistent Top Header Bar */}
         <header className="cd-header-bar">
-          <div className="cd-header-bar__title">
-            <span className="cd-header-bar__brand">Command Deck</span>
-            <span className="cd-header-bar__divider">/</span>
-            <span className="cd-header-bar__role">SuperAdmin Console</span>
+          <div className="cd-header-bar__title flex items-center gap-2">
+            <span className="cd-header-bar__brand font-heading font-bold">Command Deck</span>
+            <span className="cd-header-bar__divider text-slate-300">/</span>
+            <span className="cd-header-bar__role text-slate-600 font-semibold">SuperAdmin Console</span>
+            <div className="hidden sm:block ml-2">
+              <LiveStatusBeacon label="FEDERATION ONLINE" color="indigo" />
+            </div>
           </div>
 
-          <div className="cd-header-bar__actions">
+          <div className="cd-header-bar__actions flex items-center gap-3">
             <NotificationBell variant="commandDeck" />
             <div className="cd-header-bar__sep" />
             <ProfileDropdown variant="commandDeck" />

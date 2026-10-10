@@ -11,7 +11,7 @@ export default function Navbar({ onOpenMobileMenu }) {
   const dashboardPath = user?.user_type ? `/${user.user_type}/dashboard` : "/";
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-card px-4 sm:px-6 shadow-xs select-none">
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200/80 bg-white/80 backdrop-blur-md px-4 sm:px-6 shadow-2xs select-none supports-backdrop-filter:bg-white/70">
       <div className="flex items-center gap-2">
         {onOpenMobileMenu && (
           <button
