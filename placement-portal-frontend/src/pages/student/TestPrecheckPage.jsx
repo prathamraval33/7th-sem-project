@@ -1,7 +1,8 @@
 import React, { useState, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { testApi } from "../../api/test.api";
+import { useAuth } from "../../auth/useAuth";
 import { 
   ShieldCheck, 
   Maximize, 
@@ -212,27 +213,56 @@ export default function TestPrecheckPage() {
           )}
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-3 pt-2">
-            {!allPassed ? (
-              <Button
-                variant="primary"
-                className="w-full justify-center py-3 text-sm font-bold bg-blue-600 hover:bg-blue-700"
-                onClick={runSystemChecks}
-                isLoading={checking}
-              >
-                Run System Checks & Grant Permissions
-              </Button>
-            ) : (
-              <Button
-                variant="success"
-                className="w-full justify-center py-3 text-sm font-bold bg-emerald-600 hover:bg-emerald-700 flex items-center gap-2"
-                onClick={() => startMutation.mutate()}
-                isLoading={startMutation.isPending}
-              >
-                <Play size={16} /> Start Proctored Test Now
-              </Button>
-            )}
-          </div>
+          {(() => {
+            const isOfficial = Boolean(test?.drive_id !== null && test?.drive_id !== undefined || !test?.is_practice);
+            const isFeeBlocked = isOfficial && !user?.fee_verified;
+
+            if (isFeeBlocked) {
+              return (
+                <div className="space-y-3 pt-2">
+                  <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-start gap-2.5">
+                    <AlertCircle size={18} className="text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-bold">Fee Verification Required</p>
+                      <p className="mt-0.5">
+                        This is an official drive qualifying assessment. Your placement fee receipt must be verified before launching official assessment rounds.
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    to="/student/fee-verification"
+                    className="w-full text-center py-3 px-4 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 active:scale-95"
+                  >
+                    <span>Upload &amp; Verify Fee Receipt &rarr;</span>
+                  </Link>
+                </div>
+              );
+            }
+
+            return (
+              <div className="flex items-center gap-3 pt-2">
+                {!allPassed ? (
+                  <Button
+                    variant="primary"
+                    className="w-full justify-center py-3 text-sm font-bold bg-blue-600 hover:bg-blue-700"
+                    onClick={runSystemChecks}
+                    isLoading={checking}
+                  >
+                    Run System Checks &amp; Grant Permissions
+                  </Button>
+                ) : (
+                  <Button
+                    variant="success"
+                    className="w-full justify-center py-3 text-sm font-bold bg-emerald-600 hover:bg-emerald-700 flex items-center gap-2"
+                    onClick={() => startMutation.mutate()}
+                    isLoading={startMutation.isPending}
+                  >
+                    <Play size={16} /> Start Proctored Test Now
+                  </Button>
+                )}
+              </div>
+            );
+          })()}
         </div>
       </div>
     </div>

@@ -29,6 +29,7 @@ const NAV_ITEMS = {
   student: [
     { label: "Dashboard", to: "/student/dashboard", icon: LayoutDashboard },
     { label: "Drives", to: "/student/drives", icon: Briefcase },
+    { label: "Fee Clearance", to: "/student/fee-verification", icon: FileCheck },
     { label: "Tests", to: "/student/tests", icon: ListChecks, featureCode: "instant_tests" },
     { label: "Resources", to: "/student/resources", icon: BookOpen, featureCode: "study_resources" },
     { label: "GATE & CAT Prep", to: "/student/gate-cat-prep", icon: GraduationCap, featureCode: "gate_cat_prep" },
@@ -55,6 +56,7 @@ const NAV_ITEMS = {
     { label: "Reports & Analytics", to: "/admin/analytics", icon: BarChart3 },
     { type: "section", label: "Administration" },
     { label: "User Management", to: "/admin/users", icon: Users },
+    { label: "Fee Gate Policy", to: "/admin/fee-gate", icon: ShieldCheck },
     { label: "Modules & Add-ons", to: "/admin/features", icon: Puzzle },
     { label: "Billing & Subscription", to: "/admin/billing", icon: CreditCard },
     { label: "Institution Settings", to: "/admin/settings", icon: Building2 },

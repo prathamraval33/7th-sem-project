@@ -24,6 +24,7 @@ from app.schemas.instant_test import (
     TestViolationResponse,
     TestAnswerSubmit,
 )
+from app.services.fee_gate import check_fee_gate
 
 router = APIRouter(prefix="/instant-tests", tags=["instant-test"])
 
@@ -119,6 +120,11 @@ def start_test_attempt(
     if test is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Test not found")
     _ensure_attemptable(test, db, current_user)
+
+    if test.drive_id is not None or not test.is_practice:
+        check_fee_gate("official_tests", current_user, db)
+    else:
+        check_fee_gate("practice_tests", current_user, db)
 
     now = datetime.now(timezone.utc)
 

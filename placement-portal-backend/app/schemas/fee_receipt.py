@@ -35,13 +35,35 @@ class FeeReceiptResponse(BaseModel):
     verified_by: Optional[int] = None
 
 
+class FeeReceiptHistoryItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    uploaded_at: datetime
+    status: str  # auto_verified | pending_review | tpo_approved | tpo_rejected
+    file_path: str
+    reviewed_by_name: Optional[str] = None
+    rejection_reason: Optional[str] = None
+    ai_confidence: Optional[float] = None
+
+
 class FeeVerificationStatusResponse(BaseModel):
-    """GET /fee-verification/status — current gate state + last AI feedback
-    so a rejected student knows why, per the master prompt.
+    """GET /fee-verification/status — current gate state + upload history
+    so students can inspect past submissions.
     """
 
     fee_verified: bool
     latest_receipt: Optional[FeeReceiptResponse] = None
+    upload_history: list[FeeReceiptHistoryItem] = []
+
+
+class TpoBulkApproveRequest(BaseModel):
+    receipt_ids: list[int]
+
+
+class TpoBulkApproveResponse(BaseModel):
+    approved_count: int
+    failed_ids: list[int] = []
 
 
 class FeeReceiptTemplateResponse(BaseModel):

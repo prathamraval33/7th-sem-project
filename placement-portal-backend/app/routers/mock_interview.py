@@ -22,6 +22,7 @@ from app.schemas.interview import (
     QuestionResponse,
 )
 from app.services import interview_engine, scoring
+from app.services.fee_gate import check_fee_gate
 
 router = APIRouter(
     prefix="/mock-interview",
@@ -47,6 +48,10 @@ async def start_mock_interview(
     current_user: User = Depends(require_student),
     db: Session = Depends(get_db),
 ) -> StartSessionResponse:
+    if payload.drive_id is not None:
+        check_fee_gate("mock_interview_drive", current_user, db)
+    else:
+        check_fee_gate("mock_interview_gen", current_user, db)
     session, question = await interview_engine.start_session(
         db,
         current_user.id,
@@ -65,6 +70,7 @@ async def start_mock_interview_from_resume(
     current_user: User = Depends(require_student),
     db: Session = Depends(get_db),
 ) -> StartSessionResponse:
+    check_fee_gate("mock_interview_gen", current_user, db)
     resume = db.get(Resume, payload.resume_id)
     if resume is None or resume.user_id != current_user.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Resume not found")

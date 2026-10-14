@@ -49,6 +49,8 @@ import {
   Plus,
   Wand2,
   SlidersHorizontal,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { useAuth } from "../../auth/useAuth";
 
@@ -57,7 +59,28 @@ import { useAuth } from "../../auth/useAuth";
    ═══════════════════════════════════════════════════════════════════════════ */
 
 // Kinetic hardware-accelerated word-by-word reveal for headlines (60/120fps GPU)
-function AnimatedWords({ text, className = "", delay = 0 }) {
+function AnimatedWords({ text, className = "", delay = 0, isGradient = false }) {
+  // If this text contains gradient classes or isGradient flag is true, render directly as a single kinetic phrase
+  // to avoid CSS background-clip breakdown on nested child inline-block elements.
+  const hasGradient =
+    isGradient ||
+    className.includes("bg-clip-text") ||
+    className.includes("text-transparent");
+
+  if (hasGradient) {
+    return (
+      <motion.span
+        className={`inline-block will-change-transform ${className}`}
+        initial={{ opacity: 0, y: 14 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-40px" }}
+        transition={{ duration: 0.5, delay, ease: [0.16, 1, 0.3, 1] }}
+      >
+        {text}
+      </motion.span>
+    );
+  }
+
   const words = text.split(" ");
   return (
     <motion.span
@@ -519,6 +542,28 @@ export default function LandingPage() {
   const [activeNav, setActiveNav] = useState("how-it-works");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // Theme State: Defaults to Obsidian Dark for high-contrast rich aesthetics
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem("ib_landing_theme");
+    return saved !== null ? saved === "dark" : true;
+  });
+
+  const toggleTheme = () => {
+    setIsDark((prev) => {
+      const next = !prev;
+      localStorage.setItem("ib_landing_theme", next ? "dark" : "light");
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [isDark]);
+
   // Hero Domain Scanner State
   const [collegeQuery, setCollegeQuery] = useState("bvmengineering.ac.in");
   const [isScanning, setIsScanning] = useState(false);
@@ -846,17 +891,31 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans selection:bg-blue-600 selection:text-white relative overflow-x-hidden">
+    <div className={`min-h-screen font-sans selection:bg-blue-600 selection:text-white relative overflow-x-hidden transition-colors duration-300 ${
+      isDark ? "bg-[#090D1A] text-slate-100" : "bg-slate-50 text-slate-900"
+    }`}>
       {/* ───────────────────────────────────────────────────────────────────────
           PREMIUM BACKGROUND ACCENT LIGHTS & SUBTLE BLUEPRINT GRID
          ─────────────────────────────────────────────────────────────────────── */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden transform-gpu">
         {/* Subtle grid pattern */}
-        <div className="absolute inset-0 bg-[radial-gradient(#CBD5E1_1px,transparent_1px)] [background-size:24px_24px] opacity-40" />
+        <div className={`absolute inset-0 [background-size:24px_24px] ${
+          isDark
+            ? "bg-[radial-gradient(rgba(59,130,246,0.18)_1px,transparent_1px)] opacity-60"
+            : "bg-[radial-gradient(#CBD5E1_1px,transparent_1px)] opacity-40"
+        }`} />
         {/* GPU-composited static ambient glow orbs (zero runtime repaints) */}
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-gradient-to-b from-blue-100/60 via-indigo-50/40 to-transparent rounded-full blur-[90px] pointer-events-none" />
-        <div className="absolute top-[35%] right-[-10%] w-[550px] h-[550px] bg-blue-100/35 rounded-full blur-[100px] pointer-events-none" />
-        <div className="absolute top-[65%] left-[-10%] w-[550px] h-[550px] bg-emerald-100/35 rounded-full blur-[100px] pointer-events-none" />
+        <div className={`absolute -top-40 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] rounded-full blur-[110px] pointer-events-none transition-all duration-500 ${
+          isDark
+            ? "bg-gradient-to-b from-blue-600/30 via-indigo-600/20 to-transparent"
+            : "bg-gradient-to-b from-blue-100/60 via-indigo-50/40 to-transparent"
+        }`} />
+        <div className={`absolute top-[35%] right-[-10%] w-[550px] h-[550px] rounded-full blur-[120px] pointer-events-none transition-all duration-500 ${
+          isDark ? "bg-cyan-500/15" : "bg-blue-100/35"
+        }`} />
+        <div className={`absolute top-[65%] left-[-10%] w-[550px] h-[550px] rounded-full blur-[120px] pointer-events-none transition-all duration-500 ${
+          isDark ? "bg-emerald-500/15" : "bg-emerald-100/35"
+        }`} />
       </div>
 
       {/* ───────────────────────────────────────────────────────────────────────
@@ -870,7 +929,11 @@ export default function LandingPage() {
       {/* ───────────────────────────────────────────────────────────────────────
           FIXED NAVBAR WITH CLEAN SPACING, SEGMENTED TICK METER & MOBILE DRAWER
          ─────────────────────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/95 border-b border-slate-200/80 shadow-2xs transition-all w-full">
+      <header className={`sticky top-0 z-50 backdrop-blur-xl border-b transition-all duration-300 w-full ${
+        isDark
+          ? "bg-[#090D1A]/85 border-slate-800/80 shadow-lg shadow-black/20"
+          : "bg-white/95 border-slate-200/80 shadow-2xs"
+      }`}>
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 shrink-0 group">
@@ -882,9 +945,15 @@ export default function LandingPage() {
               <Sparkles className="w-5 h-5 text-white" />
             </motion.div>
             <div className="flex flex-col">
-              <span className="font-heading font-black text-xl tracking-tight text-slate-900 flex items-center gap-1.5 whitespace-nowrap">
+              <span className={`font-heading font-black text-xl tracking-tight flex items-center gap-1.5 whitespace-nowrap ${
+                isDark ? "text-white" : "text-slate-900"
+              }`}>
                 InternBridge{" "}
-                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200/60 font-bold">
+                <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-md font-bold ${
+                  isDark
+                    ? "bg-blue-950/80 text-blue-300 border border-blue-800/80"
+                    : "bg-blue-50 text-blue-700 border border-blue-200/60"
+                }`}>
                   AI
                 </span>
               </span>
@@ -892,7 +961,7 @@ export default function LandingPage() {
           </Link>
 
           {/* Desktop Navigation Links — All with whitespace-nowrap, never break lines, and fluid animated active pill */}
-          <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1 text-xs xl:text-sm font-semibold text-slate-600 shrink-0">
+          <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1 text-xs xl:text-sm font-semibold shrink-0">
             {navLinks.map((link) => {
               const isActive = activeNav === link.id;
               return (
@@ -901,14 +970,22 @@ export default function LandingPage() {
                   href={`#${link.id}`}
                   className={`relative px-2.5 xl:px-3.5 py-1.5 rounded-full whitespace-nowrap shrink-0 transition-colors inline-flex items-center justify-center font-medium ${
                     isActive
-                      ? "text-blue-600 font-bold"
+                      ? isDark
+                        ? "text-blue-400 font-bold"
+                        : "text-blue-600 font-bold"
+                      : isDark
+                      ? "text-slate-300 hover:text-white hover:bg-slate-800/60"
                       : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70"
                   }`}
                 >
                   {isActive && (
                     <motion.div
                       layoutId="activeNavPill"
-                      className="absolute inset-0 bg-blue-50 rounded-full border border-blue-200/80 -z-10 shadow-2xs"
+                      className={`absolute inset-0 rounded-full border -z-10 shadow-2xs ${
+                        isDark
+                          ? "bg-blue-950/70 border-blue-800/80"
+                          : "bg-blue-50 border-blue-200/80"
+                      }`}
                       transition={{ type: "spring", stiffness: 450, damping: 35 }}
                     />
                   )}
@@ -920,16 +997,37 @@ export default function LandingPage() {
 
           {/* Auth Actions & Mobile Trigger */}
           <div className="flex items-center gap-2 xl:gap-3 shrink-0">
+            {/* Theme Toggle Button */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              title={isDark ? "Switch to Light Mode" : "Switch to Obsidian Dark Mode"}
+              className={`p-2 rounded-xl border transition-all flex items-center gap-1.5 text-xs font-semibold cursor-pointer ${
+                isDark
+                  ? "bg-slate-900/90 border-slate-700/80 text-amber-300 hover:bg-slate-800 shadow-xs"
+                  : "bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200 shadow-xs"
+              }`}
+            >
+              {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
+              <span className="hidden sm:inline">{isDark ? "Dark" : "Light"}</span>
+            </button>
+
             <Link
               to="/login"
-              className="text-xs xl:text-sm font-bold text-slate-700 hover:text-slate-900 px-2 sm:px-2.5 py-1.5 transition-colors whitespace-nowrap"
+              className={`text-xs xl:text-sm font-bold px-2 sm:px-2.5 py-1.5 transition-colors whitespace-nowrap ${
+                isDark ? "text-slate-200 hover:text-white" : "text-slate-700 hover:text-slate-900"
+              }`}
             >
               Log In
             </Link>
 
             <Link
               to="/signup/email"
-              className="hidden sm:inline-flex items-center gap-1 text-xs xl:text-sm font-semibold text-blue-600 hover:text-blue-700 px-2.5 xl:px-3 py-1.5 rounded-full border border-blue-200 bg-blue-50/70 hover:bg-blue-100 transition-all whitespace-nowrap"
+              className={`hidden sm:inline-flex items-center gap-1 text-xs xl:text-sm font-semibold px-2.5 xl:px-3 py-1.5 rounded-full border transition-all whitespace-nowrap ${
+                isDark
+                  ? "text-blue-300 bg-blue-950/60 border-blue-800/70 hover:bg-blue-900/60"
+                  : "text-blue-600 hover:text-blue-700 border-blue-200 bg-blue-50/70 hover:bg-blue-100"
+              }`}
             >
               Student Register
             </Link>
@@ -937,7 +1035,7 @@ export default function LandingPage() {
             <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }} className="shrink-0">
               <Link
                 to="/register-college"
-                className="inline-flex items-center gap-1.5 px-3.5 xl:px-4 py-1.5 xl:py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs xl:text-sm font-bold transition-all shadow-md shadow-blue-600/20 whitespace-nowrap"
+                className="inline-flex items-center gap-1.5 px-3.5 xl:px-4 py-1.5 xl:py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs xl:text-sm font-bold transition-all shadow-md shadow-blue-600/25 whitespace-nowrap"
               >
                 Start Free <ArrowRight className="w-3.5 h-3.5" />
               </Link>
@@ -946,7 +1044,9 @@ export default function LandingPage() {
             {/* Mobile Hamburger Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-colors"
+              className={`lg:hidden p-2 rounded-lg transition-colors ${
+                isDark ? "text-slate-300 hover:text-white hover:bg-slate-800" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+              }`}
               aria-label="Toggle Navigation Menu"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -962,7 +1062,11 @@ export default function LandingPage() {
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.25, ease: "easeInOut" }}
-              className="lg:hidden overflow-hidden border-t border-slate-200 bg-white/98 backdrop-blur-xl px-4 py-3 space-y-1 text-xs font-semibold"
+              className={`lg:hidden overflow-hidden border-t px-4 py-3 space-y-1 text-xs font-semibold backdrop-blur-xl ${
+                isDark
+                  ? "border-slate-800 bg-[#090D1A]/95 text-slate-200"
+                  : "border-slate-200 bg-white/98 text-slate-700"
+              }`}
             >
               {navLinks.map((link) => (
                 <a
@@ -971,26 +1075,34 @@ export default function LandingPage() {
                   onClick={() => setMobileMenuOpen(false)}
                   className={`block px-3 py-2 rounded-lg transition-colors ${
                     activeNav === link.id
-                      ? "text-blue-600 bg-blue-50 font-bold"
-                      : "text-slate-600 hover:bg-slate-100"
+                      ? isDark ? "text-blue-400 bg-blue-950/70 font-bold" : "text-blue-600 bg-blue-50 font-bold"
+                      : isDark ? "text-slate-300 hover:bg-slate-800/70" : "text-slate-600 hover:bg-slate-100"
                   }`}
                 >
                   {link.label}
                 </a>
               ))}
-              <div className="pt-3 border-t border-slate-100 flex flex-col gap-2">
+              <div className={`pt-3 border-t flex flex-col gap-2 ${isDark ? "border-slate-800" : "border-slate-100"}`}>
                 <div className="grid grid-cols-2 gap-2">
                   <Link
                     to="/login"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="py-2 text-center rounded-xl border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 text-xs"
+                    className={`py-2 text-center rounded-xl border font-bold text-xs ${
+                      isDark
+                        ? "border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800"
+                        : "border-slate-200 text-slate-700 hover:bg-slate-50"
+                    }`}
                   >
                     Log In
                   </Link>
                   <Link
                     to="/signup/email"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="py-2 text-center rounded-xl border border-blue-200 bg-blue-50 text-blue-700 font-bold hover:bg-blue-100 text-xs"
+                    className={`py-2 text-center rounded-xl border font-bold text-xs ${
+                      isDark
+                        ? "border-blue-800 bg-blue-950/80 text-blue-300 hover:bg-blue-900"
+                        : "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                    }`}
                   >
                     Student Register
                   </Link>
@@ -1021,24 +1133,39 @@ export default function LandingPage() {
             </div>
 
             {/* Massive Display Title with Kinetic Animated Words */}
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 tracking-tight leading-[1.1] font-heading">
+            <h1 className={`text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1] font-heading ${
+              isDark ? "text-white" : "text-slate-900"
+            }`}>
               <AnimatedWords text="The AI Placement platform that" />{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-800 font-extrabold">
-                <AnimatedWords text="trains what gets hired," delay={0.2} />
-              </span>{" "}
+              <AnimatedWords
+                text="trains what gets hired,"
+                delay={0.2}
+                isGradient
+                className={
+                  isDark
+                    ? "text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-cyan-300 font-extrabold"
+                    : "text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-800 font-extrabold"
+                }
+              />{" "}
               <AnimatedWords text="then bridges you." delay={0.4} />
             </h1>
 
             {/* Subtitle with Reveal */}
             <RevealOnScroll delay={0.25}>
-              <p className="text-base sm:text-lg text-slate-600 max-w-2xl leading-relaxed font-normal">
+              <p className={`text-base sm:text-lg max-w-2xl leading-relaxed font-normal ${
+                isDark ? "text-slate-300" : "text-slate-600"
+              }`}>
                 InternBridge unifies college curriculum with real-world industry hiring criteria, proctors cheat-proof campus screening tests, rebuilds student ATS resumes, and delivers pre-screened candidate batches directly to TPO desks.
               </p>
             </RevealOnScroll>
 
             {/* Interactive Domain / Campus Scanner Bar */}
             <RevealOnScroll delay={0.35}>
-              <div className="p-2 sm:p-2.5 rounded-2xl bg-white border border-slate-200/90 shadow-xl shadow-slate-200/40 backdrop-blur-md max-w-xl">
+              <div className={`p-2 sm:p-2.5 rounded-2xl border shadow-xl backdrop-blur-md max-w-xl transition-all ${
+                isDark
+                  ? "bg-slate-900/80 border-slate-800 shadow-blue-950/20"
+                  : "bg-white border-slate-200/90 shadow-slate-200/40"
+              }`}>
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
@@ -1053,7 +1180,11 @@ export default function LandingPage() {
                       value={collegeQuery}
                       onChange={(e) => setCollegeQuery(e.target.value)}
                       placeholder="Enter your college domain (e.g. bvmengineering.ac.in)"
-                      className="w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono"
+                      className={`w-full pl-10 pr-3 py-2.5 rounded-xl text-xs sm:text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 ${
+                        isDark
+                          ? "bg-slate-950/90 border border-slate-800 text-white placeholder-slate-500"
+                          : "bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400"
+                      }`}
                     />
                   </div>
                   <motion.button
@@ -1077,7 +1208,9 @@ export default function LandingPage() {
                 </form>
 
                 {/* Sample college domain chips */}
-                <div className="mt-2.5 pt-2 border-t border-slate-100 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                <div className={`mt-2.5 pt-2 border-t flex flex-wrap items-center gap-2 text-[11px] ${
+                  isDark ? "border-slate-800 text-slate-400" : "border-slate-100 text-slate-500"
+                }`}>
                   <span className="font-medium">Or try:</span>
                   {["bvmengineering.ac.in", "iitb.ac.in", "coep.ac.in", "vjti.ac.in"].map((chip) => (
                     <button
@@ -1085,7 +1218,9 @@ export default function LandingPage() {
                       type="button"
                       onClick={() => handleScanCollege(chip)}
                       className={`underline font-mono font-medium cursor-pointer transition-colors ${
-                        collegeQuery.toLowerCase() === chip ? "text-blue-700 font-bold" : "text-blue-600 hover:text-blue-800"
+                        collegeQuery.toLowerCase() === chip
+                          ? isDark ? "text-blue-300 font-bold" : "text-blue-700 font-bold"
+                          : isDark ? "text-blue-400 hover:text-blue-300" : "text-blue-600 hover:text-blue-800"
                       }`}
                     >
                       {chip}
@@ -1099,17 +1234,23 @@ export default function LandingPage() {
                     key={scanResult.domain}
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mt-2.5 p-2.5 rounded-xl bg-blue-50/90 border border-blue-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs text-blue-900"
+                    className={`mt-2.5 p-2.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs ${
+                      isDark
+                        ? "bg-blue-950/40 border-blue-800/60 text-blue-200"
+                        : "bg-blue-50/90 border-blue-200/90 text-blue-900"
+                    }`}
                   >
                     <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
                       <span>
-                        <strong>{scanResult.name}</strong>: <span className="font-bold text-blue-700">{scanResult.readiness}% Readiness Index</span> • {scanResult.students}
+                        <strong>{scanResult.name}</strong>: <span className={`font-bold ${isDark ? "text-blue-400" : "text-blue-700"}`}>{scanResult.readiness}% Readiness Index</span> • {scanResult.students}
                       </span>
                     </div>
                     <a
                       href="#readiness"
-                      className="inline-flex items-center gap-1 font-bold text-blue-600 hover:text-blue-800 hover:underline shrink-0 text-[11px]"
+                      className={`inline-flex items-center gap-1 font-bold hover:underline shrink-0 text-[11px] ${
+                        isDark ? "text-blue-400 hover:text-blue-300" : "text-blue-600 hover:text-blue-800"
+                      }`}
                     >
                       View Cutoff Map &darr;
                     </a>
@@ -1120,7 +1261,9 @@ export default function LandingPage() {
 
             {/* Simulation callout note */}
             <RevealOnScroll delay={0.4}>
-              <p className="text-xs text-slate-500 flex items-center gap-1.5 font-mono">
+              <p className={`text-xs flex items-center gap-1.5 font-mono ${
+                isDark ? "text-slate-400" : "text-slate-500"
+              }`}>
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 Live multi-tenant simulation. Every college operates on an isolated institutional domain with custom student gating.
               </p>
@@ -1130,22 +1273,38 @@ export default function LandingPage() {
           {/* Hero Right Column: Animated Data Flow Topology HUD */}
           <div className="lg:col-span-5">
             <RevealOnScroll delay={0.2}>
-              <div className="rounded-3xl bg-white border border-slate-200/90 shadow-xl shadow-slate-200/40 p-5 sm:p-6 relative overflow-hidden card-hover">
+              <div className={`rounded-3xl border shadow-xl p-5 sm:p-6 relative overflow-hidden card-hover transition-all backdrop-blur-md ${
+                isDark
+                  ? "bg-slate-900/80 border-slate-800 shadow-black/40"
+                  : "bg-white border-slate-200/90 shadow-slate-200/40"
+              }`}>
                 {/* Card top banner */}
-                <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div className={`flex items-center justify-between pb-4 border-b ${
+                  isDark ? "border-slate-800" : "border-slate-100"
+                }`}>
                   <div className="flex items-center gap-2">
                     <span className={`w-2 h-2 rounded-full ${isScanning ? "bg-amber-500 animate-ping" : "bg-emerald-500 animate-pulse"}`} />
-                    <span className="font-mono text-xs font-bold text-slate-700 truncate max-w-[200px]">
-                      campus analysis: <span className="text-blue-600">{scanResult.domain || collegeQuery}</span>
+                    <span className={`font-mono text-xs font-bold truncate max-w-[200px] ${
+                      isDark ? "text-slate-200" : "text-slate-700"
+                    }`}>
+                      campus analysis: <span className={isDark ? "text-blue-400" : "text-blue-600"}>{scanResult.domain || collegeQuery}</span>
                     </span>
                   </div>
-                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border shrink-0 ${
+                    isDark
+                      ? "bg-emerald-950/60 text-emerald-300 border-emerald-800/80"
+                      : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                  }`}>
                     {scanResult.badge || "✓ VERIFIED ACCREDITED"}
                   </span>
                 </div>
 
                 {/* Interactive Node Graph Map Canvas with Animated Data Pulses */}
-                <div className="h-44 sm:h-52 relative my-4 flex items-center justify-center bg-slate-50/70 rounded-2xl border border-slate-200/60 p-3 overflow-hidden">
+                <div className={`h-44 sm:h-52 relative my-4 flex items-center justify-center rounded-2xl border p-3 overflow-hidden ${
+                  isDark
+                    ? "bg-slate-950/80 border-slate-800"
+                    : "bg-slate-50/70 border-slate-200/60"
+                }`}>
                   {isScanning && (
                     <div className="absolute inset-0 bg-blue-600/10 backdrop-blur-[1px] flex items-center justify-center rounded-2xl z-20">
                       <div className="bg-white/95 px-3.5 py-1.5 rounded-full border border-blue-200 shadow-md flex items-center gap-2 font-mono text-xs text-blue-700 font-bold">
@@ -1157,7 +1316,7 @@ export default function LandingPage() {
 
                   <svg className="w-full h-full" viewBox="0 0 400 200">
                     {/* Animated Data Packets Flowing Lines */}
-                    <g className="opacity-60">
+                    <g className={isDark ? "opacity-80" : "opacity-60"}>
                       <line x1="200" y1="100" x2="80" y2="50" stroke="#3B82F6" strokeWidth="1.5" strokeDasharray="4 4" className="animate-pulse" />
                       <line x1="200" y1="100" x2="320" y2="50" stroke="#6366F1" strokeWidth="1.5" strokeDasharray="4 4" className="animate-pulse" />
                       <line x1="200" y1="100" x2="100" y2="150" stroke="#10B981" strokeWidth="1.5" strokeDasharray="4 4" className="animate-pulse" />
@@ -1166,86 +1325,92 @@ export default function LandingPage() {
                     </g>
 
                     {/* Animated Traveling Data Pulses */}
-                    <circle r="3.5" fill="#2563EB">
+                    <circle r="3.5" fill="#3B82F6">
                       <animateMotion path="M 200 100 L 80 50" dur="2.4s" repeatCount="indefinite" />
                     </circle>
-                    <circle r="3.5" fill="#6366F1">
+                    <circle r="3.5" fill="#818CF8">
                       <animateMotion path="M 200 100 L 320 50" dur="2.8s" repeatCount="indefinite" />
                     </circle>
-                    <circle r="3.5" fill="#10B981">
+                    <circle r="3.5" fill="#34D399">
                       <animateMotion path="M 200 100 L 100 150" dur="2.2s" repeatCount="indefinite" />
                     </circle>
-                    <circle r="3.5" fill="#F59E0B">
+                    <circle r="3.5" fill="#FBBF24">
                       <animateMotion path="M 200 100 L 300 150" dur="3s" repeatCount="indefinite" />
                     </circle>
 
                     {/* Central Node: College Campus with Pulse Ring */}
                     <g className="cursor-pointer" onClick={() => setActiveGraphNode("campus")}>
-                      <circle cx="200" cy="100" r="30" fill="#DBEAFE" opacity="0.4" className="animate-ping" />
-                      <circle cx="200" cy="100" r="26" fill="#EFF6FF" stroke="#3B82F6" strokeWidth="2.5" />
-                      <text x="200" y="98" textAnchor="middle" fill="#1E3A8A" fontSize="9" fontWeight="bold">Campus</text>
-                      <text x="200" y="108" textAnchor="middle" fill="#2563EB" fontSize="7" fontFamily="monospace">Tenant</text>
+                      <circle cx="200" cy="100" r="30" fill={isDark ? "#1E3A8A" : "#DBEAFE"} opacity="0.4" className="animate-ping" />
+                      <circle cx="200" cy="100" r="26" fill={isDark ? "#172554" : "#EFF6FF"} stroke="#3B82F6" strokeWidth="2.5" />
+                      <text x="200" y="98" textAnchor="middle" fill={isDark ? "#93C5FD" : "#1E3A8A"} fontSize="9" fontWeight="bold">Campus</text>
+                      <text x="200" y="108" textAnchor="middle" fill={isDark ? "#60A5FA" : "#2563EB"} fontSize="7" fontFamily="monospace">Tenant</text>
                     </g>
 
                     {/* Satellite Node 1: TPO Command Deck */}
                     <g className="cursor-pointer" onClick={() => setActiveGraphNode("tpo")}>
-                      <circle cx="80" cy="50" r="18" fill="#FFFFFF" stroke="#3B82F6" strokeWidth="1.5" />
-                      <text x="80" y="53" textAnchor="middle" fill="#1E40AF" fontSize="8" fontWeight="bold">TPO</text>
+                      <circle cx="80" cy="50" r="18" fill={isDark ? "#0F172A" : "#FFFFFF"} stroke="#3B82F6" strokeWidth="1.5" />
+                      <text x="80" y="53" textAnchor="middle" fill={isDark ? "#93C5FD" : "#1E40AF"} fontSize="8" fontWeight="bold">TPO</text>
                     </g>
 
                     {/* Satellite Node 2: Verified Students */}
                     <g className="cursor-pointer" onClick={() => setActiveGraphNode("students")}>
-                      <circle cx="320" cy="50" r="18" fill="#FFFFFF" stroke="#6366F1" strokeWidth="1.5" />
-                      <text x="320" y="53" textAnchor="middle" fill="#4338CA" fontSize="8" fontWeight="bold">Students</text>
+                      <circle cx="320" cy="50" r="18" fill={isDark ? "#0F172A" : "#FFFFFF"} stroke="#6366F1" strokeWidth="1.5" />
+                      <text x="320" y="53" textAnchor="middle" fill={isDark ? "#A5B4FC" : "#4338CA"} fontSize="8" fontWeight="bold">Students</text>
                     </g>
 
                     {/* Satellite Node 3: AI Proctoring */}
                     <g className="cursor-pointer" onClick={() => setActiveGraphNode("proctor")}>
-                      <circle cx="100" cy="150" r="18" fill="#FFFFFF" stroke="#10B981" strokeWidth="1.5" />
-                      <text x="100" y="153" textAnchor="middle" fill="#065F46" fontSize="8" fontWeight="bold">Proctor</text>
+                      <circle cx="100" cy="150" r="18" fill={isDark ? "#0F172A" : "#FFFFFF"} stroke="#10B981" strokeWidth="1.5" />
+                      <text x="100" y="153" textAnchor="middle" fill={isDark ? "#6EE7B7" : "#065F46"} fontSize="8" fontWeight="bold">Proctor</text>
                     </g>
 
                     {/* Satellite Node 4: Active Recruiters */}
                     <g className="cursor-pointer" onClick={() => setActiveGraphNode("drives")}>
-                      <circle cx="300" cy="150" r="18" fill="#FFFFFF" stroke="#F59E0B" strokeWidth="1.5" />
-                      <text x="300" y="153" textAnchor="middle" fill="#92400E" fontSize="8" fontWeight="bold">Drives</text>
+                      <circle cx="300" cy="150" r="18" fill={isDark ? "#0F172A" : "#FFFFFF"} stroke="#F59E0B" strokeWidth="1.5" />
+                      <text x="300" y="153" textAnchor="middle" fill={isDark ? "#FCD34D" : "#92400E"} fontSize="8" fontWeight="bold">Drives</text>
                     </g>
 
                     {/* Top Node: Curriculum */}
                     <g className="cursor-pointer" onClick={() => setActiveGraphNode("curriculum")}>
-                      <circle cx="200" cy="25" r="14" fill="#FFFFFF" stroke="#0284C7" strokeWidth="1.5" />
-                      <text x="200" y="28" textAnchor="middle" fill="#0369A1" fontSize="7" fontWeight="bold">Syllabus</text>
+                      <circle cx="200" cy="25" r="14" fill={isDark ? "#0F172A" : "#FFFFFF"} stroke="#0284C7" strokeWidth="1.5" />
+                      <text x="200" y="28" textAnchor="middle" fill={isDark ? "#7DD3FC" : "#0369A1"} fontSize="7" fontWeight="bold">Syllabus</text>
                     </g>
                   </svg>
 
-                  <div className="absolute bottom-2 left-3 font-mono text-[10px] text-slate-500">
-                    Active node focus: <span className="text-blue-600 font-bold uppercase">{activeGraphNode}</span>
+                  <div className={`absolute bottom-2 left-3 font-mono text-[10px] ${
+                    isDark ? "text-slate-400" : "text-slate-500"
+                  }`}>
+                    Active node focus: <span className="text-blue-500 font-bold uppercase">{activeGraphNode}</span>
                   </div>
                 </div>
 
                 {/* 4 Metrics Strip */}
-                <div className="grid grid-cols-4 gap-2 text-center py-3 border-y border-slate-100 font-mono">
+                <div className={`grid grid-cols-4 gap-2 text-center py-3 border-y font-mono ${
+                  isDark ? "border-slate-800" : "border-slate-100"
+                }`}>
                   <div>
-                    <p className="text-base font-extrabold text-slate-900">{scanResult.activeDrives}</p>
-                    <p className="text-[10px] text-slate-500">Drives Live</p>
+                    <p className={`text-base font-extrabold ${isDark ? "text-white" : "text-slate-900"}`}>{scanResult.activeDrives}</p>
+                    <p className={`text-[10px] ${isDark ? "text-slate-400" : "text-slate-500"}`}>Drives Live</p>
                   </div>
                   <div>
-                    <p className="text-base font-extrabold text-blue-600">{scanResult.readiness}%</p>
-                    <p className="text-[10px] text-slate-500">Readiness</p>
+                    <p className="text-base font-extrabold text-blue-500">{scanResult.readiness}%</p>
+                    <p className={`text-[10px] ${isDark ? "text-slate-400" : "text-slate-500"}`}>Readiness</p>
                   </div>
                   <div>
-                    <p className="text-base font-extrabold text-emerald-600">{scanResult.recruiters}</p>
-                    <p className="text-[10px] text-slate-500">Recruiters</p>
+                    <p className="text-base font-extrabold text-emerald-500">{scanResult.recruiters}</p>
+                    <p className={`text-[10px] ${isDark ? "text-slate-400" : "text-slate-500"}`}>Recruiters</p>
                   </div>
                   <div>
-                    <p className="text-base font-extrabold text-indigo-600">{scanResult.avgPackage}</p>
-                    <p className="text-[10px] text-slate-500">Avg CTC</p>
+                    <p className="text-base font-extrabold text-indigo-400">{scanResult.avgPackage}</p>
+                    <p className={`text-[10px] ${isDark ? "text-slate-400" : "text-slate-500"}`}>Avg CTC</p>
                   </div>
                 </div>
 
                 {/* Mini Table of Target Opportunities */}
                 <div className="mt-3 space-y-1.5 font-mono text-[11px]">
-                  <div className="flex justify-between items-center text-slate-400 text-[10px] pb-1 border-b border-slate-100">
+                  <div className={`flex justify-between items-center text-[10px] pb-1 border-b ${
+                    isDark ? "text-slate-500 border-slate-800" : "text-slate-400 border-slate-100"
+                  }`}>
                     <span>TARGET ROLE</span>
                     <span>CTC</span>
                     <span>DIFFICULTY</span>
@@ -1258,12 +1423,18 @@ export default function LandingPage() {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.05 }}
                       whileHover={{ x: 3 }}
-                      className="flex justify-between items-center py-1 border-b border-slate-50 text-slate-700 transition-transform"
+                      className={`flex justify-between items-center py-1 border-b transition-transform ${
+                        isDark ? "border-slate-800/60 text-slate-300" : "border-slate-50 text-slate-700"
+                      }`}
                     >
-                      <span className="truncate max-w-[140px] font-semibold text-slate-900">{row.role}</span>
-                      <span className="text-slate-500">{row.ctc}</span>
-                      <span className="text-slate-500">{row.diff}</span>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded border font-bold ${row.color}`}>
+                      <span className={`truncate max-w-[140px] font-semibold ${isDark ? "text-slate-100" : "text-slate-900"}`}>{row.role}</span>
+                      <span className={isDark ? "text-slate-400" : "text-slate-500"}>{row.ctc}</span>
+                      <span className={isDark ? "text-slate-400" : "text-slate-500"}>{row.diff}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded border font-bold ${
+                        isDark
+                          ? "bg-slate-800/80 border-slate-700 text-emerald-300"
+                          : row.color
+                      }`}>
                         {row.intent}
                       </span>
                     </motion.div>
@@ -1271,9 +1442,13 @@ export default function LandingPage() {
                 </div>
 
                 {/* Insights Summary Banner */}
-                <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] font-mono text-slate-500">
+                <div className={`mt-3 pt-2.5 border-t flex items-center justify-between text-[11px] font-mono ${
+                  isDark ? "border-slate-800 text-slate-400" : "border-slate-100 text-slate-500"
+                }`}>
                   <span className="truncate max-w-[280px]">{scanResult.insights}</span>
-                  <a href="#readiness" className="text-blue-600 hover:text-blue-800 font-bold shrink-0 ml-2 hover:underline">
+                  <a href="#readiness" className={`font-bold shrink-0 ml-2 hover:underline ${
+                    isDark ? "text-blue-400 hover:text-blue-300" : "text-blue-600 hover:text-blue-800"
+                  }`}>
                     Details &rarr;
                   </a>
                 </div>
@@ -1283,30 +1458,48 @@ export default function LandingPage() {
         </div>
 
         {/* 4 Major Institutional KPIs Strip with Kinetic Animated Count Ups */}
-        <StaggerGrid className="mt-14 pt-8 border-t border-slate-200/80 grid grid-cols-2 md:grid-cols-4 gap-6 font-mono">
-          <StaggerCard className="space-y-1 p-4 rounded-2xl bg-white border border-slate-200/70 shadow-2xs">
-            <p className="text-3xl sm:text-4xl font-extrabold text-slate-900">
+        <StaggerGrid className={`mt-14 pt-8 border-t grid grid-cols-2 md:grid-cols-4 gap-6 font-mono ${
+          isDark ? "border-slate-800" : "border-slate-200/80"
+        }`}>
+          <StaggerCard className={`space-y-1 p-4 rounded-2xl border shadow-2xs ${
+            isDark
+              ? "bg-slate-900/80 border-slate-800"
+              : "bg-white border-slate-200/70"
+          }`}>
+            <p className={`text-3xl sm:text-4xl font-extrabold ${isDark ? "text-white" : "text-slate-900"}`}>
               <AnimatedCounter target={450} suffix="+" />
             </p>
-            <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Campus Drives Hosted</p>
+            <p className={`text-xs uppercase tracking-wider font-semibold ${isDark ? "text-slate-400" : "text-slate-500"}`}>Campus Drives Hosted</p>
           </StaggerCard>
-          <StaggerCard className="space-y-1 p-4 rounded-2xl bg-white border border-slate-200/70 shadow-2xs">
-            <p className="text-3xl sm:text-4xl font-extrabold text-blue-600">
+          <StaggerCard className={`space-y-1 p-4 rounded-2xl border shadow-2xs ${
+            isDark
+              ? "bg-slate-900/80 border-slate-800"
+              : "bg-white border-slate-200/70"
+          }`}>
+            <p className="text-3xl sm:text-4xl font-extrabold text-blue-400">
               <AnimatedCounter target={500} suffix="+" />
             </p>
-            <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Partner Recruiters</p>
+            <p className={`text-xs uppercase tracking-wider font-semibold ${isDark ? "text-slate-400" : "text-slate-500"}`}>Partner Recruiters</p>
           </StaggerCard>
-          <StaggerCard className="space-y-1 p-4 rounded-2xl bg-white border border-slate-200/70 shadow-2xs">
-            <p className="text-3xl sm:text-4xl font-extrabold text-emerald-600">
+          <StaggerCard className={`space-y-1 p-4 rounded-2xl border shadow-2xs ${
+            isDark
+              ? "bg-slate-900/80 border-slate-800"
+              : "bg-white border-slate-200/70"
+          }`}>
+            <p className="text-3xl sm:text-4xl font-extrabold text-emerald-400">
               <AnimatedCounter target={99.4} suffix="%" />
             </p>
-            <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Proctoring Integrity</p>
+            <p className={`text-xs uppercase tracking-wider font-semibold ${isDark ? "text-slate-400" : "text-slate-500"}`}>Proctoring Integrity</p>
           </StaggerCard>
-          <StaggerCard className="space-y-1 p-4 rounded-2xl bg-white border border-slate-200/70 shadow-2xs">
-            <p className="text-3xl sm:text-4xl font-extrabold text-indigo-600">
+          <StaggerCard className={`space-y-1 p-4 rounded-2xl border shadow-2xs ${
+            isDark
+              ? "bg-slate-900/80 border-slate-800"
+              : "bg-white border-slate-200/70"
+          }`}>
+            <p className="text-3xl sm:text-4xl font-extrabold text-indigo-400">
               <AnimatedCounter target={18.4} prefix="₹" suffix=" LPA" />
             </p>
-            <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Top Dream Package</p>
+            <p className={`text-xs uppercase tracking-wider font-semibold ${isDark ? "text-slate-400" : "text-slate-500"}`}>Top Dream Package</p>
           </StaggerCard>
         </StaggerGrid>
 
@@ -1319,7 +1512,9 @@ export default function LandingPage() {
       {/* ───────────────────────────────────────────────────────────────────────
           SECTION #78: "From Student Intake to Offer Letter. Four Steps."
          ─────────────────────────────────────────────────────────────────────── */}
-      <section id="how-it-works" className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-200/80 relative">
+      <section id="how-it-works" className={`py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t relative transition-colors ${
+        isDark ? "border-slate-800" : "border-slate-200/80"
+      }`}>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left Watermark Header with kinetic word reveal */}
           <div className="lg:col-span-5 space-y-4">
@@ -1327,27 +1522,44 @@ export default function LandingPage() {
               <RadarBadge code="78" text="01 HOW IT WORKS • STILL ON PAGE 8" />
             </RevealOnScroll>
 
-            <h2 className="text-3xl sm:text-4xl font-bold font-heading text-slate-900 leading-tight">
+            <h2 className={`text-3xl sm:text-4xl font-bold font-heading leading-tight ${
+              isDark ? "text-white" : "text-slate-900"
+            }`}>
               <AnimatedWords text="From student intake to offer letter. Four steps." />{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 font-bold">
-                <AnimatedWords text="Zero manual chaos." delay={0.2} />
-              </span>
+              <AnimatedWords
+                text="Zero manual chaos."
+                delay={0.2}
+                isGradient
+                className={
+                  isDark
+                    ? "text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-cyan-300 font-bold"
+                    : "text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 font-bold"
+                }
+              />
             </h2>
 
             <RevealOnScroll delay={0.15}>
-              <p className="text-sm text-slate-600 leading-relaxed pt-2">
+              <p className={`text-sm leading-relaxed pt-2 ${
+                isDark ? "text-slate-300" : "text-slate-600"
+              }`}>
                 Good campus placement needs <strong>a trainer</strong>, <strong>a proctor</strong>, <strong>a coordinator</strong>, and <strong>an institutional tracker</strong>.
               </p>
             </RevealOnScroll>
 
             <RevealOnScroll delay={0.25}>
-              <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-sm space-y-2.5 text-xs text-slate-600">
+              <div className={`p-4 rounded-2xl border space-y-2.5 text-xs ${
+                isDark
+                  ? "bg-slate-900/80 border-slate-800 text-slate-300 shadow-sm"
+                  : "bg-white border-slate-200/90 text-slate-600 shadow-sm"
+              }`}>
                 <p className="flex items-start gap-2">
                   <span className="text-red-500 font-bold shrink-0">✕</span>
                   Legacy agencies charge ₹3,00,000+ per drive and burden TPOs with 60+ spreadsheet columns.
                 </p>
-                <p className="flex items-start gap-2 font-medium text-slate-800">
-                  <span className="text-emerald-600 font-bold shrink-0">✓</span>
+                <p className={`flex items-start gap-2 font-medium ${
+                  isDark ? "text-slate-200" : "text-slate-800"
+                }`}>
+                  <span className="text-emerald-500 font-bold shrink-0">✓</span>
                   InternBridge automates syllabus curation, AI proctoring, resume scoring, and drive dispatches in one unified tenant.
                 </p>
               </div>
@@ -1376,7 +1588,7 @@ export default function LandingPage() {
                 title: "Mock Interview & Resume Studio",
                 desc: "Practice company-specific technical and HR rounds. Receive ATS section rebuilds and real-time STAR method feedback.",
                 linkText: "Open interview studio →",
-                href: "/student/mock-interview/setup",
+                href: "/student/mock-interview",
               },
               {
                 num: "04",
@@ -1388,16 +1600,26 @@ export default function LandingPage() {
             ].map((step) => (
               <StaggerCard
                 key={step.num}
-                className="p-5 rounded-2xl bg-white border border-slate-200/90 hover:border-blue-500/50 transition-all flex flex-col justify-between space-y-4 shadow-sm"
+                className={`p-5 rounded-2xl border transition-all flex flex-col justify-between space-y-4 shadow-sm ${
+                  isDark
+                    ? "bg-slate-900/80 border-slate-800 hover:border-blue-500/50"
+                    : "bg-white border-slate-200/90 hover:border-blue-500/50"
+                }`}
               >
                 <div>
-                  <span className="text-2xl font-black font-mono text-blue-600">{step.num}</span>
-                  <h3 className="text-base font-bold font-heading text-slate-900 mt-1">{step.title}</h3>
-                  <p className="text-xs text-slate-600 leading-relaxed mt-2">{step.desc}</p>
+                  <span className="text-2xl font-black font-mono text-blue-500">{step.num}</span>
+                  <h3 className={`text-base font-bold font-heading mt-1 ${
+                    isDark ? "text-white" : "text-slate-900"
+                  }`}>{step.title}</h3>
+                  <p className={`text-xs leading-relaxed mt-2 ${
+                    isDark ? "text-slate-300" : "text-slate-600"
+                  }`}>{step.desc}</p>
                 </div>
                 <Link
                   to={step.href}
-                  className="text-xs font-bold text-blue-600 hover:text-blue-800 inline-flex items-center gap-1 group"
+                  className={`text-xs font-bold inline-flex items-center gap-1 group ${
+                    isDark ? "text-blue-400 hover:text-blue-300" : "text-blue-600 hover:text-blue-800"
+                  }`}
                 >
                   {step.linkText}
                 </Link>
@@ -1410,21 +1632,34 @@ export default function LandingPage() {
       {/* ───────────────────────────────────────────────────────────────────────
           SECTION #63: "Find the Opportunities You Can Actually Win"
          ─────────────────────────────────────────────────────────────────────── */}
-      <section id="readiness" className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-200/80">
+      <section id="readiness" className={`py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t transition-colors ${
+        isDark ? "border-slate-800" : "border-slate-200/80"
+      }`}>
         <div className="space-y-4 mb-8">
           <RevealOnScroll>
             <RadarBadge code="63" text="02 RESEARCH • PAGE 7" />
           </RevealOnScroll>
 
-          <h2 className="text-3xl sm:text-4xl font-bold font-heading text-slate-900">
+          <h2 className={`text-3xl sm:text-4xl font-bold font-heading ${
+            isDark ? "text-white" : "text-slate-900"
+          }`}>
             <AnimatedWords text="Find the opportunities you can" />{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 font-bold">
-              <AnimatedWords text="actually win." delay={0.2} />
-            </span>
+            <AnimatedWords
+              text="actually win."
+              delay={0.2}
+              isGradient
+              className={
+                isDark
+                  ? "text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-cyan-300 font-bold"
+                  : "text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 font-bold"
+              }
+            />
           </h2>
 
           <RevealOnScroll delay={0.2}>
-            <p className="text-sm text-slate-600 max-w-2xl leading-relaxed">
+            <p className={`text-sm max-w-2xl leading-relaxed ${
+              isDark ? "text-slate-400" : "text-slate-600"
+            }`}>
               Every visiting recruiter plotted by eligibility difficulty vs Offered Annual CTC. Hover on any node to view cutoff marks, required tech stack, and schedule interview rounds.
             </p>
           </RevealOnScroll>
@@ -1433,11 +1668,15 @@ export default function LandingPage() {
         {/* Opportunity Map & 60-Day Placement Calendar */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left Column: Interactive Scatter Plot */}
-          <RevealOnScroll delay={0.15} className="lg:col-span-7 rounded-3xl bg-white border border-slate-200/90 p-5 sm:p-6 card-hover shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-100">
+          <RevealOnScroll delay={0.15} className={`lg:col-span-7 rounded-3xl p-5 sm:p-6 card-hover shadow-sm transition-colors ${
+            isDark ? "bg-slate-900/80 border border-slate-800" : "bg-white border border-slate-200/90"
+          }`}>
+            <div className={`flex flex-wrap items-center justify-between gap-3 pb-4 border-b ${
+              isDark ? "border-slate-800" : "border-slate-100"
+            }`}>
               <div className="flex items-center gap-2">
-                <span className="font-mono text-xs font-bold text-slate-900">Opportunity Map:</span>
-                <span className="text-xs text-blue-600 font-mono font-semibold">bvm-campus.network</span>
+                <span className={`font-mono text-xs font-bold ${isDark ? "text-white" : "text-slate-900"}`}>Opportunity Map:</span>
+                <span className="text-xs text-blue-500 font-mono font-semibold">bvm-campus.network</span>
               </div>
               <div className="flex flex-wrap gap-1.5 text-[10px] font-mono">
                 {["all", "Dream", "Super Dream", "Core"].map((filter) => (
@@ -1447,6 +1686,8 @@ export default function LandingPage() {
                     className={`px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
                       selectedScatterFilter === filter
                         ? "bg-blue-600 text-white border-blue-600 font-bold shadow-xs"
+                        : isDark
+                        ? "bg-slate-800 text-slate-300 border-slate-700 hover:text-white"
                         : "bg-slate-50 text-slate-600 border-slate-200 hover:text-slate-900"
                     }`}
                   >
@@ -1457,29 +1698,33 @@ export default function LandingPage() {
             </div>
 
             {/* Interactive SVG Scatter Coordinate Plane */}
-            <div className="relative h-72 sm:h-80 my-4 bg-slate-50/80 rounded-2xl border border-slate-200/60 p-4 flex flex-col justify-between overflow-hidden">
+            <div className={`relative h-72 sm:h-80 my-4 rounded-2xl border p-4 flex flex-col justify-between overflow-hidden ${
+              isDark ? "bg-slate-950/80 border-slate-800" : "bg-slate-50/80 border-slate-200/60"
+            }`}>
               {/* Sweet spot box highlight */}
-              <div className="absolute top-4 left-4 w-44 h-36 bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-2.5 pointer-events-none">
-                <span className="text-[10px] font-mono font-bold text-emerald-700 uppercase tracking-wider block">
+              <div className={`absolute top-4 left-4 w-44 h-36 rounded-xl p-2.5 pointer-events-none ${
+                isDark ? "bg-emerald-500/10 border border-emerald-500/30" : "bg-emerald-500/10 border border-emerald-500/30"
+              }`}>
+                <span className="text-[10px] font-mono font-bold text-emerald-400 uppercase tracking-wider block">
                   ★ SWEET SPOT: HIGH CTC / REASONABLE CUTOFF
                 </span>
               </div>
 
               {/* Scatter nodes with hover bounce & click-to-schedule */}
               <svg className="w-full h-full select-none" viewBox="0 0 500 280">
-                <line x1="40" y1="240" x2="480" y2="240" stroke="#CBD5E1" strokeWidth="1" />
-                <line x1="40" y1="20" x2="40" y2="240" stroke="#CBD5E1" strokeWidth="1" />
+                <line x1="40" y1="240" x2="480" y2="240" stroke={isDark ? "#334155" : "#CBD5E1"} strokeWidth="1" />
+                <line x1="40" y1="20" x2="40" y2="240" stroke={isDark ? "#334155" : "#CBD5E1"} strokeWidth="1" />
                 
-                <text x="260" y="268" textAnchor="middle" fill="#64748B" fontSize="9" fontFamily="monospace">
+                <text x="260" y="268" textAnchor="middle" fill={isDark ? "#94A3B8" : "#64748B"} fontSize="9" fontFamily="monospace">
                   DIFFICULTY / MIN CGPA &rarr;
                 </text>
-                <text x="20" y="130" textAnchor="middle" fill="#64748B" fontSize="9" fontFamily="monospace" transform="rotate(-90 20 130)">
+                <text x="20" y="130" textAnchor="middle" fill={isDark ? "#94A3B8" : "#64748B"} fontSize="9" fontFamily="monospace" transform="rotate(-90 20 130)">
                   OFFERED CTC (₹ LPA) &rarr;
                 </text>
 
                 {[
-                  { name: "Google", role: "SDE I", cx: 100, cy: 50, ctc: "₹34 LPA", cgpa: "8.5", tier: "Super Dream", color: "#2563EB" },
-                  { name: "Microsoft", role: "Cloud Dev", cx: 130, cy: 70, ctc: "₹28 LPA", cgpa: "8.0", tier: "Super Dream", color: "#2563EB" },
+                  { name: "Google", role: "SDE I", cx: 100, cy: 50, ctc: "₹34 LPA", cgpa: "8.5", tier: "Super Dream", color: "#3B82F6" },
+                  { name: "Microsoft", role: "Cloud Dev", cx: 130, cy: 70, ctc: "₹28 LPA", cgpa: "8.0", tier: "Super Dream", color: "#3B82F6" },
                   { name: "Amazon", role: "Backend Eng", cx: 110, cy: 95, ctc: "₹24 LPA", cgpa: "7.8", tier: "Dream", color: "#10B981" },
                   { name: "Oracle", role: "Database Dev", cx: 180, cy: 110, ctc: "₹18 LPA", cgpa: "7.5", tier: "Dream", color: "#10B981" },
                   { name: "L&T Tech", role: "Embedded Eng", cx: 240, cy: 170, ctc: "₹9 LPA", cgpa: "6.8", tier: "Core", color: "#F59E0B" },
@@ -1501,8 +1746,8 @@ export default function LandingPage() {
                       {isScheduled && (
                         <circle cx={co.cx} cy={co.cy} r="12" fill={co.color} opacity="0.25" className="animate-ping" />
                       )}
-                      <circle cx={co.cx} cy={co.cy} r="7" fill={co.color} stroke="#FFFFFF" strokeWidth="2" />
-                      <text x={co.cx + 10} y={co.cy + 3} fill="#1E293B" fontSize="8" fontFamily="monospace" fontWeight="bold">
+                      <circle cx={co.cx} cy={co.cy} r="7" fill={co.color} stroke={isDark ? "#0F172A" : "#FFFFFF"} strokeWidth="2" />
+                      <text x={co.cx + 10} y={co.cy + 3} fill={isDark ? "#E2E8F0" : "#1E293B"} fontSize="8" fontFamily="monospace" fontWeight="bold">
                         {co.name} {isScheduled ? "✓" : ""}
                       </text>
                     </g>
@@ -1512,34 +1757,38 @@ export default function LandingPage() {
 
               {/* Hover preview tool card */}
               {hoveredCompany && (
-                <div className="absolute bottom-3 right-3 p-3 rounded-xl bg-white border border-blue-300 shadow-xl text-xs font-mono animate-scale-in z-10 pointer-events-none">
+                <div className={`absolute bottom-3 right-3 p-3 rounded-xl shadow-xl text-xs font-mono animate-scale-in z-10 pointer-events-none ${
+                  isDark ? "bg-slate-900 border border-blue-500/50 text-slate-200" : "bg-white border border-blue-300 text-slate-900"
+                }`}>
                   <div className="flex items-center justify-between gap-3">
-                    <p className="font-bold text-slate-900 text-sm">{hoveredCompany.name}</p>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-bold border border-blue-200">
+                    <p className={`font-bold text-sm ${isDark ? "text-white" : "text-slate-900"}`}>{hoveredCompany.name}</p>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 font-bold border border-blue-500/30">
                       Click to Schedule
                     </span>
                   </div>
-                  <p className="text-slate-600">{hoveredCompany.role}</p>
-                  <p className="text-emerald-600 font-bold mt-1">CTC: {hoveredCompany.ctc}</p>
-                  <p className="text-slate-500">Min CGPA: {hoveredCompany.cgpa}</p>
+                  <p className={isDark ? "text-slate-400" : "text-slate-600"}>{hoveredCompany.role}</p>
+                  <p className="text-emerald-400 font-bold mt-1">CTC: {hoveredCompany.ctc}</p>
+                  <p className={isDark ? "text-slate-500" : "text-slate-500"}>Min CGPA: {hoveredCompany.cgpa}</p>
                 </div>
               )}
             </div>
 
-            <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono">
+            <div className={`flex items-center justify-between text-[11px] font-mono ${isDark ? "text-slate-400" : "text-slate-500"}`}>
               <span>💡 Click any company bubble to schedule directly into the 60-day calendar.</span>
-              <span className="text-blue-600 font-semibold">{calendarSlots.length} in schedule</span>
+              <span className="text-blue-500 font-semibold">{calendarSlots.length} in schedule</span>
             </div>
           </RevealOnScroll>
 
           {/* Right Column: 60-Day Placement Calendar */}
-          <RevealOnScroll delay={0.25} className="lg:col-span-5 rounded-3xl bg-white border border-slate-200/90 p-5 sm:p-6 card-hover shadow-sm space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <RevealOnScroll delay={0.25} className={`lg:col-span-5 rounded-3xl p-5 sm:p-6 card-hover shadow-sm space-y-4 transition-colors ${
+            isDark ? "bg-slate-900/80 border border-slate-800" : "bg-white border border-slate-200/90"
+          }`}>
+            <div className={`flex items-center justify-between pb-3 border-b ${isDark ? "border-slate-800" : "border-slate-100"}`}>
               <div>
-                <h3 className="font-bold font-heading text-slate-900 text-base">Content calendar : next 60 days</h3>
-                <p className="text-xs text-slate-500 font-mono">Campus Recruitment Cycle</p>
+                <h3 className={`font-bold font-heading text-base ${isDark ? "text-white" : "text-slate-900"}`}>Content calendar : next 60 days</h3>
+                <p className={`text-xs font-mono ${isDark ? "text-slate-400" : "text-slate-500"}`}>Campus Recruitment Cycle</p>
               </div>
-              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
                 {calendarSlots.length} Scheduled
               </span>
             </div>
@@ -1551,17 +1800,21 @@ export default function LandingPage() {
                   initial={{ opacity: 0, y: -6, scale: 0.96 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -6, scale: 0.96 }}
-                  className="p-2.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 font-mono text-xs flex items-center justify-between shadow-xs font-semibold"
+                  className={`p-2.5 rounded-xl border font-mono text-xs flex items-center justify-between shadow-xs font-semibold ${
+                    isDark ? "bg-blue-950/60 border-blue-800 text-blue-300" : "bg-blue-50 border-blue-200 text-blue-800"
+                  }`}
                 >
                   <span>{calendarToast}</span>
-                  <button onClick={() => setCalendarToast(null)} className="text-blue-500 hover:text-blue-800 p-0.5">
+                  <button onClick={() => setCalendarToast(null)} className="text-blue-400 hover:text-blue-300 p-0.5">
                     <X className="w-3.5 h-3.5" />
                   </button>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            <div className="p-3 bg-slate-50 border border-slate-200/70 rounded-xl text-xs text-slate-600">
+            <div className={`p-3 rounded-xl text-xs ${
+              isDark ? "bg-slate-950/80 border border-slate-800 text-slate-300" : "bg-slate-50 border border-slate-200/70 text-slate-600"
+            }`}>
               Your top target opportunities are scheduled across Weeks 1-8 to maximize dream offer conversions.
             </div>
 
@@ -1575,27 +1828,31 @@ export default function LandingPage() {
                     whileHover={{ x: 3 }}
                     className={`p-3 rounded-xl border flex items-center justify-between font-mono text-xs transition-all ${
                       match
-                        ? "bg-white border-blue-200 shadow-2xs"
-                        : "bg-slate-50 border-slate-200"
+                        ? isDark
+                          ? "bg-slate-800/90 border-blue-500/40 text-white"
+                          : "bg-white border-blue-200 shadow-2xs"
+                        : isDark
+                        ? "bg-slate-950/60 border-slate-800/80 text-slate-400"
+                        : "bg-slate-50 border-slate-200 text-slate-500"
                     }`}
                   >
-                    <span className="text-slate-500 font-bold">WEEK {wk}</span>
+                    <span className={isDark ? "text-slate-400 font-bold" : "text-slate-500 font-bold"}>WEEK {wk}</span>
                     {match ? (
                       <div className="flex items-center gap-2">
-                        <span className="text-slate-900 font-bold">{match.company}</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
+                        <span className={`font-bold ${isDark ? "text-white" : "text-slate-900"}`}>{match.company}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">
                           {match.ctc}
                         </span>
                         <button
                           onClick={() => handleRemoveCalendarSlot(wk)}
-                          className="text-slate-400 hover:text-rose-600 transition-colors p-1 cursor-pointer"
+                          className="text-slate-400 hover:text-rose-400 transition-colors p-1 cursor-pointer"
                           title="Remove from schedule"
                         >
                           <X className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     ) : (
-                      <span className="text-slate-400 italic">Open recruitment slot</span>
+                      <span className="text-slate-500 italic">Open recruitment slot</span>
                     )}
                   </motion.div>
                 );
@@ -1621,7 +1878,9 @@ export default function LandingPage() {
               </motion.button>
               <button
                 onClick={() => setCalendarSlots([])}
-                className="py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-mono font-medium cursor-pointer"
+                className={`py-2 px-3 rounded-xl text-xs font-mono font-medium cursor-pointer transition-colors ${
+                  isDark ? "bg-slate-800 hover:bg-slate-700 text-slate-300" : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+                }`}
               >
                 Clear
               </button>
@@ -1633,21 +1892,34 @@ export default function LandingPage() {
       {/* ───────────────────────────────────────────────────────────────────────
           SECTION #47: "Real-Time AI Mock Interview & Proctoring Studio"
          ─────────────────────────────────────────────────────────────────────── */}
-      <section id="ai-studio" className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-200/80">
+      <section id="ai-studio" className={`py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t transition-colors ${
+        isDark ? "border-slate-800" : "border-slate-200/80"
+      }`}>
         <div className="space-y-4 mb-8">
           <RevealOnScroll>
             <RadarBadge code="47" text="03 WRITE & INTERVIEW • PAGE 6" />
           </RevealOnScroll>
 
-          <h2 className="text-3xl sm:text-4xl font-bold font-heading text-slate-900">
+          <h2 className={`text-3xl sm:text-4xl font-bold font-heading ${
+            isDark ? "text-white" : "text-slate-900"
+          }`}>
             <AnimatedWords text="Real-time AI Mock Interview &" />{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 font-bold">
-              <AnimatedWords text="Proctoring Studio." delay={0.2} />
-            </span>
+            <AnimatedWords
+              text="Proctoring Studio."
+              delay={0.2}
+              isGradient
+              className={
+                isDark
+                  ? "text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-cyan-300 font-bold"
+                  : "text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 font-bold"
+              }
+            />
           </h2>
 
           <RevealOnScroll delay={0.2}>
-            <p className="text-sm text-slate-600 max-w-2xl leading-relaxed">
+            <p className={`text-sm max-w-2xl leading-relaxed ${
+              isDark ? "text-slate-400" : "text-slate-600"
+            }`}>
               InternBridge fetches live recruiter question banks, inspects candidate webcam feeds for malpractice, and delivers instant section-by-section evaluation with STAR feedback.
             </p>
           </RevealOnScroll>
@@ -1656,8 +1928,12 @@ export default function LandingPage() {
         {/* Live Simulator Workspace */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column: Outline & Checklist */}
-          <RevealOnScroll delay={0.15} className="lg:col-span-4 rounded-3xl bg-white border border-slate-200/90 p-5 card-hover shadow-sm space-y-4">
-            <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-500 pb-2 border-b border-slate-100">
+          <RevealOnScroll delay={0.15} className={`lg:col-span-4 rounded-3xl p-5 card-hover shadow-sm space-y-4 transition-colors ${
+            isDark ? "bg-slate-900/80 border border-slate-800" : "bg-white border border-slate-200/90"
+          }`}>
+            <h4 className={`text-xs font-mono font-bold uppercase tracking-wider pb-2 border-b ${
+              isDark ? "text-slate-400 border-slate-800" : "text-slate-500 border-slate-100"
+            }`}>
               INTERVIEW OUTLINE (4 SECTIONS)
             </h4>
 
@@ -1673,7 +1949,11 @@ export default function LandingPage() {
                   onClick={() => setInterviewTopic(sec.id)}
                   className={`w-full text-left p-2.5 rounded-xl border transition-all cursor-pointer ${
                     sec.active
-                      ? "bg-blue-50 text-blue-700 border-blue-300 font-bold shadow-2xs"
+                      ? isDark
+                        ? "bg-blue-950/60 text-blue-300 border-blue-700 font-bold shadow-xs"
+                        : "bg-blue-50 text-blue-700 border-blue-300 font-bold shadow-2xs"
+                      : isDark
+                      ? "bg-slate-950/60 text-slate-400 border-slate-800 hover:text-white"
                       : "bg-slate-50 text-slate-600 border-slate-200 hover:text-slate-900"
                   }`}
                 >
@@ -1683,30 +1963,38 @@ export default function LandingPage() {
             </div>
 
             {/* Checklist */}
-            <div className="pt-4 border-t border-slate-100 space-y-2 font-mono text-xs text-slate-600">
-              <span className="text-[11px] font-bold text-slate-900 uppercase tracking-wider block mb-2">
+            <div className={`pt-4 border-t space-y-2 font-mono text-xs ${
+              isDark ? "border-slate-800 text-slate-300" : "border-slate-100 text-slate-600"
+            }`}>
+              <span className={`text-[11px] font-bold uppercase tracking-wider block mb-2 ${
+                isDark ? "text-white" : "text-slate-900"
+              }`}>
                 Every interview includes:
               </span>
-              <p className="flex items-center gap-2 text-emerald-600 font-medium">
+              <p className="flex items-center gap-2 text-emerald-400 font-medium">
                 <Check className="w-3.5 h-3.5" /> Live browser & webcam proctoring
               </p>
-              <p className="flex items-center gap-2 text-emerald-600 font-medium">
+              <p className="flex items-center gap-2 text-emerald-400 font-medium">
                 <Check className="w-3.5 h-3.5" /> 30+ Company past interview papers
               </p>
-              <p className="flex items-center gap-2 text-emerald-600 font-medium">
+              <p className="flex items-center gap-2 text-emerald-400 font-medium">
                 <Check className="w-3.5 h-3.5" /> Technical depth scoring (0-100)
               </p>
-              <p className="flex items-center gap-2 text-emerald-600 font-medium">
+              <p className="flex items-center gap-2 text-emerald-400 font-medium">
                 <Check className="w-3.5 h-3.5" /> Resume-matched question prompts
               </p>
             </div>
           </RevealOnScroll>
 
           {/* Right Column: Live Candidate Sandbox & Evaluation Panel */}
-          <RevealOnScroll delay={0.25} className="lg:col-span-8 rounded-3xl bg-white border border-slate-200/90 p-5 sm:p-6 card-hover shadow-sm space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          <RevealOnScroll delay={0.25} className={`lg:col-span-8 rounded-3xl p-5 sm:p-6 card-hover shadow-sm space-y-4 transition-colors ${
+            isDark ? "bg-slate-900/80 border border-slate-800" : "bg-white border border-slate-200/90"
+          }`}>
+            <div className={`flex flex-wrap items-center justify-between gap-3 pb-3 border-b ${
+              isDark ? "border-slate-800" : "border-slate-100"
+            }`}>
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1.5 text-rose-500 font-mono text-xs font-bold">
+                <div className="flex items-center gap-1.5 text-rose-400 font-mono text-xs font-bold">
                   <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
                   <span>LIVE PROCTORED AUDIO</span>
                 </div>
@@ -1714,7 +2002,7 @@ export default function LandingPage() {
               </div>
               <button
                 onClick={() => setShowJsonSchema(!showJsonSchema)}
-                className="text-xs font-mono text-blue-600 hover:text-blue-800 underline font-semibold cursor-pointer"
+                className="text-xs font-mono text-blue-500 hover:text-blue-400 underline font-semibold cursor-pointer"
               >
                 {showJsonSchema ? "Hide JSON Schema" : "Inspect Schema Markup"}
               </button>
@@ -1727,9 +2015,11 @@ export default function LandingPage() {
             />
 
             {/* Question Prompt with Audio Synthesis */}
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className={`p-3.5 rounded-xl border text-xs font-mono flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
+              isDark ? "bg-slate-950/80 border-slate-800 text-slate-200" : "bg-slate-50 border-slate-200 text-slate-800"
+            }`}>
               <div>
-                <span className="text-blue-600 font-bold">Prompt: </span>
+                <span className="text-blue-500 font-bold">Prompt: </span>
                 <span>
                   {interviewTopic === "dsa"
                     ? "How would you optimize Dijkstra's shortest-path algorithm when graph vertices exceed 100,000?"
@@ -1750,7 +2040,9 @@ export default function LandingPage() {
                 }
                 className={`shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-mono font-semibold transition-all inline-flex items-center gap-1.5 cursor-pointer ${
                   isSpeaking
-                    ? "bg-rose-50 text-rose-700 border border-rose-300 animate-pulse"
+                    ? "bg-rose-500/20 text-rose-400 border border-rose-500/30 animate-pulse"
+                    : isDark
+                    ? "bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-700"
                     : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
                 }`}
                 title="Voice Question Aloud"
@@ -1764,12 +2056,14 @@ export default function LandingPage() {
             <div>
               <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
                 <div className="flex items-center gap-2">
-                  <label className="text-[11px] font-mono text-slate-500 uppercase tracking-wider font-semibold">
+                  <label className={`text-[11px] font-mono uppercase tracking-wider font-semibold ${
+                    isDark ? "text-slate-400" : "text-slate-500"
+                  }`}>
                     Candidate Verbal / Code Response:
                   </label>
                   {isListening && (
-                    <span className="flex items-center gap-1.5 text-[10px] font-mono text-rose-600 font-bold bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200 animate-pulse">
-                      <span className="w-2 h-2 rounded-full bg-rose-600 animate-ping" />
+                    <span className="flex items-center gap-1.5 text-[10px] font-mono text-rose-400 font-bold bg-rose-500/20 px-2 py-0.5 rounded-full border border-rose-500/30 animate-pulse">
+                      <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
                       REC AUDIO STREAMING
                     </span>
                   )}
@@ -1778,10 +2072,14 @@ export default function LandingPage() {
                   <button
                     type="button"
                     onClick={handleLoadProAnswer}
-                    className="px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition-all inline-flex items-center gap-1 cursor-pointer"
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold border transition-all inline-flex items-center gap-1 cursor-pointer ${
+                      isDark
+                        ? "bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700"
+                        : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300"
+                    }`}
                     title="Load Pre-crafted Benchmark Answer"
                   >
-                    <Sparkles className="w-3 h-3 text-amber-500" />
+                    <Sparkles className="w-3 h-3 text-amber-400" />
                     Load Pro Answer
                   </button>
                   <button
@@ -1790,6 +2088,8 @@ export default function LandingPage() {
                     className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold transition-all inline-flex items-center gap-1.5 cursor-pointer ${
                       isListening
                         ? "bg-rose-600 text-white animate-pulse shadow-md shadow-rose-500/25"
+                        : isDark
+                        ? "bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700"
                         : "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300"
                     }`}
                   >
@@ -1803,7 +2103,11 @@ export default function LandingPage() {
                 value={userAnswer}
                 onChange={(e) => setUserAnswer(e.target.value)}
                 placeholder="Type or dictate your technical response..."
-                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none"
+                className={`w-full p-3 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none transition-colors ${
+                  isDark
+                    ? "bg-slate-950 border border-slate-800 text-slate-100 placeholder-slate-600"
+                    : "bg-slate-50 border border-slate-200 text-slate-900"
+                }`}
               />
             </div>
 
@@ -1827,9 +2131,9 @@ export default function LandingPage() {
               </motion.button>
 
               <div className="flex items-center gap-3 font-mono text-xs">
-                <span className="text-slate-500">Score:</span>
-                <span className="text-lg font-black text-emerald-600">{evalResult.score}/100</span>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
+                <span className={isDark ? "text-slate-400" : "text-slate-500"}>Score:</span>
+                <span className="text-lg font-black text-emerald-400">{evalResult.score}/100</span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">
                   {evalResult.accuracy}
                 </span>
               </div>
@@ -1841,7 +2145,7 @@ export default function LandingPage() {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
-                className="p-4 rounded-xl bg-slate-900 border border-slate-800 relative font-mono text-[11px] text-emerald-400 overflow-hidden"
+                className="p-4 rounded-xl bg-slate-950 border border-slate-800 relative font-mono text-[11px] text-emerald-400 overflow-hidden"
               >
                 <button
                   onClick={handleCopySchema}
@@ -1874,32 +2178,49 @@ export default function LandingPage() {
       {/* ───────────────────────────────────────────────────────────────────────
           SECTION #29: "Automate Drives. Zero Spreadsheet Clutter."
          ─────────────────────────────────────────────────────────────────────── */}
-      <section id="drives" className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-200/80">
+      <section id="drives" className={`py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t transition-colors ${
+        isDark ? "border-slate-800" : "border-slate-200/80"
+      }`}>
         <div className="space-y-4 mb-8">
           <RevealOnScroll>
             <RadarBadge code="29" text="04 PUBLISH & DISPATCH • PAGE 5" />
           </RevealOnScroll>
 
-          <h2 className="text-3xl sm:text-4xl font-bold font-heading text-slate-900">
+          <h2 className={`text-3xl sm:text-4xl font-bold font-heading ${
+            isDark ? "text-white" : "text-slate-900"
+          }`}>
             <AnimatedWords text="Publishes to students." />{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 font-bold">
-              <AnimatedWords text="No copy-pasting." delay={0.2} />
-            </span>
+            <AnimatedWords
+              text="No copy-pasting."
+              delay={0.2}
+              isGradient
+              className={
+                isDark
+                  ? "text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-cyan-300 font-bold"
+                  : "text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 font-bold"
+              }
+            />
           </h2>
 
           <RevealOnScroll delay={0.2}>
-            <p className="text-sm text-slate-600 max-w-2xl leading-relaxed">
+            <p className={`text-sm max-w-2xl leading-relaxed ${
+              isDark ? "text-slate-400" : "text-slate-600"
+            }`}>
               Native integrations with college student domains, automatic eligibility gating, and zero conflicting spreadsheets. Dispatch job notices to 500+ candidates in under 30 seconds.
             </p>
           </RevealOnScroll>
         </div>
 
         {/* Dispatcher Sandbox Card */}
-        <RevealOnScroll delay={0.2} className="rounded-3xl bg-white border border-slate-200/90 p-6 card-hover shadow-sm space-y-6">
+        <RevealOnScroll delay={0.2} className={`rounded-3xl p-6 card-hover shadow-sm space-y-6 transition-colors ${
+          isDark ? "bg-slate-900/80 border border-slate-800" : "bg-white border border-slate-200/90"
+        }`}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Recruiter selector */}
             <div className="space-y-2">
-              <label className="block text-xs font-mono text-slate-500 uppercase tracking-wider font-semibold">
+              <label className={`block text-xs font-mono uppercase tracking-wider font-semibold ${
+                isDark ? "text-slate-400" : "text-slate-500"
+              }`}>
                 Select visiting recruiter:
               </label>
               <div className="flex flex-wrap gap-2">
@@ -1910,6 +2231,8 @@ export default function LandingPage() {
                     className={`px-3 py-1.5 rounded-xl text-xs font-mono transition-all cursor-pointer ${
                       selectedRecruiter === rec
                         ? "bg-blue-600 text-white font-bold shadow-sm"
+                        : isDark
+                        ? "bg-slate-950/60 text-slate-400 hover:text-white border border-slate-800"
                         : "bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200"
                     }`}
                   >
@@ -1922,12 +2245,16 @@ export default function LandingPage() {
             {/* Pipeline Stage */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="block text-xs font-mono text-slate-500 uppercase tracking-wider font-semibold">
+                <label className={`block text-xs font-mono uppercase tracking-wider font-semibold ${
+                  isDark ? "text-slate-400" : "text-slate-500"
+                }`}>
                   Recruitment Stage:
                 </label>
                 <button
                   onClick={() => setShowDriveFilters(!showDriveFilters)}
-                  className="text-xs font-mono text-blue-600 hover:text-blue-800 font-semibold inline-flex items-center gap-1 cursor-pointer"
+                  className={`text-xs font-mono font-semibold inline-flex items-center gap-1 cursor-pointer ${
+                    isDark ? "text-blue-400 hover:text-blue-300" : "text-blue-600 hover:text-blue-800"
+                  }`}
                 >
                   <SlidersHorizontal className="w-3.5 h-3.5" />
                   {showDriveFilters ? "Close Filters" : "Eligibility Gates"}
@@ -1941,6 +2268,8 @@ export default function LandingPage() {
                     className={`px-3 py-1.5 rounded-xl text-xs font-mono transition-all cursor-pointer ${
                       driveStage === st
                         ? "bg-emerald-600 text-white font-bold shadow-sm"
+                        : isDark
+                        ? "bg-slate-950/60 text-slate-400 hover:text-white border border-slate-800"
                         : "bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200"
                     }`}
                   >
@@ -1958,13 +2287,15 @@ export default function LandingPage() {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
-                className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-4 font-mono text-xs overflow-hidden"
+                className={`p-4 rounded-2xl space-y-4 font-mono text-xs overflow-hidden ${
+                  isDark ? "bg-slate-950/80 border border-slate-800" : "bg-slate-50 border border-slate-200"
+                }`}
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <div className="flex justify-between">
-                      <span className="text-slate-600 font-semibold">Minimum Cutoff CGPA:</span>
-                      <span className="font-bold text-blue-600">{minCgpaCutoff.toFixed(1)} / 10.0</span>
+                      <span className={`font-semibold ${isDark ? "text-slate-300" : "text-slate-600"}`}>Minimum Cutoff CGPA:</span>
+                      <span className="font-bold text-blue-500">{minCgpaCutoff.toFixed(1)} / 10.0</span>
                     </div>
                     <input
                       type="range"
@@ -1973,12 +2304,14 @@ export default function LandingPage() {
                       step="0.1"
                       value={minCgpaCutoff}
                       onChange={(e) => setMinCgpaCutoff(parseFloat(e.target.value))}
-                      className="w-full accent-blue-600 bg-slate-200 h-2 rounded-lg cursor-pointer"
+                      className={`w-full accent-blue-600 h-2 rounded-lg cursor-pointer ${
+                        isDark ? "bg-slate-800" : "bg-slate-200"
+                      }`}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <span className="text-slate-600 font-semibold block">Allowed Eligible Branches:</span>
+                    <span className={`font-semibold block ${isDark ? "text-slate-300" : "text-slate-600"}`}>Allowed Eligible Branches:</span>
                     <div className="flex flex-wrap gap-1.5">
                       {["IT", "CE", "ECE", "EE", "MECH"].map((br) => {
                         const active = selectedBranches.includes(br);
@@ -1993,6 +2326,8 @@ export default function LandingPage() {
                             className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
                               active
                                 ? "bg-blue-600 text-white border-blue-600"
+                                : isDark
+                                ? "bg-slate-900 text-slate-400 border-slate-800 hover:text-white"
                                 : "bg-white text-slate-500 border-slate-200 hover:text-slate-800"
                             }`}
                           >
@@ -2009,20 +2344,22 @@ export default function LandingPage() {
 
           {/* 3 Real-Time Broadcast Conduits */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 font-mono text-xs space-y-2">
+            <div className={`p-3.5 rounded-2xl font-mono text-xs space-y-2 ${
+              isDark ? "bg-slate-950/80 border border-slate-800" : "bg-slate-50 border border-slate-200"
+            }`}>
               <div className="flex items-center justify-between text-slate-500">
-                <span className="flex items-center gap-1.5 font-bold text-slate-800">
-                  <Smartphone className="w-3.5 h-3.5 text-blue-600" /> Student Mobile App
+                <span className={`flex items-center gap-1.5 font-bold ${isDark ? "text-white" : "text-slate-800"}`}>
+                  <Smartphone className="w-3.5 h-3.5 text-blue-500" /> Student Mobile App
                 </span>
-                <span className="text-[10px] text-blue-600 font-bold bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
+                <span className="text-[10px] text-blue-500 font-bold bg-blue-500/20 px-1.5 py-0.5 rounded border border-blue-500/30">
                   PNS ACTIVE
                 </span>
               </div>
               <div className="flex items-baseline justify-between">
-                <span className="text-lg font-black text-slate-900">{broadcastMetrics.app}</span>
-                <span className="text-[10px] text-slate-400">/ {eligibleStudentCount} sent</span>
+                <span className={`text-lg font-black ${isDark ? "text-white" : "text-slate-900"}`}>{broadcastMetrics.app}</span>
+                <span className="text-[10px] text-slate-500">/ {eligibleStudentCount} sent</span>
               </div>
-              <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+              <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDark ? "bg-slate-800" : "bg-slate-200"}`}>
                 <div
                   className="bg-blue-600 h-full transition-all duration-500"
                   style={{ width: `${eligibleStudentCount ? (broadcastMetrics.app / eligibleStudentCount) * 100 : 0}%` }}
@@ -2030,43 +2367,47 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 font-mono text-xs space-y-2">
+            <div className={`p-3.5 rounded-2xl font-mono text-xs space-y-2 ${
+              isDark ? "bg-slate-950/80 border border-slate-800" : "bg-slate-50 border border-slate-200"
+            }`}>
               <div className="flex items-center justify-between text-slate-500">
-                <span className="flex items-center gap-1.5 font-bold text-slate-800">
-                  <Mail className="w-3.5 h-3.5 text-indigo-600" /> SES Email Gateway
+                <span className={`flex items-center gap-1.5 font-bold ${isDark ? "text-white" : "text-slate-800"}`}>
+                  <Mail className="w-3.5 h-3.5 text-indigo-400" /> SES Email Gateway
                 </span>
-                <span className="text-[10px] text-indigo-600 font-bold bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">
+                <span className="text-[10px] text-indigo-400 font-bold bg-indigo-500/20 px-1.5 py-0.5 rounded border border-indigo-500/30">
                   SMTP 250 OK
                 </span>
               </div>
               <div className="flex items-baseline justify-between">
-                <span className="text-lg font-black text-slate-900">{broadcastMetrics.email}</span>
-                <span className="text-[10px] text-slate-400">/ {eligibleStudentCount} sent</span>
+                <span className={`text-lg font-black ${isDark ? "text-white" : "text-slate-900"}`}>{broadcastMetrics.email}</span>
+                <span className="text-[10px] text-slate-500">/ {eligibleStudentCount} sent</span>
               </div>
-              <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+              <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDark ? "bg-slate-800" : "bg-slate-200"}`}>
                 <div
-                  className="bg-indigo-600 h-full transition-all duration-500"
+                  className="bg-indigo-500 h-full transition-all duration-500"
                   style={{ width: `${eligibleStudentCount ? (broadcastMetrics.email / eligibleStudentCount) * 100 : 0}%` }}
                 />
               </div>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 font-mono text-xs space-y-2">
+            <div className={`p-3.5 rounded-2xl font-mono text-xs space-y-2 ${
+              isDark ? "bg-slate-950/80 border border-slate-800" : "bg-slate-50 border border-slate-200"
+            }`}>
               <div className="flex items-center justify-between text-slate-500">
-                <span className="flex items-center gap-1.5 font-bold text-slate-800">
-                  <MessageSquare className="w-3.5 h-3.5 text-emerald-600" /> WhatsApp API
+                <span className={`flex items-center gap-1.5 font-bold ${isDark ? "text-white" : "text-slate-800"}`}>
+                  <MessageSquare className="w-3.5 h-3.5 text-emerald-400" /> WhatsApp API
                 </span>
-                <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/20 px-1.5 py-0.5 rounded border border-emerald-500/30">
                   DELIVERED
                 </span>
               </div>
               <div className="flex items-baseline justify-between">
-                <span className="text-lg font-black text-slate-900">{broadcastMetrics.whatsapp}</span>
-                <span className="text-[10px] text-slate-400">/ {eligibleStudentCount} delivered</span>
+                <span className={`text-lg font-black ${isDark ? "text-white" : "text-slate-900"}`}>{broadcastMetrics.whatsapp}</span>
+                <span className="text-[10px] text-slate-500">/ {eligibleStudentCount} delivered</span>
               </div>
-              <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+              <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDark ? "bg-slate-800" : "bg-slate-200"}`}>
                 <div
-                  className="bg-emerald-600 h-full transition-all duration-500"
+                  className="bg-emerald-500 h-full transition-all duration-500"
                   style={{ width: `${eligibleStudentCount ? (broadcastMetrics.whatsapp / eligibleStudentCount) * 100 : 0}%` }}
                 />
               </div>
@@ -2074,14 +2415,16 @@ export default function LandingPage() {
           </div>
 
           {/* Action & Feedback status */}
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="text-xs font-mono text-slate-700">
+          <div className={`p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 ${
+            isDark ? "bg-slate-950/80 border border-slate-800 text-slate-300" : "bg-slate-50 border border-slate-200 text-slate-700"
+          }`}>
+            <div className="text-xs font-mono">
               <p>
-                Targeting: <span className="font-bold text-slate-900">{selectedRecruiter} Placement Drive</span>
+                Targeting: <span className={`font-bold ${isDark ? "text-white" : "text-slate-900"}`}>{selectedRecruiter} Placement Drive</span>
               </p>
-              <p className="text-slate-500 mt-0.5">
+              <p className={`${isDark ? "text-slate-400" : "text-slate-500"} mt-0.5`}>
                 Qualified candidate pool:{" "}
-                <span className="font-bold text-blue-600">{eligibleStudentCount} Candidates</span> (CGPA &ge; {minCgpaCutoff.toFixed(1)}, {selectedBranches.length} Branches)
+                <span className="font-bold text-blue-500">{eligibleStudentCount} Candidates</span> (CGPA &ge; {minCgpaCutoff.toFixed(1)}, {selectedBranches.length} Branches)
               </p>
             </div>
 
@@ -2113,58 +2456,75 @@ export default function LandingPage() {
       {/* ───────────────────────────────────────────────────────────────────────
           SECTION #16: "Track Institutional Placement Intelligence"
          ─────────────────────────────────────────────────────────────────────── */}
-      <section id="analytics" className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-200/80">
+      <section id="analytics" className={`py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t transition-colors ${
+        isDark ? "border-slate-800" : "border-slate-200/80"
+      }`}>
         <div className="space-y-4 mb-8">
           <RevealOnScroll>
             <RadarBadge code="16" text="05 TRACK • PAGE 4" />
           </RevealOnScroll>
 
-          <h2 className="text-3xl sm:text-4xl font-bold font-heading text-slate-900">
+          <h2 className={`text-3xl sm:text-4xl font-bold font-heading ${
+            isDark ? "text-white" : "text-slate-900"
+          }`}>
             <AnimatedWords text="Tracks placement intelligence" />{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 font-bold">
-              <AnimatedWords text="automatically." delay={0.2} />
-            </span>
+            <AnimatedWords
+              text="automatically."
+              delay={0.2}
+              isGradient
+              className={
+                isDark
+                  ? "text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-cyan-300 font-bold"
+                  : "text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 font-bold"
+              }
+            />
           </h2>
 
           <RevealOnScroll delay={0.2}>
-            <p className="text-sm text-slate-600 max-w-2xl leading-relaxed">
+            <p className={`text-sm max-w-2xl leading-relaxed ${
+              isDark ? "text-slate-400" : "text-slate-600"
+            }`}>
               Real-time tracking of student applications, test completions, interview shortlists, and compensation packages across an academic year.
             </p>
           </RevealOnScroll>
         </div>
 
         {/* 4 Metric Cards + Line Chart */}
-        <RevealOnScroll delay={0.2} className="rounded-3xl bg-white border border-slate-200/90 p-6 card-hover shadow-sm space-y-6">
+        <RevealOnScroll delay={0.2} className={`rounded-3xl p-6 card-hover shadow-sm space-y-6 transition-colors ${
+          isDark ? "bg-slate-900/80 border border-slate-800" : "bg-white border border-slate-200/90"
+        }`}>
           <StaggerGrid className="grid grid-cols-2 md:grid-cols-4 gap-4 font-mono">
-            <StaggerCard className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-              <p className="text-2xl sm:text-3xl font-extrabold text-slate-900">
+            <StaggerCard className={`p-4 rounded-2xl ${isDark ? "bg-slate-950/80 border border-slate-800" : "bg-slate-50 border border-slate-200"}`}>
+              <p className={`text-2xl sm:text-3xl font-extrabold ${isDark ? "text-white" : "text-slate-900"}`}>
                 <AnimatedCounter target={17} suffix="K" />
               </p>
-              <p className="text-xs text-slate-500 mt-1 font-semibold">Total Test Attempts</p>
+              <p className={`text-xs mt-1 font-semibold ${isDark ? "text-slate-400" : "text-slate-500"}`}>Total Test Attempts</p>
             </StaggerCard>
-            <StaggerCard className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-              <p className="text-2xl sm:text-3xl font-extrabold text-blue-600">
+            <StaggerCard className={`p-4 rounded-2xl ${isDark ? "bg-slate-950/80 border border-slate-800" : "bg-slate-50 border border-slate-200"}`}>
+              <p className="text-2xl sm:text-3xl font-extrabold text-blue-500">
                 <AnimatedCounter target={105} suffix="K" />
               </p>
-              <p className="text-xs text-slate-500 mt-1 font-semibold">Total Drive Views</p>
+              <p className={`text-xs mt-1 font-semibold ${isDark ? "text-slate-400" : "text-slate-500"}`}>Total Drive Views</p>
             </StaggerCard>
-            <StaggerCard className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-              <p className="text-2xl sm:text-3xl font-extrabold text-emerald-600">
+            <StaggerCard className={`p-4 rounded-2xl ${isDark ? "bg-slate-950/80 border border-slate-800" : "bg-slate-50 border border-slate-200"}`}>
+              <p className="text-2xl sm:text-3xl font-extrabold text-emerald-400">
                 <AnimatedCounter target={15.9} suffix="%" />
               </p>
-              <p className="text-xs text-slate-500 mt-1 font-semibold">Offer Conversion Rate</p>
+              <p className={`text-xs mt-1 font-semibold ${isDark ? "text-slate-400" : "text-slate-500"}`}>Offer Conversion Rate</p>
             </StaggerCard>
-            <StaggerCard className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-              <p className="text-2xl sm:text-3xl font-extrabold text-indigo-600">
+            <StaggerCard className={`p-4 rounded-2xl ${isDark ? "bg-slate-950/80 border border-slate-800" : "bg-slate-50 border border-slate-200"}`}>
+              <p className="text-2xl sm:text-3xl font-extrabold text-indigo-400">
                 <AnimatedCounter target={8.4} prefix="₹" suffix=" LPA" />
               </p>
-              <p className="text-xs text-slate-500 mt-1 font-semibold">Avg Starting Package</p>
+              <p className={`text-xs mt-1 font-semibold ${isDark ? "text-slate-400" : "text-slate-500"}`}>Avg Starting Package</p>
             </StaggerCard>
           </StaggerGrid>
 
           {/* Interactive SVG Chart Curve (90 Days Growth) */}
-          <div className="h-48 sm:h-56 bg-slate-50/80 rounded-2xl border border-slate-200/60 p-4 relative overflow-hidden flex flex-col justify-between">
-            <div className="flex justify-between items-center text-[11px] font-mono text-slate-500">
+          <div className={`h-48 sm:h-56 rounded-2xl border p-4 relative overflow-hidden flex flex-col justify-between ${
+            isDark ? "bg-slate-950/80 border-slate-800" : "bg-slate-50/80 border-slate-200/60"
+          }`}>
+            <div className={`flex justify-between items-center text-[11px] font-mono ${isDark ? "text-slate-400" : "text-slate-500"}`}>
               <span>Day 0 (Orientation)</span>
               <span>Day 30 (Assessments)</span>
               <span>Day 60 (Drives Peak)</span>
@@ -2185,14 +2545,16 @@ export default function LandingPage() {
               <path
                 d="M 0 100 Q 150 85, 300 50 T 600 15"
                 fill="none"
-                stroke="#2563EB"
+                stroke="#3B82F6"
                 strokeWidth="2.5"
               />
             </svg>
 
-            <div className="flex justify-between items-center text-[10px] font-mono text-slate-500 pt-1 border-t border-slate-200">
+            <div className={`flex justify-between items-center text-[10px] font-mono pt-1 border-t ${
+              isDark ? "border-slate-800 text-slate-400" : "border-slate-200 text-slate-500"
+            }`}>
               <span>Verified data: 90 days of continuous campus drive execution.</span>
-              <span className="text-emerald-600 font-bold">+84% Offer Velocity</span>
+              <span className="text-emerald-400 font-bold">+84% Offer Velocity</span>
             </div>
           </div>
         </RevealOnScroll>
@@ -2201,21 +2563,34 @@ export default function LandingPage() {
       {/* ───────────────────────────────────────────────────────────────────────
           SECTION #09: "Cost & Time Savings ROI Flywheel"
          ─────────────────────────────────────────────────────────────────────── */}
-      <section id="roi" className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-200/80">
+      <section id="roi" className={`py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t transition-colors ${
+        isDark ? "border-slate-800" : "border-slate-200/80"
+      }`}>
         <div className="space-y-4 mb-8">
           <RevealOnScroll>
             <RadarBadge code="09" text="06 IMPROVE • PAGE 3" />
           </RevealOnScroll>
 
-          <h2 className="text-3xl sm:text-4xl font-bold font-heading text-slate-900">
+          <h2 className={`text-3xl sm:text-4xl font-bold font-heading ${
+            isDark ? "text-white" : "text-slate-900"
+          }`}>
             <AnimatedWords text="The ROI flywheel that saves" />{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-emerald-600 font-bold">
-              <AnimatedWords text="240+ TPO hours per cycle." delay={0.2} />
-            </span>
+            <AnimatedWords
+              text="240+ TPO hours per cycle."
+              delay={0.2}
+              isGradient
+              className={
+                isDark
+                  ? "text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-emerald-300 to-teal-300 font-bold"
+                  : "text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-emerald-600 font-bold"
+              }
+            />
           </h2>
 
           <RevealOnScroll delay={0.2}>
-            <p className="text-sm text-slate-600 max-w-2xl leading-relaxed">
+            <p className={`text-sm max-w-2xl leading-relaxed ${
+              isDark ? "text-slate-400" : "text-slate-600"
+            }`}>
               Drag the sliders below to calculate how much your institution currently spends on external assessment agencies versus the turnkey InternBridge Campus License.
             </p>
           </RevealOnScroll>
@@ -2224,12 +2599,14 @@ export default function LandingPage() {
         {/* Interactive Sliders & Live Comparison Calculator */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           {/* Sliders Left */}
-          <RevealOnScroll delay={0.15} className="lg:col-span-6 rounded-3xl bg-white border border-slate-200/90 p-6 card-hover shadow-sm space-y-6 font-mono">
+          <RevealOnScroll delay={0.15} className={`lg:col-span-6 rounded-3xl p-6 card-hover shadow-sm space-y-6 font-mono transition-colors ${
+            isDark ? "bg-slate-900/80 border border-slate-800" : "bg-white border border-slate-200/90"
+          }`}>
             {/* Slider 1: Batch Size */}
             <div className="space-y-2">
               <div className="flex justify-between text-xs">
-                <span className="text-slate-600 font-medium">Batch Size (Students):</span>
-                <span className="text-slate-900 font-bold">{batchSize} students</span>
+                <span className={isDark ? "text-slate-300 font-medium" : "text-slate-600 font-medium"}>Batch Size (Students):</span>
+                <span className={`font-bold ${isDark ? "text-white" : "text-slate-900"}`}>{batchSize} students</span>
               </div>
               <input
                 type="range"
@@ -2238,32 +2615,32 @@ export default function LandingPage() {
                 step="50"
                 value={batchSize}
                 onChange={(e) => setBatchSize(Number(e.target.value))}
-                className="w-full accent-blue-600 bg-slate-200 h-2 rounded-lg cursor-pointer"
+                className={`w-full accent-blue-600 h-2 rounded-lg cursor-pointer ${isDark ? "bg-slate-800" : "bg-slate-200"}`}
               />
             </div>
 
             {/* Slider 2: Annual Drives */}
             <div className="space-y-2">
               <div className="flex justify-between text-xs">
-                <span className="text-slate-600 font-medium">Visiting Recruiters / Drives:</span>
-                <span className="text-slate-900 font-bold">{drivesCount} companies</span>
+                <span className={isDark ? "text-slate-300 font-medium" : "text-slate-600 font-medium"}>Visiting Recruiters / Drives:</span>
+                <span className={`font-bold ${isDark ? "text-white" : "text-slate-900"}`}>{drivesCount} companies</span>
               </div>
               <input
                 type="range"
-                min="10"
+                min="100"
                 max="100"
                 step="5"
                 value={drivesCount}
                 onChange={(e) => setDrivesCount(Number(e.target.value))}
-                className="w-full accent-blue-600 bg-slate-200 h-2 rounded-lg cursor-pointer"
+                className={`w-full accent-blue-600 h-2 rounded-lg cursor-pointer ${isDark ? "bg-slate-800" : "bg-slate-200"}`}
               />
             </div>
 
             {/* Slider 3: Hours per Drive */}
             <div className="space-y-2">
               <div className="flex justify-between text-xs">
-                <span className="text-slate-600 font-medium">Manual Hours per Drive:</span>
-                <span className="text-slate-900 font-bold">{hoursPerDrive} hrs / drive</span>
+                <span className={isDark ? "text-slate-300 font-medium" : "text-slate-600 font-medium"}>Manual Hours per Drive:</span>
+                <span className={`font-bold ${isDark ? "text-white" : "text-slate-900"}`}>{hoursPerDrive} hrs / drive</span>
               </div>
               <input
                 type="range"
@@ -2272,53 +2649,61 @@ export default function LandingPage() {
                 step="1"
                 value={hoursPerDrive}
                 onChange={(e) => setHoursPerDrive(Number(e.target.value))}
-                className="w-full accent-blue-600 bg-slate-200 h-2 rounded-lg cursor-pointer"
+                className={`w-full accent-blue-600 h-2 rounded-lg cursor-pointer ${isDark ? "bg-slate-800" : "bg-slate-200"}`}
               />
             </div>
           </RevealOnScroll>
 
           {/* Calculator Output Right */}
-          <RevealOnScroll delay={0.25} className="lg:col-span-6 rounded-3xl bg-white border border-slate-200/90 p-6 card-hover shadow-sm space-y-4 font-mono">
-            <h3 className="text-xs uppercase tracking-wider text-slate-500 pb-2 border-b border-slate-100 font-bold">
+          <RevealOnScroll delay={0.25} className={`lg:col-span-6 rounded-3xl p-6 card-hover shadow-sm space-y-4 font-mono transition-colors ${
+            isDark ? "bg-slate-900/80 border border-slate-800" : "bg-white border border-slate-200/90"
+          }`}>
+            <h3 className={`text-xs uppercase tracking-wider pb-2 border-b font-bold ${
+              isDark ? "text-slate-400 border-slate-800" : "text-slate-500 border-slate-100"
+            }`}>
               ANNUAL INSTITUTIONAL COMPARISON
             </h3>
 
             <div className="space-y-3 text-xs">
-              <div className="flex justify-between items-center py-1 border-b border-slate-100">
-                <span className="text-slate-600">Legacy External Assessment Vendor</span>
-                <span className="text-red-600 font-bold">₹{legacyAgencyCost.toLocaleString()}</span>
+              <div className={`flex justify-between items-center py-1 border-b ${isDark ? "border-slate-800" : "border-slate-100"}`}>
+                <span className={isDark ? "text-slate-300" : "text-slate-600"}>Legacy External Assessment Vendor</span>
+                <span className="text-red-500 font-bold">₹{legacyAgencyCost.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between items-center py-1 border-b border-slate-100">
-                <span className="text-slate-600">Manual TPO Staff Coordinator Overtime</span>
-                <span className="text-red-600 font-bold">₹{legacyTpoOvertime.toLocaleString()}</span>
+              <div className={`flex justify-between items-center py-1 border-b ${isDark ? "border-slate-800" : "border-slate-100"}`}>
+                <span className={isDark ? "text-slate-300" : "text-slate-600"}>Manual TPO Staff Coordinator Overtime</span>
+                <span className="text-red-500 font-bold">₹{legacyTpoOvertime.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between items-center py-1 border-b border-slate-100">
-                <span className="text-slate-600">External Freelance Mock Interviewers</span>
-                <span className="text-red-600 font-bold">₹{legacyInterviewers.toLocaleString()}</span>
+              <div className={`flex justify-between items-center py-1 border-b ${isDark ? "border-slate-800" : "border-slate-100"}`}>
+                <span className={isDark ? "text-slate-300" : "text-slate-600"}>External Freelance Mock Interviewers</span>
+                <span className="text-red-500 font-bold">₹{legacyInterviewers.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-slate-200 text-sm">
-                <span className="text-slate-900 font-bold">Total Legacy Operating Expense</span>
-                <span className="text-red-600 font-extrabold">₹{totalLegacyCost.toLocaleString()}</span>
+              <div className={`flex justify-between items-center py-2 border-b text-sm ${isDark ? "border-slate-700" : "border-slate-200"}`}>
+                <span className={`font-bold ${isDark ? "text-white" : "text-slate-900"}`}>Total Legacy Operating Expense</span>
+                <span className="text-red-500 font-extrabold">₹{totalLegacyCost.toLocaleString()}</span>
               </div>
 
               {/* InternBridge Package */}
-              <div className="p-4 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-between">
+              <div className={`p-4 rounded-2xl flex items-center justify-between ${
+                isDark ? "bg-blue-950/60 border border-blue-800/80 text-blue-200" : "bg-blue-50 border border-blue-200 text-slate-900"
+              }`}>
                 <div>
-                  <p className="text-slate-900 font-bold text-sm">InternBridge Campus License</p>
-                  <p className="text-[11px] text-blue-700">₹10,000/mo flat (Unlimited usage)</p>
+                  <p className={`font-bold text-sm ${isDark ? "text-white" : "text-slate-900"}`}>InternBridge Campus License</p>
+                  <p className={`text-[11px] ${isDark ? "text-blue-300" : "text-blue-700"}`}>₹10,000/mo flat (Unlimited usage)</p>
                 </div>
-                <span className="text-lg font-black text-blue-700">₹{internBridgeCost.toLocaleString()}</span>
+                <span className={`text-lg font-black ${isDark ? "text-blue-400" : "text-blue-700"}`}>₹{internBridgeCost.toLocaleString()}</span>
               </div>
 
               {/* Total Savings Highlight */}
-              <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between text-emerald-800">
+              <div className={`p-4 rounded-2xl flex items-center justify-between ${
+                isDark ? "bg-emerald-950/60 border border-emerald-800/80 text-emerald-200" : "bg-emerald-50 border border-emerald-200 text-emerald-800"
+              }`}>
                 <div>
                   <p className="font-bold text-sm">Annual Net Institutional Savings</p>
-                  <p className="text-[11px] text-emerald-700 font-sans">
+                  <p className={`text-[11px] font-sans ${isDark ? "text-emerald-300" : "text-emerald-700"}`}>
                     + {hoursSaved} TPO coordinator hours reclaimed
                   </p>
                 </div>
-                <span className="text-2xl font-black text-emerald-700">₹{annualSavings.toLocaleString()}</span>
+                <span className={`text-2xl font-black ${isDark ? "text-emerald-400" : "text-emerald-700"}`}>₹{annualSavings.toLocaleString()}</span>
               </div>
             </div>
           </RevealOnScroll>
@@ -2328,29 +2713,44 @@ export default function LandingPage() {
       {/* ───────────────────────────────────────────────────────────────────────
           SECTION #04: "Free Student Placement Tools"
          ─────────────────────────────────────────────────────────────────────── */}
-      <section id="tools" className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-200/80">
+      <section id="tools" className={`py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t transition-colors ${
+        isDark ? "border-slate-800" : "border-slate-200/80"
+      }`}>
         <div className="space-y-4 mb-8">
           <RevealOnScroll>
             <RadarBadge code="04" text="FREE TOOLS • WORKS RIGHT HERE • PAGE 2" />
           </RevealOnScroll>
 
-          <h2 className="text-3xl sm:text-4xl font-bold font-heading text-slate-900">
+          <h2 className={`text-3xl sm:text-4xl font-bold font-heading ${
+            isDark ? "text-white" : "text-slate-900"
+          }`}>
             <AnimatedWords text="Free tools. This one works" />{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-emerald-600 font-bold">
-              <AnimatedWords text="right here." delay={0.2} />
-            </span>
+            <AnimatedWords
+              text="right here."
+              delay={0.2}
+              isGradient
+              className={
+                isDark
+                  ? "text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-emerald-300 to-teal-300 font-bold"
+                  : "text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-emerald-600 font-bold"
+              }
+            />
           </h2>
 
           <RevealOnScroll delay={0.2}>
-            <p className="text-sm text-slate-600 max-w-2xl leading-relaxed">
+            <p className={`text-sm max-w-2xl leading-relaxed ${
+              isDark ? "text-slate-400" : "text-slate-600"
+            }`}>
               Try our interactive student utilities directly in your browser. Test your resume ATS score, predict your CTC bracket from CGPA, or check open branch eligibility.
             </p>
           </RevealOnScroll>
         </div>
 
         {/* Tabbed Interactive Tool Switcher */}
-        <RevealOnScroll delay={0.2} className="rounded-3xl bg-white border border-slate-200/90 p-6 card-hover shadow-sm space-y-6">
-          <div className="flex flex-wrap gap-2 pb-4 border-b border-slate-100 font-mono text-xs">
+        <RevealOnScroll delay={0.2} className={`rounded-3xl p-6 card-hover shadow-sm space-y-6 transition-colors ${
+          isDark ? "bg-slate-900/80 border border-slate-800" : "bg-white border border-slate-200/90"
+        }`}>
+          <div className={`flex flex-wrap gap-2 pb-4 border-b font-mono text-xs ${isDark ? "border-slate-800" : "border-slate-100"}`}>
             {[
               { id: "ats", label: "ATS Resume Checker" },
               { id: "ctc", label: "CGPA to CTC Predictor" },
@@ -2362,6 +2762,8 @@ export default function LandingPage() {
                 className={`px-4 py-2 rounded-xl transition-all cursor-pointer ${
                   activeTool === tool.id
                     ? "bg-blue-600 text-white font-bold shadow-sm"
+                    : isDark
+                    ? "bg-slate-950/60 text-slate-400 hover:text-white border border-slate-800"
                     : "bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200"
                 }`}
               >
@@ -2379,14 +2781,18 @@ export default function LandingPage() {
             >
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="block text-slate-600 uppercase tracking-wider font-semibold">
+                  <label className={`block uppercase tracking-wider font-semibold ${isDark ? "text-slate-300" : "text-slate-600"}`}>
                     Paste resume accomplishment bullet:
                   </label>
                   <button
                     onClick={handleAiEnhanceBullet}
-                    className="text-[11px] font-mono text-blue-600 hover:text-blue-800 font-bold inline-flex items-center gap-1 cursor-pointer bg-blue-50 px-2.5 py-0.5 rounded-lg border border-blue-200"
+                    className={`text-[11px] font-mono font-bold inline-flex items-center gap-1 cursor-pointer px-2.5 py-0.5 rounded-lg border transition-all ${
+                      isDark
+                        ? "bg-blue-950/60 text-blue-300 hover:bg-blue-900/60 border-blue-800"
+                        : "bg-blue-50 text-blue-600 hover:text-blue-800 border-blue-200"
+                    }`}
                   >
-                    <Wand2 className="w-3 h-3 text-blue-600" />
+                    <Wand2 className="w-3 h-3 text-blue-500" />
                     Auto-Enhance with AI
                   </button>
                 </div>
@@ -2397,12 +2803,16 @@ export default function LandingPage() {
                     setResumeText(e.target.value);
                     setAtsScore(Math.min(97, Math.max(68, Math.round(e.target.value.length / 3) % 25 + 74)));
                   }}
-                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono resize-none text-xs"
+                  className={`w-full p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono resize-none text-xs transition-colors ${
+                    isDark
+                      ? "bg-slate-950 border border-slate-800 text-slate-100 placeholder-slate-600"
+                      : "bg-slate-50 border border-slate-200 text-slate-900"
+                  }`}
                 />
 
                 {/* Interactive Missing Keyword Pills */}
                 <div className="space-y-1.5">
-                  <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold block">
+                  <span className={`text-[10px] uppercase tracking-wider font-bold block ${isDark ? "text-slate-500" : "text-slate-400"}`}>
                     Click keyword to insert into bullet:
                   </span>
                   <div className="flex flex-wrap gap-1.5">
@@ -2410,7 +2820,11 @@ export default function LandingPage() {
                       <button
                         key={kw}
                         onClick={() => handleAddKeyword(kw)}
-                        className="px-2 py-0.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 text-[10px] font-bold border border-blue-200 transition-all cursor-pointer inline-flex items-center gap-1"
+                        className={`px-2 py-0.5 rounded-md text-[10px] font-bold border transition-all cursor-pointer inline-flex items-center gap-1 ${
+                          isDark
+                            ? "bg-blue-950/60 hover:bg-blue-900/60 text-blue-300 border-blue-800/80"
+                            : "bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200"
+                        }`}
                       >
                         <Plus className="w-2.5 h-2.5" />
                         {kw}
@@ -2420,25 +2834,27 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-4">
+              <div className={`p-5 rounded-2xl border space-y-4 ${
+                isDark ? "bg-slate-950/80 border-slate-800" : "bg-slate-50 border border-slate-200"
+              }`}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-slate-600 text-xs">Calculated ATS Score:</span>
-                    <p className="text-[11px] text-slate-400 font-sans">Tested against Fortune 500 parse rubrics</p>
+                    <span className={`text-xs ${isDark ? "text-slate-300" : "text-slate-600"}`}>Calculated ATS Score:</span>
+                    <p className={`text-[11px] font-sans ${isDark ? "text-slate-500" : "text-slate-400"}`}>Tested against Fortune 500 parse rubrics</p>
                   </div>
-                  <span className="text-3xl font-black text-emerald-600">{atsScore}/100</span>
+                  <span className="text-3xl font-black text-emerald-400">{atsScore}/100</span>
                 </div>
 
                 {/* Detected Keywords Chips */}
-                <div className="space-y-1.5 pt-2 border-t border-slate-200">
-                  <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold block">
+                <div className={`space-y-1.5 pt-2 border-t ${isDark ? "border-slate-800" : "border-slate-200"}`}>
+                  <span className={`text-[10px] uppercase tracking-wider font-bold block ${isDark ? "text-slate-400" : "text-slate-500"}`}>
                     Detected High-Impact Keywords ({detectedKeywords.length}):
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     {detectedKeywords.map((kw) => (
                       <span
                         key={kw}
-                        className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200 inline-flex items-center gap-1"
+                        className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 text-[10px] font-bold border border-emerald-500/30 inline-flex items-center gap-1"
                       >
                         <Check className="w-2.5 h-2.5" />
                         {kw}
@@ -2447,11 +2863,11 @@ export default function LandingPage() {
                   </div>
                 </div>
 
-                <div className="space-y-1.5 pt-2 border-t border-slate-200 text-[11px]">
-                  <p className="text-emerald-700 flex items-center gap-1.5 font-medium">
+                <div className={`space-y-1.5 pt-2 border-t text-[11px] ${isDark ? "border-slate-800" : "border-slate-200"}`}>
+                  <p className="text-emerald-400 flex items-center gap-1.5 font-medium">
                     <Check className="w-3.5 h-3.5" /> Quantified metric present (44% response time)
                   </p>
-                  <p className="text-blue-700 flex items-center gap-1.5 font-medium">
+                  <p className="text-blue-400 flex items-center gap-1.5 font-medium">
                     <Sparkles className="w-3.5 h-3.5" /> Recruiter Verdict: Strong candidate action verbs with measurable latency improvements.
                   </p>
                 </div>
@@ -2468,7 +2884,7 @@ export default function LandingPage() {
             >
               <div className="space-y-4">
                 <div>
-                  <label className="block text-slate-600 uppercase tracking-wider mb-1 font-semibold">
+                  <label className={`block uppercase tracking-wider mb-1 font-semibold ${isDark ? "text-slate-300" : "text-slate-600"}`}>
                     Your Current CGPA:
                   </label>
                   <input
@@ -2478,18 +2894,22 @@ export default function LandingPage() {
                     step="0.1"
                     value={cgpaInput}
                     onChange={(e) => setCgpaInput(Number(e.target.value))}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-blue-500"
+                    className={`w-full p-2.5 rounded-xl focus:outline-none focus:border-blue-500 transition-colors ${
+                      isDark ? "bg-slate-950 border border-slate-800 text-white" : "bg-slate-50 border border-slate-200 text-slate-900"
+                    }`}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-600 uppercase tracking-wider mb-1 font-semibold">
+                  <label className={`block uppercase tracking-wider mb-1 font-semibold ${isDark ? "text-slate-300" : "text-slate-600"}`}>
                     Engineering Branch:
                   </label>
                   <select
                     value={branchInput}
                     onChange={(e) => setBranchInput(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-blue-500 font-mono"
+                    className={`w-full p-2.5 rounded-xl focus:outline-none focus:border-blue-500 font-mono transition-colors ${
+                      isDark ? "bg-slate-950 border border-slate-800 text-white" : "bg-slate-50 border border-slate-200 text-slate-900"
+                    }`}
                   >
                     <option value="Information Technology">Information Technology</option>
                     <option value="Computer Engineering">Computer Engineering</option>
@@ -2499,22 +2919,24 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+              <div className={`p-5 rounded-2xl border space-y-3 ${
+                isDark ? "bg-slate-950/80 border-slate-800 text-slate-300" : "bg-slate-50 border border-slate-200"
+              }`}>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-600">Predicted CTC Bracket:</span>
-                  <span className="text-2xl font-black text-blue-600">
+                  <span className={isDark ? "text-slate-300" : "text-slate-600"}>Predicted CTC Bracket:</span>
+                  <span className="text-2xl font-black text-blue-500">
                     {cgpaInput >= 8.5 ? "₹14 - 34 LPA" : cgpaInput >= 7.5 ? "₹8 - 18 LPA" : "₹5 - 9 LPA"}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-600">
+                <p className={`text-[11px] ${isDark ? "text-slate-400" : "text-slate-600"}`}>
                   Target Tier:{" "}
-                  <span className="text-slate-900 font-bold">
+                  <span className={`font-bold ${isDark ? "text-white" : "text-slate-900"}`}>
                     {cgpaInput >= 8.5 ? "Super Dream Tier" : cgpaInput >= 7.5 ? "Dream Tier" : "Core Technical"}
                   </span>
                 </p>
-                <div className="pt-2 border-t border-slate-200 text-[11px] text-slate-600">
+                <div className={`pt-2 border-t text-[11px] ${isDark ? "border-slate-800 text-slate-400" : "border-slate-200 text-slate-600"}`}>
                   <span>Top matched companies: </span>
-                  <span className="text-emerald-700 font-bold">
+                  <span className="text-emerald-400 font-bold">
                     {cgpaInput >= 8.5 ? "Google, Microsoft, Amazon, Oracle" : "TCS Digital, L&T, Deloitte, Cognizant"}
                   </span>
                 </div>
@@ -2529,11 +2951,11 @@ export default function LandingPage() {
               animate={{ opacity: 1, y: 0 }}
               className="space-y-3 font-mono text-xs"
             >
-              <p className="text-slate-600">Live Campus Drive Eligibility Cross-Reference:</p>
+              <p className={isDark ? "text-slate-400" : "text-slate-600"}>Live Campus Drive Eligibility Cross-Reference:</p>
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="border-b border-slate-200 text-slate-400 text-[10px]">
+                    <tr className={`border-b text-[10px] ${isDark ? "border-slate-800 text-slate-400" : "border-slate-200 text-slate-400"}`}>
                       <th className="py-2">COMPANY</th>
                       <th className="py-2">MIN CGPA</th>
                       <th className="py-2">ALLOWED BRANCHES</th>
@@ -2541,19 +2963,19 @@ export default function LandingPage() {
                       <th className="py-2">STATUS</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className={`divide-y ${isDark ? "divide-slate-800/80 text-slate-300" : "divide-slate-100 text-slate-700"}`}>
                     {[
                       { co: "Google", cgpa: "8.0", br: "IT, CE, ECE", bl: "0 Active", st: "Open" },
                       { co: "Microsoft", cgpa: "7.8", br: "All Circuit Branches", bl: "0 Active", st: "Open" },
                       { co: "Tata Consultancy", cgpa: "6.5", br: "All Branches", bl: "Max 1", st: "Open" },
                       { co: "Larsen & Toubro", cgpa: "6.8", br: "Mech, Civil, Electrical", bl: "0 Active", st: "Upcoming" },
                     ].map((row, i) => (
-                      <tr key={i} className="text-slate-700">
-                        <td className="py-2.5 font-bold text-slate-900">{row.co}</td>
+                      <tr key={i}>
+                        <td className={`py-2.5 font-bold ${isDark ? "text-white" : "text-slate-900"}`}>{row.co}</td>
                         <td className="py-2.5">{row.cgpa}</td>
                         <td className="py-2.5">{row.br}</td>
                         <td className="py-2.5">{row.bl}</td>
-                        <td className="py-2.5 text-emerald-600 font-bold">{row.st}</td>
+                        <td className="py-2.5 text-emerald-400 font-bold">{row.st}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -2567,32 +2989,51 @@ export default function LandingPage() {
       {/* ───────────────────────────────────────────────────────────────────────
           SECTION #03: "Transparent Institutional & Student Pricing"
          ─────────────────────────────────────────────────────────────────────── */}
-      <section id="pricing" className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-200/80">
+      <section id="pricing" className={`py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t transition-colors ${
+        isDark ? "border-slate-800" : "border-slate-200/80"
+      }`}>
         <div className="space-y-4 mb-8">
           <RevealOnScroll>
             <RadarBadge code="03" text="PRICING • PAY FOR RESULTS • PAGE 2" />
           </RevealOnScroll>
 
-          <h2 className="text-3xl sm:text-4xl font-bold font-heading text-slate-900">
+          <h2 className={`text-3xl sm:text-4xl font-bold font-heading ${
+            isDark ? "text-white" : "text-slate-900"
+          }`}>
             <AnimatedWords text="Start free. Upgrade when your" />{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 font-bold">
-              <AnimatedWords text="campus scales." delay={0.2} />
-            </span>
+            <AnimatedWords
+              text="campus scales."
+              delay={0.2}
+              isGradient
+              className={
+                isDark
+                  ? "text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-cyan-300 font-bold"
+                  : "text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 font-bold"
+              }
+            />
           </h2>
 
           <RevealOnScroll delay={0.2}>
-            <p className="text-sm text-slate-600 max-w-2xl leading-relaxed">
+            <p className={`text-sm max-w-2xl leading-relaxed ${
+              isDark ? "text-slate-400" : "text-slate-600"
+            }`}>
               Individual students practice completely free forever. Institutions activate standard campus licenses with unlimited student onboardings and isolated tenant data.
             </p>
           </RevealOnScroll>
 
           {/* Billing Interval Toggle */}
           <div className="flex items-center gap-3 pt-4">
-            <div className="flex p-1 rounded-xl bg-white border border-slate-200 font-mono text-xs shadow-2xs">
+            <div className={`flex p-1 rounded-xl font-mono text-xs shadow-2xs ${
+              isDark ? "bg-slate-900 border border-slate-800" : "bg-white border border-slate-200"
+            }`}>
               <button
                 onClick={() => setIsAnnual(false)}
                 className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                  !isAnnual ? "bg-blue-600 text-white font-bold shadow-xs" : "text-slate-600 hover:text-slate-900"
+                  !isAnnual
+                    ? "bg-blue-600 text-white font-bold shadow-xs"
+                    : isDark
+                    ? "text-slate-400 hover:text-white"
+                    : "text-slate-600 hover:text-slate-900"
                 }`}
               >
                 Monthly
@@ -2600,29 +3041,37 @@ export default function LandingPage() {
               <button
                 onClick={() => setIsAnnual(true)}
                 className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                  isAnnual ? "bg-blue-600 text-white font-bold shadow-xs" : "text-slate-600 hover:text-slate-900"
+                  isAnnual
+                    ? "bg-blue-600 text-white font-bold shadow-xs"
+                    : isDark
+                    ? "text-slate-400 hover:text-white"
+                    : "text-slate-600 hover:text-slate-900"
                 }`}
               >
                 Annual (Save 20%)
               </button>
             </div>
-            <span className="text-xs font-mono text-emerald-700 font-bold">✓ 2 months free on annual billing</span>
+            <span className="text-xs font-mono text-emerald-400 font-bold">✓ 2 months free on annual billing</span>
           </div>
         </div>
 
         {/* 3 Pricing Cards Grid */}
         <StaggerGrid className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Plan 1: Student Free */}
-          <StaggerCard className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-sm flex flex-col justify-between space-y-6">
+          <StaggerCard className={`p-6 rounded-3xl shadow-sm flex flex-col justify-between space-y-6 transition-colors ${
+            isDark ? "bg-slate-900/80 border border-slate-800" : "bg-white border border-slate-200/90"
+          }`}>
             <div className="space-y-4 font-mono">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">STUDENT TIER</span>
+              <span className={`text-xs font-bold uppercase tracking-wider ${isDark ? "text-slate-400" : "text-slate-500"}`}>STUDENT TIER</span>
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-black text-slate-900">₹0</span>
+                <span className={`text-4xl font-black ${isDark ? "text-white" : "text-slate-900"}`}>₹0</span>
                 <span className="text-xs text-slate-500">/ forever</span>
               </div>
-              <p className="text-xs text-slate-600 font-sans">Everything needed for personal placement prep.</p>
+              <p className={`text-xs font-sans ${isDark ? "text-slate-400" : "text-slate-600"}`}>Everything needed for personal placement prep.</p>
 
-              <div className="space-y-2 pt-4 border-t border-slate-100 text-xs text-slate-700">
+              <div className={`space-y-2 pt-4 border-t text-xs ${
+                isDark ? "border-slate-800 text-slate-300" : "border-slate-100 text-slate-700"
+              }`}>
                 <p className="flex items-center gap-2">✓ Unlimited AI mock interview drills</p>
                 <p className="flex items-center gap-2">✓ ATS Resume scoring & enhancements</p>
                 <p className="flex items-center gap-2">✓ Browse all active campus placement drives</p>
@@ -2632,30 +3081,36 @@ export default function LandingPage() {
 
             <Link
               to="/signup/email"
-              className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 text-xs font-bold font-mono text-center block transition-colors"
+              className={`w-full py-2.5 rounded-xl text-xs font-bold font-mono text-center block transition-colors ${
+                isDark ? "bg-slate-800 hover:bg-slate-700 text-white" : "bg-slate-100 hover:bg-slate-200 text-slate-900"
+              }`}
             >
               Start Free as Student &rarr;
             </Link>
           </StaggerCard>
 
           {/* Plan 2: Campus Standard License */}
-          <StaggerCard className="p-6 rounded-3xl bg-gradient-to-b from-blue-50/70 to-white border-2 border-blue-600 shadow-xl shadow-blue-500/10 flex flex-col justify-between space-y-6 relative overflow-hidden">
+          <StaggerCard className={`p-6 rounded-3xl border-2 border-blue-500 shadow-xl shadow-blue-500/10 flex flex-col justify-between space-y-6 relative overflow-hidden transition-colors ${
+            isDark ? "bg-gradient-to-b from-blue-950/60 to-slate-900/90" : "bg-gradient-to-b from-blue-50/70 to-white"
+          }`}>
             <div className="absolute top-3 right-3 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-blue-600 text-white shadow-xs">
               MOST POPULAR
             </div>
 
             <div className="space-y-4 font-mono">
-              <span className="text-xs font-bold text-blue-700 uppercase tracking-wider">CAMPUS STANDARD</span>
+              <span className="text-xs font-bold text-blue-400 uppercase tracking-wider">CAMPUS STANDARD</span>
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-black text-slate-900">
+                <span className={`text-4xl font-black ${isDark ? "text-white" : "text-slate-900"}`}>
                   {isAnnual ? "₹10,000" : "₹12,000"}
                 </span>
                 <span className="text-xs text-slate-500">/ month</span>
               </div>
-              <p className="text-xs text-slate-600 font-sans">Turnkey institutional infrastructure for your college.</p>
+              <p className={`text-xs font-sans ${isDark ? "text-slate-400" : "text-slate-600"}`}>Turnkey institutional infrastructure for your college.</p>
 
-              <div className="space-y-2 pt-4 border-t border-blue-100 text-xs text-slate-800">
-                <p className="flex items-center gap-2 text-slate-900 font-bold">✓ Multi-tenant isolated workspace</p>
+              <div className={`space-y-2 pt-4 border-t text-xs ${
+                isDark ? "border-blue-900/50 text-slate-200" : "border-blue-100 text-slate-800"
+              }`}>
+                <p className={`flex items-center gap-2 font-bold ${isDark ? "text-white" : "text-slate-900"}`}>✓ Multi-tenant isolated workspace</p>
                 <p className="flex items-center gap-2">✓ Custom domain gating (@college.ac.in)</p>
                 <p className="flex items-center gap-2">✓ Unlimited student & recruiter accounts</p>
                 <p className="flex items-center gap-2">✓ AI-Proctored online screening tests</p>
@@ -2673,15 +3128,19 @@ export default function LandingPage() {
           </StaggerCard>
 
           {/* Plan 3: University Enterprise */}
-          <StaggerCard className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-sm flex flex-col justify-between space-y-6">
+          <StaggerCard className={`p-6 rounded-3xl shadow-sm flex flex-col justify-between space-y-6 transition-colors ${
+            isDark ? "bg-slate-900/80 border border-slate-800" : "bg-white border border-slate-200/90"
+          }`}>
             <div className="space-y-4 font-mono">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">UNIVERSITY NETWORK</span>
+              <span className={`text-xs font-bold uppercase tracking-wider ${isDark ? "text-slate-400" : "text-slate-500"}`}>UNIVERSITY NETWORK</span>
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-black text-slate-900">Custom</span>
+                <span className={`text-4xl font-black ${isDark ? "text-white" : "text-slate-900"}`}>Custom</span>
               </div>
-              <p className="text-xs text-slate-600 font-sans">For multi-campus universities & state boards.</p>
+              <p className={`text-xs font-sans ${isDark ? "text-slate-400" : "text-slate-600"}`}>For multi-campus universities & state boards.</p>
 
-              <div className="space-y-2 pt-4 border-t border-slate-100 text-xs text-slate-700">
+              <div className={`space-y-2 pt-4 border-t text-xs ${
+                isDark ? "border-slate-800 text-slate-300" : "border-slate-100 text-slate-700"
+              }`}>
                 <p className="flex items-center gap-2">✓ Federated multi-college administration</p>
                 <p className="flex items-center gap-2">✓ Custom ERP / Student Information System APIs</p>
                 <p className="flex items-center gap-2">✓ Dedicated onboarding & recruiter success lead</p>
@@ -2691,7 +3150,9 @@ export default function LandingPage() {
 
             <Link
               to="/contact"
-              className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 text-xs font-bold font-mono text-center block transition-colors"
+              className={`w-full py-2.5 rounded-xl text-xs font-bold font-mono text-center block transition-colors ${
+                isDark ? "bg-slate-800 hover:bg-slate-700 text-white" : "bg-slate-100 hover:bg-slate-200 text-slate-900"
+              }`}
             >
               Contact Enterprise Sales &rarr;
             </Link>
@@ -2702,23 +3163,27 @@ export default function LandingPage() {
       {/* ───────────────────────────────────────────────────────────────────────
           SECTION #02: "Frequently Asked Questions"
          ─────────────────────────────────────────────────────────────────────── */}
-      <section id="faq" className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-200/80">
+      <section id="faq" className={`py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t transition-colors ${
+        isDark ? "border-slate-800" : "border-slate-200/80"
+      }`}>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           <div className="lg:col-span-5 space-y-4">
             <RevealOnScroll>
               <RadarBadge code="02" text="FAQS • PAGE 1" />
             </RevealOnScroll>
 
-            <h2 className="text-3xl sm:text-4xl font-bold font-heading text-slate-900">
+            <h2 className={`text-3xl sm:text-4xl font-bold font-heading ${
+              isDark ? "text-white" : "text-slate-900"
+            }`}>
               <AnimatedWords text="Common questions answered." />
             </h2>
             <RevealOnScroll delay={0.2}>
-              <p className="text-sm text-slate-600 leading-relaxed">
+              <p className={`text-sm leading-relaxed ${isDark ? "text-slate-400" : "text-slate-600"}`}>
                 Everything you need to know about AI proctoring, multi-tenant isolation, and institutional placement workflows.
               </p>
-              <p className="text-xs text-slate-500 font-mono mt-3">
+              <p className={`text-xs font-mono mt-3 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
                 Have a custom requirement? Email us at{" "}
-                <Link to="/contact" className="text-blue-600 underline font-semibold">
+                <Link to="/contact" className="text-blue-500 hover:text-blue-400 underline font-semibold">
                   support@internbridge.ai
                 </Link>
               </p>
@@ -2754,14 +3219,18 @@ export default function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: i * 0.05 }}
-                className="p-4 rounded-2xl bg-white border border-slate-200/90 transition-all card-hover shadow-2xs"
+                className={`p-4 rounded-2xl transition-all card-hover shadow-2xs ${
+                  isDark ? "bg-slate-900/80 border border-slate-800" : "bg-white border border-slate-200/90"
+                }`}
               >
                 <button
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  className="w-full flex items-center justify-between text-left font-bold text-slate-900 gap-3 cursor-pointer"
+                  className={`w-full flex items-center justify-between text-left font-bold gap-3 cursor-pointer ${
+                    isDark ? "text-white" : "text-slate-900"
+                  }`}
                 >
                   <span>{faq.q}</span>
-                  <span className="text-blue-600 font-mono text-base">{openFaq === i ? "−" : "+"}</span>
+                  <span className="text-blue-500 font-mono text-base">{openFaq === i ? "−" : "+"}</span>
                 </button>
                 <AnimatePresence>
                   {openFaq === i && (
@@ -2770,7 +3239,9 @@ export default function LandingPage() {
                       animate={{ height: "auto", opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.25 }}
-                      className="mt-3 pt-3 border-t border-slate-100 text-slate-600 leading-relaxed font-sans overflow-hidden"
+                      className={`mt-3 pt-3 border-t leading-relaxed font-sans overflow-hidden ${
+                        isDark ? "border-slate-800 text-slate-300" : "border-slate-100 text-slate-600"
+                      }`}
                     >
                       {faq.a}
                     </motion.p>
@@ -2788,21 +3259,32 @@ export default function LandingPage() {
       {/* ───────────────────────────────────────────────────────────────────────
           SECTION #01: "Position #1: Final High-Impact CTA"
          ─────────────────────────────────────────────────────────────────────── */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-slate-200/80 text-center relative">
+      <section className={`py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t text-center relative transition-colors ${
+        isDark ? "border-slate-800" : "border-slate-200/80"
+      }`}>
         <div className="space-y-6 max-w-3xl mx-auto">
           <RevealOnScroll className="flex justify-center">
             <RadarBadge code="01" text="DAY 90 • EXECUTION • POSITION #1" />
           </RevealOnScroll>
 
-          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold font-heading text-slate-900 tracking-tight">
+          <h2 className={`text-4xl sm:text-5xl lg:text-6xl font-extrabold font-heading tracking-tight ${
+            isDark ? "text-white" : "text-slate-900"
+          }`}>
             <AnimatedWords text="Start building your placement records in" />{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-800 font-extrabold">
-              <AnimatedWords text="under 8 minutes." delay={0.2} />
-            </span>
+            <AnimatedWords
+              text="under 8 minutes."
+              delay={0.2}
+              isGradient
+              className={
+                isDark
+                  ? "text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-cyan-300 font-extrabold"
+                  : "text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-800 font-extrabold"
+              }
+            />
           </h2>
 
           <RevealOnScroll delay={0.2}>
-            <p className="text-base text-slate-600 max-w-xl mx-auto pt-2">
+            <p className={`text-base max-w-xl mx-auto pt-2 ${isDark ? "text-slate-400" : "text-slate-600"}`}>
               Your peers and competing colleges are onboarding recruiters every week. Transform your placement cell into an autonomous hiring powerhouse.
             </p>
           </RevealOnScroll>
@@ -2819,14 +3301,18 @@ export default function LandingPage() {
             <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
               <Link
                 to="/signup/email"
-                className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-white hover:bg-slate-50 text-slate-900 border border-slate-300 font-bold text-sm transition-all shadow-2xs block text-center"
+                className={`w-full sm:w-auto px-8 py-3.5 rounded-xl border font-bold text-sm transition-all shadow-2xs block text-center ${
+                  isDark
+                    ? "bg-slate-900 hover:bg-slate-800 text-white border-slate-700"
+                    : "bg-white hover:bg-slate-50 text-slate-900 border-slate-300"
+                }`}
               >
                 Student Register Free
               </Link>
             </motion.div>
           </RevealOnScroll>
 
-          <p className="text-xs text-slate-500 font-mono pt-3">
+          <p className={`text-xs font-mono pt-3 ${isDark ? "text-slate-500" : "text-slate-500"}`}>
             NO CREDIT CARD REQUIRED FOR STUDENTS • INSTANT INSTITUTIONAL SETUP
           </p>
         </div>
@@ -2835,68 +3321,72 @@ export default function LandingPage() {
       {/* ───────────────────────────────────────────────────────────────────────
           RICH TECHNICAL FOOTER
          ─────────────────────────────────────────────────────────────────────── */}
-      <footer className="border-t border-slate-200/90 bg-white py-14 px-4 sm:px-6 lg:px-8 font-mono text-xs">
+      <footer className={`border-t py-14 px-4 sm:px-6 lg:px-8 font-mono text-xs transition-colors ${
+        isDark ? "bg-[#090D1A] border-slate-800 text-slate-400" : "bg-white border-slate-200/90 text-slate-600"
+      }`}>
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-xs">
                 IB
               </div>
-              <span className="font-heading font-black text-slate-900 text-base">InternBridge AI</span>
+              <span className={`font-heading font-black text-base ${isDark ? "text-white" : "text-slate-900"}`}>InternBridge AI</span>
             </div>
-            <p className="text-slate-500 leading-relaxed font-sans">
+            <p className={`leading-relaxed font-sans ${isDark ? "text-slate-400" : "text-slate-500"}`}>
               The unified campus recruitment, AI proctoring, and syllabus curation ecosystem for modern universities.
             </p>
-            <div className="flex items-center gap-2 text-[10px] text-emerald-700 font-bold">
+            <div className="flex items-center gap-2 text-[10px] text-emerald-400 font-bold">
               <span className="w-2 h-2 rounded-full bg-emerald-500" />
               <span>All Systems Operational (99.98% uptime)</span>
             </div>
           </div>
 
           <div className="space-y-2">
-            <h4 className="text-slate-900 font-bold uppercase tracking-wider text-[11px]">ON THIS PAGE</h4>
-            <div className="space-y-1.5 text-slate-600">
-              <p><a href="#how-it-works" className="hover:text-blue-600 transition-colors">How it works</a></p>
-              <p><a href="#readiness" className="hover:text-blue-600 transition-colors">Opportunity Map</a></p>
-              <p><a href="#ai-studio" className="hover:text-blue-600 transition-colors">AI Interview Studio</a></p>
-              <p><a href="#drives" className="hover:text-blue-600 transition-colors">Drive Dispatcher</a></p>
-              <p><a href="#analytics" className="hover:text-blue-600 transition-colors">Performance Tracking</a></p>
-              <p><a href="#tools" className="hover:text-blue-600 transition-colors">Free Student Tools</a></p>
-              <p><a href="#pricing" className="hover:text-blue-600 transition-colors">Institutional Pricing</a></p>
-              <p><a href="#faq" className="hover:text-blue-600 transition-colors">FAQ</a></p>
+            <h4 className={`font-bold uppercase tracking-wider text-[11px] ${isDark ? "text-slate-200" : "text-slate-900"}`}>ON THIS PAGE</h4>
+            <div className={`space-y-1.5 ${isDark ? "text-slate-400" : "text-slate-600"}`}>
+              <p><a href="#how-it-works" className="hover:text-blue-500 transition-colors">How it works</a></p>
+              <p><a href="#readiness" className="hover:text-blue-500 transition-colors">Opportunity Map</a></p>
+              <p><a href="#ai-studio" className="hover:text-blue-500 transition-colors">AI Interview Studio</a></p>
+              <p><a href="#drives" className="hover:text-blue-500 transition-colors">Drive Dispatcher</a></p>
+              <p><a href="#analytics" className="hover:text-blue-500 transition-colors">Performance Tracking</a></p>
+              <p><a href="#tools" className="hover:text-blue-500 transition-colors">Free Student Tools</a></p>
+              <p><a href="#pricing" className="hover:text-blue-500 transition-colors">Institutional Pricing</a></p>
+              <p><a href="#faq" className="hover:text-blue-500 transition-colors">FAQ</a></p>
             </div>
           </div>
 
           <div className="space-y-2">
-            <h4 className="text-slate-900 font-bold uppercase tracking-wider text-[11px]">PORTAL ROLES</h4>
-            <div className="space-y-1.5 text-slate-600">
-              <p><Link to="/login" className="hover:text-blue-600 transition-colors">Student Login</Link></p>
-              <p><Link to="/login" className="hover:text-blue-600 transition-colors">TPO Coordinator Portal</Link></p>
-              <p><Link to="/login" className="hover:text-blue-600 transition-colors">College Administrator</Link></p>
-              <p><Link to="/login" className="hover:text-blue-600 transition-colors">SuperAdmin Command Center</Link></p>
-              <p><Link to="/register-college" className="hover:text-blue-600 transition-colors">Register New Institution</Link></p>
+            <h4 className={`font-bold uppercase tracking-wider text-[11px] ${isDark ? "text-slate-200" : "text-slate-900"}`}>PORTAL ROLES</h4>
+            <div className={`space-y-1.5 ${isDark ? "text-slate-400" : "text-slate-600"}`}>
+              <p><Link to="/login" className="hover:text-blue-500 transition-colors">Student Login</Link></p>
+              <p><Link to="/login" className="hover:text-blue-500 transition-colors">TPO Coordinator Portal</Link></p>
+              <p><Link to="/login" className="hover:text-blue-500 transition-colors">College Administrator</Link></p>
+              <p><Link to="/login" className="hover:text-blue-500 transition-colors">SuperAdmin Command Center</Link></p>
+              <p><Link to="/register-college" className="hover:text-blue-500 transition-colors">Register New Institution</Link></p>
             </div>
           </div>
 
           <div className="space-y-2">
-            <h4 className="text-slate-900 font-bold uppercase tracking-wider text-[11px]">GET STARTED</h4>
-            <div className="space-y-1.5 text-slate-600">
-              <p><Link to="/register-college" className="hover:text-blue-600 transition-colors">Start Free (College Onboarding)</Link></p>
-              <p><Link to="/signup/email" className="hover:text-blue-600 transition-colors">Student Register</Link></p>
-              <p><Link to="/login" className="hover:text-blue-600 transition-colors">Log in</Link></p>
-              <p><Link to="/contact" className="hover:text-blue-600 transition-colors">Contact & Support</Link></p>
+            <h4 className={`font-bold uppercase tracking-wider text-[11px] ${isDark ? "text-slate-200" : "text-slate-900"}`}>GET STARTED</h4>
+            <div className={`space-y-1.5 ${isDark ? "text-slate-400" : "text-slate-600"}`}>
+              <p><Link to="/register-college" className="hover:text-blue-500 transition-colors">Start Free (College Onboarding)</Link></p>
+              <p><Link to="/signup/email" className="hover:text-blue-500 transition-colors">Student Register</Link></p>
+              <p><Link to="/login" className="hover:text-blue-500 transition-colors">Log in</Link></p>
+              <p><Link to="/contact" className="hover:text-blue-500 transition-colors">Contact & Support</Link></p>
             </div>
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto pt-6 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-slate-500 text-[11px]">
+        <div className={`max-w-7xl mx-auto pt-6 border-t flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] ${
+          isDark ? "border-slate-800 text-slate-500" : "border-slate-200 text-slate-500"
+        }`}>
           <p>&copy; {new Date().getFullYear()} InternBridge Placement Technologies Inc. All rights reserved.</p>
           <div className="flex items-center gap-4">
-            <Link to="/contact" className="hover:text-slate-900">Privacy Policy</Link>
+            <Link to="/contact" className={isDark ? "hover:text-white" : "hover:text-slate-900"}>Privacy Policy</Link>
             <span>•</span>
-            <Link to="/contact" className="hover:text-slate-900">Terms of Service</Link>
+            <Link to="/contact" className={isDark ? "hover:text-white" : "hover:text-slate-900"}>Terms of Service</Link>
             <span>•</span>
-            <Link to="/contact" className="hover:text-slate-900">Security & Isolation</Link>
+            <Link to="/contact" className={isDark ? "hover:text-white" : "hover:text-slate-900"}>Security & Isolation</Link>
           </div>
         </div>
       </footer>

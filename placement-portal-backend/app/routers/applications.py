@@ -15,6 +15,7 @@ from app.models.user import User
 from app.schemas.application import ApplicationCreate, ApplicationResponse
 from app.services import scoring
 from app.services.eligibility_engine import check_drive_eligibility
+from app.services.fee_gate import check_fee_gate
 
 router = APIRouter(tags=["applications"])
 
@@ -25,7 +26,6 @@ def apply_to_drive(
     current_user: User = Depends(require_student),
     db: Session = Depends(get_db),
 ) -> Application:
-    # Fee verification bypassed for student applications
     drive = db.get(Drive, payload.drive_id)
     if drive is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Drive not found")
@@ -36,6 +36,8 @@ def apply_to_drive(
         and drive.college_id != current_user.college_id
     ):
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail="You cannot apply to a drive from another institution")
+
+    check_fee_gate("apply_to_drives", current_user, db)
 
     profile = db.scalar(select(Profile).where(Profile.user_id == current_user.id))
     if profile is None:

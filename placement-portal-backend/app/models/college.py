@@ -54,3 +54,4 @@ class College(Base):
     curriculum_uploads: Mapped[list["CurriculumUpload"]] = relationship(back_populates="college", cascade="all, delete-orphan")
     curriculum_subjects: Mapped[list["CurriculumSubject"]] = relationship(back_populates="college", cascade="all, delete-orphan")
     curated_resources: Mapped[list["CuratedSubjectResource"]] = relationship(back_populates="college", cascade="all, delete-orphan")
+    fee_gate_config: Mapped["FeeGateConfig | None"] = relationship(back_populates="college", cascade="all, delete-orphan", uselist=False)

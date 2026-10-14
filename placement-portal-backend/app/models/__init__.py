@@ -38,6 +38,7 @@ from app.models.analytics import Analytics
 from app.models.dashboard_insight import DashboardInsight
 from app.models.contact_message import ContactMessage, ContactCategory, ContactStatus
 from app.models.custom_feature_request import CustomFeatureRequest, CustomFeatureStatus
+from app.models.fee_gate_config import FeeGateConfig
 
 __all__ = [
     "User",
@@ -101,4 +102,5 @@ __all__ = [
     "ContactStatus",
     "CustomFeatureRequest",
     "CustomFeatureStatus",
+    "FeeGateConfig",
 ]

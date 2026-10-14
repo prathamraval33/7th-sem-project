@@ -3,6 +3,7 @@ Sets `users.fee_verified = True` only on a confident, genuine verdict —
 anything less leaves it false with the AI's reason surfaced to the student.
 """
 from datetime import datetime, timezone
+import logging
 import os
 import shutil
 
@@ -16,7 +17,10 @@ from app.models.fee_receipt import FeeReceipt, FeeVerdict
 from app.models.fee_receipt_template import FeeReceiptTemplate
 from app.models.user import User
 from app.services import groq_client
+from app.utils.exceptions import GroqServiceError
 from app.utils.file_storage import get_absolute_path
+
+logger = logging.getLogger(__name__)
 
 # Only an unambiguous, high-confidence "valid" verdict flips fee_verified.
 CONFIDENCE_THRESHOLD = 0.85
@@ -207,37 +211,51 @@ async def process_fee_receipt(db: Session, user: User, relative_file_path: str) 
     structural_match = None
     content_valid = None
 
-    if len(active_templates) == 1:
-        # Single template Path B
-        active_template = active_templates[0]
-        verdict = await get_ai_template_verdict(extracted_text, active_template.extracted_text or "")
-        matched_template_id = active_template.id
-        structural_match = verdict.get("structural_match")
-        content_valid = verdict.get("content_valid")
-    elif len(active_templates) > 1:
-        # Multi-template Path B: evaluate against all active candidate templates
-        verdict = await get_ai_multi_template_verdict(extracted_text, active_templates)
-        cand_id = verdict.get("best_matched_template_id")
-        active_ids = {t.id for t in active_templates}
-        if cand_id in active_ids:
-            matched_template_id = cand_id
+    ai_unavailable = False
+    try:
+        if len(active_templates) == 1:
+            # Single template Path B
+            active_template = active_templates[0]
+            verdict = await get_ai_template_verdict(extracted_text, active_template.extracted_text or "")
+            matched_template_id = active_template.id
+            structural_match = verdict.get("structural_match")
+            content_valid = verdict.get("content_valid")
+        elif len(active_templates) > 1:
+            # Multi-template Path B: evaluate against all active candidate templates
+            verdict = await get_ai_multi_template_verdict(extracted_text, active_templates)
+            cand_id = verdict.get("best_matched_template_id")
+            active_ids = {t.id for t in active_templates}
+            if cand_id in active_ids:
+                matched_template_id = cand_id
+            else:
+                matched_template_id = active_templates[0].id
+            structural_match = verdict.get("structural_match")
+            content_valid = verdict.get("content_valid")
         else:
-            matched_template_id = active_templates[0].id
-        structural_match = verdict.get("structural_match")
-        content_valid = verdict.get("content_valid")
-    else:
-        # Path A: General legitimacy fallback (no active templates)
-        verdict = await get_ai_verdict(extracted_text)
+            # Path A: General legitimacy fallback (no active templates)
+            verdict = await get_ai_verdict(extracted_text)
+    except GroqServiceError as exc:
+        logger.warning("Groq AI service unavailable during fee receipt processing: %s", exc)
+        ai_unavailable = True
+        verdict = {
+            "is_valid": False,
+            "confidence": 0.0,
+            "reason": "AI verification service is temporarily unavailable. Queued for manual verification by TPO.",
+        }
 
     is_valid = bool(verdict.get("is_valid"))
     confidence = float(verdict.get("confidence", 0.0))
     reason = str(verdict.get("reason", ""))
 
+    ai_verdict = None
+    if not ai_unavailable:
+        ai_verdict = FeeVerdict.VALID if is_valid else FeeVerdict.INVALID
+
     receipt = FeeReceipt(
         user_id=user.id,
         file_path=relative_file_path,
         extracted_text=extracted_text,
-        ai_verdict=FeeVerdict.VALID if is_valid else FeeVerdict.INVALID,
+        ai_verdict=ai_verdict,
         ai_confidence=confidence,
         ai_reason=reason,
         matched_against_template_id=matched_template_id,
@@ -245,10 +263,29 @@ async def process_fee_receipt(db: Session, user: User, relative_file_path: str) 
         content_valid_result=content_valid,
     )
 
+    from app.models.notification import Notification, NotificationType
+
     confident_and_genuine = is_valid and confidence >= CONFIDENCE_THRESHOLD
     if confident_and_genuine:
         receipt.verified_at = datetime.now(timezone.utc)
         user.fee_verified = True
+        db.add(
+            Notification(
+                recipient_id=user.id,
+                sender_id=user.id,
+                type=NotificationType.NOTICE,
+                message="Your fee receipt was automatically verified. You are cleared for placement drives.",
+            )
+        )
+    else:
+        db.add(
+            Notification(
+                recipient_id=user.id,
+                sender_id=user.id,
+                type=NotificationType.NOTICE,
+                message="Your fee receipt has been submitted for review. Your TPO will review it shortly.",
+            )
+        )
 
     db.add(receipt)
     db.commit()

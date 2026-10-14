@@ -12,6 +12,7 @@ from app.models.profile import Profile
 from app.models.user import User
 from app.schemas.dashboard_insight import InsightsDashboardResponse
 from app.services import web_insights_service
+from app.services.fee_gate import check_fee_gate
 from app.utils.exceptions import RateLimitError, SearchProviderError
 
 router = APIRouter(
@@ -33,6 +34,7 @@ async def get_dashboard_insights(
     current_user: User = Depends(require_student),
     db: Session = Depends(get_db),
 ) -> InsightsDashboardResponse:
+    check_fee_gate("career_insights", current_user, db)
     profile = _get_own_profile(db, current_user)
     try:
         data = await web_insights_service.get_dashboard_insights(db, current_user, profile)
@@ -53,6 +55,7 @@ async def refresh_insights(
     current_user: User = Depends(require_student),
     db: Session = Depends(get_db),
 ) -> InsightsDashboardResponse:
+    check_fee_gate("career_insights", current_user, db)
     profile = _get_own_profile(db, current_user)
     try:
         await web_insights_service.refresh_insights(db, current_user, profile)

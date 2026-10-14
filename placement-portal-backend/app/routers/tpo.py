@@ -24,7 +24,12 @@ from app.models.profile import Profile
 from app.models.test_attempt import TestAttempt
 from app.models.user import User, UserType
 from app.models.analytics import Analytics
-from app.schemas.fee_receipt import TpoFeeRejectRequest, TpoFeeReviewItemResponse
+from app.schemas.fee_receipt import (
+    TpoBulkApproveRequest,
+    TpoBulkApproveResponse,
+    TpoFeeRejectRequest,
+    TpoFeeReviewItemResponse,
+)
 from app.schemas.application import ApplicationResponse, ApplicationUpdate
 from app.schemas.company import CompanyCreate, CompanyResponse
 from app.schemas.drive import DriveCreate, DriveResponse, DriveUpdate
@@ -963,4 +968,63 @@ def reject_fee_receipt(
     db.commit()
 
     return {"message": "Receipt rejected", "receipt_id": receipt.id}
+
+
+@router.post("/fee-receipts/bulk-approve", response_model=TpoBulkApproveResponse)
+def bulk_approve_fee_receipts(
+    payload: TpoBulkApproveRequest,
+    current_user: User = Depends(require_tpo),
+    db: Session = Depends(get_db),
+) -> TpoBulkApproveResponse:
+    """Bulk approves pending fee receipts for students belonging to the TPO's college.
+    Max 50 receipts per invocation.
+    """
+    if len(payload.receipt_ids) > 50:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Maximum 50 receipt IDs allowed per bulk approval request",
+        )
+
+    if not payload.receipt_ids:
+        return TpoBulkApproveResponse(approved_count=0, failed_ids=[])
+
+    now = datetime.now(timezone.utc)
+    approved_count = 0
+    failed_ids: list[int] = []
+
+    for receipt_id in payload.receipt_ids:
+        receipt = db.get(FeeReceipt, receipt_id)
+        if receipt is None:
+            failed_ids.append(receipt_id)
+            continue
+
+        student = db.get(User, receipt.user_id)
+        if student is None:
+            failed_ids.append(receipt_id)
+            continue
+
+        if (
+            current_user.college_id is not None
+            and student.college_id is not None
+            and student.college_id != current_user.college_id
+        ):
+            failed_ids.append(receipt_id)
+            continue
+
+        receipt.verified_at = now
+        receipt.verified_by = current_user.id
+        student.fee_verified = True
+
+        db.add(
+            Notification(
+                recipient_id=student.id,
+                sender_id=current_user.id,
+                type=NotificationType.NOTICE,
+                message="Your placement fee receipt has been approved by your TPO. You are now cleared for placement drives.",
+            )
+        )
+        approved_count += 1
+
+    db.commit()
+    return TpoBulkApproveResponse(approved_count=approved_count, failed_ids=failed_ids)
 

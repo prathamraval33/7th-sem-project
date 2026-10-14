@@ -10,8 +10,11 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.fee_receipt_template import FeeReceiptTemplate
+from app.models.fee_gate_config import FeeGateConfig
 from app.schemas.fee_receipt import FeeReceiptTemplateResponse
+from app.schemas.fee_gate import FeeGateConfigResponse, FeeGateConfigUpdate, FeeGateStatsResponse
 from app.services import fee_receipt_service
+from app.services.fee_gate import get_or_create_fee_gate_config
 from app.utils.exceptions import FileValidationError
 from app.utils.file_storage import (
     FEE_RECEIPT_EXTENSIONS,
@@ -1528,6 +1531,131 @@ def get_college_billing_transactions(
             )
         )
     return results
+
+
+@router.get("/fee-gate-config", response_model=FeeGateConfigResponse)
+def get_fee_gate_config_endpoint(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> FeeGateConfigResponse:
+    """Returns the fee gate configuration for the admin's college."""
+    if current_user.college_id is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="No college associated with this admin account")
+    config = get_or_create_fee_gate_config(db, current_user.college_id)
+    resp = FeeGateConfigResponse.model_validate(config)
+    if config.updater:
+        resp.updated_by_name = config.updater.email
+    return resp
+
+
+@router.patch("/fee-gate-config", response_model=FeeGateConfigResponse)
+def update_fee_gate_config_endpoint(
+    payload: FeeGateConfigUpdate,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> FeeGateConfigResponse:
+    """Updates the fee gate configuration toggles or verification deadline for this college."""
+    if current_user.college_id is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="No college associated with this admin account")
+    config = get_or_create_fee_gate_config(db, current_user.college_id)
+
+    # Validate deadline if provided
+    if payload.verification_deadline is not None:
+        now = datetime.now(timezone.utc)
+        deadline = payload.verification_deadline
+        if deadline.tzinfo is None:
+            deadline = deadline.replace(tzinfo=timezone.utc)
+        if deadline <= now:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Verification deadline must be in the future")
+        config.verification_deadline = deadline
+
+    if payload.clear_deadline:
+        config.verification_deadline = None
+
+    for field in [
+        "browse_drives",
+        "apply_to_drives",
+        "official_tests",
+        "practice_tests",
+        "mock_interview_gen",
+        "mock_interview_drive",
+        "resume_analyzer",
+        "resume_enhancer",
+        "career_insights",
+    ]:
+        val = getattr(payload, field)
+        if val is not None:
+            setattr(config, field, val)
+
+    config.updated_by = current_user.id
+    config.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(config)
+
+    resp = FeeGateConfigResponse.model_validate(config)
+    resp.updated_by_name = current_user.email
+    return resp
+
+
+@router.get("/fee-gate-config/stats", response_model=FeeGateStatsResponse)
+def get_fee_gate_stats_endpoint(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> FeeGateStatsResponse:
+    """Returns student fee verification statistics for this college."""
+    if current_user.college_id is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="No college associated with this admin account")
+
+    total_students = db.scalar(
+        select(func.count(User.id)).where(
+            User.college_id == current_user.college_id,
+            User.user_type == UserType.STUDENT,
+        )
+    ) or 0
+
+    verified_count = db.scalar(
+        select(func.count(User.id)).where(
+            User.college_id == current_user.college_id,
+            User.user_type == UserType.STUDENT,
+            User.fee_verified == True,
+        )
+    ) or 0
+
+    students = db.scalars(
+        select(User).where(
+            User.college_id == current_user.college_id,
+            User.user_type == UserType.STUDENT,
+        )
+    ).all()
+
+    pending_review_count = 0
+    rejected_count = 0
+    unsubmitted_count = 0
+
+    for s in students:
+        if s.fee_verified:
+            continue
+        latest_receipt = db.scalar(
+            select(FeeReceipt)
+            .where(FeeReceipt.user_id == s.id)
+            .order_by(FeeReceipt.created_at.desc())
+        )
+        if latest_receipt is None:
+            unsubmitted_count += 1
+        elif latest_receipt.verified_at is None and not (latest_receipt.ai_reason or "").startswith("Manual TPO rejection"):
+            pending_review_count += 1
+        elif (latest_receipt.ai_verdict and latest_receipt.ai_verdict.value == "invalid") or (latest_receipt.ai_reason or "").startswith("Manual TPO rejection"):
+            rejected_count += 1
+        else:
+            unsubmitted_count += 1
+
+    return FeeGateStatsResponse(
+        total_students=total_students,
+        verified_count=verified_count,
+        pending_review_count=pending_review_count,
+        rejected_count=rejected_count,
+        unsubmitted_count=unsubmitted_count,
+    )
 
 
 

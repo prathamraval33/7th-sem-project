@@ -67,6 +67,7 @@ import AdminFeaturesPage from "./pages/admin/AdminFeaturesPage";
 import AdminBillingPage from "./pages/admin/AdminBillingPage";
 import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
 import AdminActivitiesPage from "./pages/admin/AdminActivitiesPage";
+import AdminFeeGatePage from "./pages/admin/AdminFeeGatePage";
 
 // SuperAdmin Pages (Command Deck Console)
 import ConsoleShell from "./components/superadmin/ConsoleShell";
@@ -124,6 +125,7 @@ export default function App() {
               <Route element={<DashboardLayout />}>
                 <Route path="/student/dashboard" element={<StudentDashboard />} />
                 <Route path="/student/fee-receipt" element={<FeeReceiptUploadPage />} />
+                <Route path="/student/fee-verification" element={<FeeReceiptUploadPage />} />
                 <Route path="/student/drives" element={<DrivesListPage />} />
                 <Route path="/student/drives/:id" element={<DriveDetailPage />} />
                 <Route path="/student/tests" element={<StudentTestsPage />} />
@@ -180,6 +182,7 @@ export default function App() {
                 <Route path="/admin/billing" element={<AdminBillingPage />} />
                 <Route path="/admin/settings" element={<AdminSettingsPage />} />
                 <Route path="/admin/activities" element={<AdminActivitiesPage />} />
+                <Route path="/admin/fee-gate" element={<AdminFeeGatePage />} />
 
                 {/* Legacy / Convenience Redirections */}
                 <Route path="/admin/students" element={<Navigate to="/admin/users?tab=students" replace />} />

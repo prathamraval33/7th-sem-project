@@ -15,6 +15,7 @@ from app.models.profile import Profile
 from app.models.user import User
 from app.schemas.drive import DriveResponse
 from app.services.eligibility_engine import check_drive_eligibility
+from app.services.fee_gate import check_fee_gate
 
 router = APIRouter(prefix="/drives", tags=["drives"])
 
@@ -36,6 +37,7 @@ def get_matched_drives(
     current_user: User = Depends(require_student),
     db: Session = Depends(get_db),
 ) -> list[Drive]:
+    check_fee_gate("browse_drives", current_user, db)
     profile = _get_own_profile(db, current_user)
     query = select(Drive).options(joinedload(Drive.company)).where(Drive.status == DriveStatus.OPEN)
     if current_user.college_id is not None:
@@ -60,6 +62,7 @@ def list_drives(
 
     profile = None
     if current_user.user_type.value == "student":
+        check_fee_gate("browse_drives", current_user, db)
         profile = db.scalar(select(Profile).where(Profile.user_id == current_user.id))
 
     results: list[DriveWithEligibility] = []
@@ -95,6 +98,7 @@ def get_drive(
 
     is_eligible, reasons = False, ["No profile on record"]
     if current_user.user_type.value == "student":
+        check_fee_gate("browse_drives", current_user, db)
         profile = db.scalar(select(Profile).where(Profile.user_id == current_user.id))
         if profile is not None:
             is_eligible, reasons = check_drive_eligibility(profile, drive)

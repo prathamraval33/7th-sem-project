@@ -88,6 +88,36 @@ export default function StudentDashboard() {
       {/* ════════════ STUDENT LIVE TICKER RIBBON ════════════ */}
       <StudentTickerRibbon />
 
+      {/* ════════════ ACTION REQUIRED FEE GATE BANNER ════════════ */}
+      {!user?.fee_verified && (
+        <RevealOnScroll direction="up" delay={0.02}>
+          <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-white border border-amber-300 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+            <div className="flex items-start gap-3.5">
+              <div className="p-2.5 rounded-xl bg-amber-100 text-amber-800 shrink-0 mt-0.5">
+                <ShieldCheck size={22} className="text-amber-700" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-amber-950 font-heading flex items-center gap-2">
+                  <span>Placement Clearance Required</span>
+                  <span className="px-2 py-0.5 rounded-md bg-amber-200/70 text-amber-900 text-[10px] font-mono font-bold uppercase">
+                    Action Needed
+                  </span>
+                </h3>
+                <p className="text-xs text-amber-800 mt-1 max-w-2xl leading-relaxed">
+                  You cannot apply to active placement drives or take official company assessments until your fee receipt is verified by AI or your TPO.
+                </p>
+              </div>
+            </div>
+            <Link
+              to="/student/fee-verification"
+              className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-amber-500/20 flex items-center gap-1.5 shrink-0 active:scale-95 text-center justify-center"
+            >
+              <span>Upload Receipt &rarr;</span>
+            </Link>
+          </div>
+        </RevealOnScroll>
+      )}
+
       {/* ════════════ TELEMETRY KPI SUMMARY CARDS ════════════ */}
       <StaggerGrid columns="grid-cols-2 lg:grid-cols-4" gap="gap-4">
         {/* Placement Readiness */}

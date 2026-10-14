@@ -15,6 +15,7 @@ from app.models.resume import Resume, ResumeSource
 from app.models.user import User
 from app.schemas.resume import ResumeResponse
 from app.services import groq_client
+from app.services.fee_gate import check_fee_gate
 from app.utils.file_storage import save_upload
 
 logger = logging.getLogger(__name__)
@@ -98,6 +99,7 @@ def start_resume_enhancer(
     current_user: User = Depends(require_student),
     db: Session = Depends(get_db),
 ) -> ResumeEnhancerStartResponse:
+    check_fee_gate("resume_enhancer", current_user, db)
     resume = db.get(Resume, resume_id)
     if resume is None or resume.user_id != current_user.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Resume not found")
@@ -111,6 +113,7 @@ async def finalize_resume_enhancer(
     current_user: User = Depends(require_student),
     db: Session = Depends(get_db),
 ) -> ResumeEnhancerFinalizeResponse:
+    check_fee_gate("resume_enhancer", current_user, db)
     original = db.get(Resume, payload.resume_id)
     if original is None or original.user_id != current_user.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Resume not found")

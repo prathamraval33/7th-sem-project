@@ -18,6 +18,7 @@ from app.models.profile import Profile
 from app.models.resume import Resume
 from app.models.user import User
 from app.services import groq_client, scoring
+from app.services.fee_gate import check_fee_gate
 
 logger = logging.getLogger(__name__)
 
@@ -116,6 +117,7 @@ async def analyze_resume(
     current_user: User = Depends(require_student),
     db: Session = Depends(get_db),
 ) -> ResumeAnalysisResponse:
+    check_fee_gate("resume_analyzer", current_user, db)
     resume = db.get(Resume, resume_id)
     if resume is None or resume.user_id != current_user.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Resume not found")

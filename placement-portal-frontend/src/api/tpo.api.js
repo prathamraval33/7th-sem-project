@@ -52,4 +52,5 @@ export const tpoApi = {
   getPendingFeeReceipts: () => axiosClient.get("/tpo/fee-receipts/pending"),
   approveFeeReceipt: (receiptId) => axiosClient.post(`/tpo/fee-receipts/${receiptId}/approve`),
   rejectFeeReceipt: (receiptId, payload) => axiosClient.post(`/tpo/fee-receipts/${receiptId}/reject`, payload),
+  bulkApproveFeeReceipts: (payload) => axiosClient.post("/tpo/fee-receipts/bulk-approve", payload),
 };

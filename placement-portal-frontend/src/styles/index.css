@@ -53,6 +53,18 @@
     background-image: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
     background-size: 32px 32px;
   }
+
+  /* Landing Page Dark Theme Overrides */
+  .dark .landing-card {
+    background-color: rgba(15, 23, 42, 0.78);
+    border-color: rgba(51, 65, 85, 0.7);
+    color: #F1F5F9;
+  }
+  .dark .landing-card-subtle {
+    background-color: rgba(2, 6, 23, 0.75);
+    border-color: rgba(30, 41, 59, 0.8);
+    color: #CBD5E1;
+  }
 }
 
 /* Sleek custom scrollbars for sticky sidebars and scrollable panels */

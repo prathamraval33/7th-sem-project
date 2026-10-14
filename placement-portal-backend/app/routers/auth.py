@@ -370,6 +370,8 @@ def college_registration_complete(
     )
     db.add(new_college)
     db.flush()
+    from app.services.fee_gate import get_or_create_fee_gate_config
+    get_or_create_fee_gate_config(db, new_college.id)
 
     admin_user = User(
         college_id=new_college.id,

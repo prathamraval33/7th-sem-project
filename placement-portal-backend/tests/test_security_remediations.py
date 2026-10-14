@@ -234,6 +234,7 @@ def test_unique_application_prevents_duplicate_race_conditions(client: TestClien
         user_type=UserType.STUDENT,
         is_active=True,
         is_email_verified=True,
+        fee_verified=True,
         college_id=1,
     )
     db_session.add(student)

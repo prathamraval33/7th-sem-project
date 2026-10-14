@@ -63,5 +63,10 @@ export const adminApi = {
   // Custom Feature Requests / Proposals to SuperAdmin
   getCustomFeatures: () => axiosClient.get("/admin/custom-features"),
   createCustomFeature: (payload) => axiosClient.post("/admin/custom-features", payload),
+
+  // Fee Gate Configuration & Statistics
+  getFeeGateConfig: () => axiosClient.get("/admin/fee-gate-config"),
+  updateFeeGateConfig: (payload) => axiosClient.patch("/admin/fee-gate-config", payload),
+  getFeeGateStats: () => axiosClient.get("/admin/fee-gate-config/stats"),
 };
 

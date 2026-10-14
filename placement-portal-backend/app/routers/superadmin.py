@@ -166,6 +166,8 @@ async def create_college(payload: CollegeCreate, current_user: User = Depends(re
     college = College(name=payload.name.strip(), domain=payload.domain.strip().lower(), status=CollegeStatus.ACTIVE)
     db.add(college)
     db.flush()
+    from app.services.fee_gate import get_or_create_fee_gate_config
+    get_or_create_fee_gate_config(db, college.id)
 
     admin_user = User(
         email=payload.admin_email,

@@ -15,8 +15,11 @@ import {
   Sparkles,
   ArrowRight,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  Lock,
+  X
 } from "lucide-react";
+import { useAuth } from "../../auth/useAuth";
 import {
   AnimatedWords,
   LiveStatusBeacon,
@@ -30,6 +33,7 @@ import {
 import { showConfirm, showToast, showError } from "../../utils/swal";
 
 export default function DrivesListPage() {
+  const { user } = useAuth();
   const [drives, setDrives] = useState([]);
   const [applicationsMap, setApplicationsMap] = useState(new Map());
   const [activeTab, setActiveTab] = useState("upcoming"); // "upcoming" | "applied"
@@ -37,6 +41,7 @@ export default function DrivesListPage() {
   const [filterMode, setFilterMode] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [bannerDismissed, setBannerDismissed] = useState(false);
 
   const fetchDrivesAndApps = async () => {
     try {
@@ -161,6 +166,39 @@ export default function DrivesListPage() {
 
       {/* ════════════ STUDENT LIVE TICKER RIBBON ════════════ */}
       <StudentTickerRibbon />
+
+      {/* ════════════ FEE GATE NOTICE BANNER ════════════ */}
+      {!user?.fee_verified && !bannerDismissed && (
+        <div className="bg-amber-50 border border-amber-200/90 rounded-2xl p-4.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-bold text-amber-900">
+                Campus Drive Applications Locked
+              </p>
+              <p className="text-xs text-amber-800 mt-0.5">
+                Campus drive applications are locked until your institutional fee receipt is verified. You can browse all active drives freely.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Link
+              to="/student/fee-verification"
+              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm active:scale-95"
+            >
+              Verify Fee Receipt &rarr;
+            </Link>
+            <button
+              type="button"
+              onClick={() => setBannerDismissed(true)}
+              className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg"
+              title="Dismiss banner"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ════════════ TABS SWITCHER ════════════ */}
       <div className="flex justify-start">
@@ -295,7 +333,13 @@ export default function DrivesListPage() {
                           : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20"
                       }`}
                     >
-                      <span>{hasApplied ? "View Application" : "View Details & Apply"}</span>
+                      <span>
+                        {hasApplied 
+                          ? "View Application" 
+                          : !user?.fee_verified 
+                            ? "View Details (Fee Required)" 
+                            : "View Details & Apply"}
+                      </span>
                       <ArrowRight size={13} />
                     </button>
                   </Link>

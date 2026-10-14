@@ -41,6 +41,7 @@ export default function TpoFeeReviewPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterMode, setFilterMode] = useState("all");
   const [selectedReceipt, setSelectedReceipt] = useState(null);
+  const [selectedIds, setSelectedIds] = useState(new Set());
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectModal, setShowRejectModal] = useState(false);
 
@@ -75,6 +76,54 @@ export default function TpoFeeReviewPage() {
       showError("Rejection Failed", err.response?.data?.detail || "Could not reject receipt.");
     },
   });
+
+  const bulkApproveMutation = useMutation({
+    mutationFn: (ids) => tpoApi.bulkApproveFeeReceipts({ receipt_ids: ids }),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries(["tpoPendingFeeReceipts"]);
+      setSelectedIds(new Set());
+      showSuccess(
+        "Bulk Approval Complete",
+        res.data?.message || `${res.data?.approved_count || 0} fee receipts have been approved.`
+      );
+    },
+    onError: (err) => {
+      showError("Bulk Approval Failed", err.response?.data?.detail || "Could not bulk approve receipts.");
+    },
+  });
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.size === filteredReceipts.length && filteredReceipts.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredReceipts.map((r) => r.id)));
+    }
+  };
+
+  const handleBulkApprove = async () => {
+    if (selectedIds.size === 0) return;
+    const count = selectedIds.size;
+    const confirmed = await showConfirm(
+      `Approve ${count} Fee Receipt${count > 1 ? "s" : ""}?`,
+      `This will mark ${count} student fee receipt(s) as verified and immediately unlock placement drives for them.`,
+      "Yes, approve selected"
+    );
+    if (confirmed) {
+      bulkApproveMutation.mutate(Array.from(selectedIds));
+    }
+  };
 
   // KPI telemetry calculations
   const totalPending = receipts.length;
@@ -244,9 +293,30 @@ export default function TpoFeeReviewPage() {
             onChipClick={setFilterMode}
           />
           <div className="flex items-center justify-between text-xs text-slate-500 px-1">
-            <span>
-              Showing <strong>{filteredReceipts.length}</strong> of {receipts.length} submissions
-            </span>
+            <div className="flex items-center gap-3">
+              <span>
+                Showing <strong>{filteredReceipts.length}</strong> of {receipts.length} submissions
+              </span>
+              {filteredReceipts.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleSelectAll}
+                  className="font-bold text-blue-600 hover:text-blue-800 transition-colors flex items-center gap-1.5 cursor-pointer ml-2"
+                >
+                  <input
+                    type="checkbox"
+                    readOnly
+                    checked={filteredReceipts.length > 0 && selectedIds.size === filteredReceipts.length}
+                    className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 pointer-events-none"
+                  />
+                  <span>
+                    {selectedIds.size === filteredReceipts.length
+                      ? "Deselect All"
+                      : `Select All Filtered (${filteredReceipts.length})`}
+                  </span>
+                </button>
+              )}
+            </div>
             <span>Click &ldquo;Compare &amp; Review&rdquo; to audit against official template</span>
           </div>
         </div>
@@ -270,25 +340,39 @@ export default function TpoFeeReviewPage() {
           {filteredReceipts.map((item) => {
             const confidencePct = Math.round((item.ai_confidence || 0) * 100);
             const isTemplateMatched = !!item.matched_against_template_id;
+            const isSelected = selectedIds.has(item.id);
 
             return (
               <div
                 key={item.id}
-                className="rounded-2xl border border-slate-200/90 bg-white/90 backdrop-blur-md p-6 shadow-sm hover:shadow-md hover:border-blue-400 transition-all flex flex-col justify-between group"
+                className={`rounded-2xl border bg-white/90 backdrop-blur-md p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group ${
+                  isSelected
+                    ? "border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/30"
+                    : "border-slate-200/90 hover:border-blue-400"
+                }`}
               >
                 <div className="space-y-4">
                   {/* Student Info Header */}
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h3 className="font-bold text-slate-900 text-base leading-snug group-hover:text-blue-700 transition-colors truncate">
-                        {item.student_name}
-                      </h3>
-                      <p className="text-xs text-slate-500 truncate mt-0.5">{item.student_email}</p>
-                      {item.roll_number && (
-                        <p className="text-xs font-mono font-bold text-blue-600 mt-1">
-                          Roll: {item.roll_number}
-                        </p>
-                      )}
+                    <div className="flex items-start gap-3 min-w-0">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelect(item.id)}
+                        className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer shrink-0"
+                        aria-label={`Select ${item.student_name}`}
+                      />
+                      <div className="min-w-0">
+                        <h3 className="font-bold text-slate-900 text-base leading-snug group-hover:text-blue-700 transition-colors truncate">
+                          {item.student_name}
+                        </h3>
+                        <p className="text-xs text-slate-500 truncate mt-0.5">{item.student_email}</p>
+                        {item.roll_number && (
+                          <p className="text-xs font-mono font-bold text-blue-600 mt-1">
+                            Roll: {item.roll_number}
+                          </p>
+                        )}
+                      </div>
                     </div>
                     <span
                       className={`px-2.5 py-1 rounded-full text-xs font-bold font-mono shrink-0 ${
@@ -659,6 +743,43 @@ export default function TpoFeeReviewPage() {
                 Confirm Rejection
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ════════════ FLOATING BULK APPROVAL ACTION BAR ════════════ */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 backdrop-blur-md text-white px-6 py-3.5 rounded-2xl shadow-2xl border border-slate-700/80 flex items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <div className="flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs font-bold font-mono">
+              {selectedIds.size}
+            </span>
+            <span className="text-xs font-medium text-slate-200">
+              receipt{selectedIds.size > 1 ? "s" : ""} selected
+            </span>
+          </div>
+
+          <div className="h-4 w-px bg-slate-700" />
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedIds(new Set())}
+              className="text-slate-400 hover:text-white text-xs h-8 px-2.5"
+            >
+              Clear
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleBulkApprove}
+              isLoading={bulkApproveMutation.isPending}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-3.5 flex items-center gap-1.5 shadow-md"
+            >
+              <CheckCircle2 size={14} />
+              <span>Approve Selected ({selectedIds.size})</span>
+            </Button>
           </div>
         </div>
       )}

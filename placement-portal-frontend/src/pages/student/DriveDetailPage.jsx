@@ -67,13 +67,36 @@ export default function DriveDetailPage() {
     );
   }
 
-  const isFeeVerified = true;
+  const isFeeVerified = Boolean(user?.fee_verified);
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <Link to="/student/drives" className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors">
         <ArrowLeft className="w-4 h-4 mr-1" /> Back to Drives
       </Link>
+
+      {/* Unverified Student Fee Gate Callout Banner */}
+      {!isFeeVerified && (
+        <div className="bg-amber-50 border border-amber-200/90 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-bold text-amber-900">
+                Institutional Fee Clearance Required
+              </p>
+              <p className="text-xs text-amber-800 mt-0.5">
+                Fee clearance is required before you can apply to campus placement drives. Upload your fee receipt to unlock.
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/student/fee-verification"
+            className="inline-flex items-center justify-center px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm shrink-0 active:scale-95"
+          >
+            Verify Fee Receipt &rarr;
+          </Link>
+        </div>
+      )}
 
       {/* Action Header */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -104,13 +127,13 @@ export default function DriveDetailPage() {
                 disabled={!isFeeVerified || drive.status !== "open"}
                 isLoading={isApplying}
                 size="lg"
-                className="w-full sm:w-auto"
+                className={`w-full sm:w-auto ${!isFeeVerified ? "opacity-60 cursor-not-allowed" : ""}`}
               >
                 Apply Now
               </Button>
               {!isFeeVerified && (
-                <div className="absolute top-full right-0 mt-2 w-64 p-2 bg-slate-800 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
-                  You must verify your placement fee receipt before applying.
+                <div className="absolute top-full right-0 mt-2 w-64 p-2.5 bg-slate-900 text-white text-xs rounded-xl shadow-xl opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none text-center">
+                  Complete fee verification at /student/fee-verification to apply.
                 </div>
               )}
             </div>
